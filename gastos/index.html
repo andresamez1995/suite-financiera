@@ -651,7 +651,7 @@ function renderTopGlobalExpenses(key, totalGasto){
         <div class="ic-bubble green" style="border-radius:12px; font-size:16px;">${item.icon}</div>
         <div class="info">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
-            <span style="font-size:14px; font-weight:600;">${item.subName}</span>
+            <span style="font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:65%;">${item.subName}</span>
             <span class="amount neg" style="font-size:14px;">${fmtCOP(item.total)}</span>
           </div>
           <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -706,7 +706,6 @@ function renderMainCategoriesAndDonut(key, total){
     const color = CAT_PALETTE[i%CAT_PALETTE.length];
     const catObj = STATE.categories.find(c=>c.name===name);
     
-    // Calcular y ordenar las subcategorías de forma descendente (mayor a menor)
     const subsList = catObj ? catObj.subcats.map(s => {
       const subSum = realizedExpensesOfMonth(key).filter(e=>e.catId===catObj.id && e.subId===s.id).reduce((acc,e)=>acc+e.amount,0);
       return { name: s.name, amount: subSum };
@@ -714,8 +713,8 @@ function renderMainCategoriesAndDonut(key, total){
 
     const subsHtml = subsList.map(s => `
       <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--text-dim); margin-top:6px; padding-left:10px; border-left:2px solid ${color}60;">
-        <span>↳ ${s.name}</span>
-        <span>${fmtCOP(s.amount)} <span style="color:var(--text-faint); font-weight:500;">(${pctOf(s.amount, total)})</span></span>
+        <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70%;">↳ ${s.name}</span>
+        <span style="white-space:nowrap;">${fmtCOP(s.amount)} <span style="color:var(--text-faint); font-weight:500;">(${pctOf(s.amount, total)})</span></span>
       </div>
     `).join('');
 
@@ -736,7 +735,7 @@ function renderMainCategoriesAndDonut(key, total){
   return html;
 }
 
-// NATURALEZA DEL GASTO LIMPIA Y ORGANIZADA
+// NATURALEZA DEL GASTO: SOLUCIÓN LIMPIA PARA TEXTOS LARGOS (Con trunque estético y sin desajustes de renglones)
 function renderStackedNivelDetailed(detailedNivel, total){
   const {debo, necesito, quiero} = detailedNivel;
   const deboPct = total>0 ? Math.round((debo.total/total)*100) : 0;
@@ -764,12 +763,14 @@ function renderStackedNivelDetailed(detailedNivel, total){
         ${sortedGroup.map(([k,v])=>{
           const pBar = (v/maxSub)*100;
           return `
-            <div style="margin-bottom:10px;">
-              <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:500; margin-bottom:3px;">
-                <span>${k}</span>
-                <span style="font-weight:600;">${fmtCOP(v)} <span style="color:var(--text-faint); font-size:11px; font-weight:400;">(${pctOf(v, total)})</span></span>
+            <div style="margin-bottom:12px; background:var(--surface-2); padding:10px 12px; border-radius:10px;">
+              <!-- Fila superior: Categoría y Monto con control estricto de una sola línea y puntos suspensivos si es muy largo -->
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:500; margin-bottom:6px; gap:8px;">
+                <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1;" title="${k}">${k}</span>
+                <span style="font-weight:600; white-space:nowrap;">${fmtCOP(v)} <span style="color:var(--text-faint); font-size:11px; font-weight:400;">(${pctOf(v, total)})</span></span>
               </div>
-              <div class="bar-track" style="height:6px; border-radius:3px;">
+              <!-- Fila inferior: Barra de progreso uniforme -->
+              <div class="bar-track" style="height:6px; border-radius:3px; background:var(--surface);">
                 <div class="bar-fill" style="width:${pBar}\%; background:var(--${colorClass}); border-radius:3px;"></div>
               </div>
             </div>
@@ -799,36 +800,95 @@ function renderStackedNivelDetailed(detailedNivel, total){
 }
 
 let movFilterNivel = 'todos';
+let movSearchQuery = '';
+let movFilterCat = 'todas';
+let movSortOrder = 'reciente';
+
 function viewMovimientos(){
   const key = STATE.viewingMonth;
-  let list = expensesOfMonth(key).slice().sort((a,b)=>b.date.localeCompare(a.date));
-  
-  if(movFilterNivel!=='todos'){
+  let list = expensesOfMonth(key).slice();
+
+  if(movFilterNivel !== 'todos'){
     list = list.filter(e => {
        const s = findSub(e.catId, e.subId);
        const currentNivel = s ? s.nivel : e.nivel;
        return currentNivel === movFilterNivel;
     });
   }
+
+  if(movFilterCat !== 'todas'){
+    list = list.filter(e => e.catId === movFilterCat);
+  }
+
+  if(movSearchQuery.trim() !== ''){
+    const q = movSearchQuery.toLowerCase().trim();
+    list = list.filter(e => {
+      const desc = (e.desc || '').toLowerCase();
+      const amountStr = String(e.amount);
+      const sub = findSub(e.catId, e.subId);
+      const subName = sub ? sub.name.toLowerCase() : '';
+      return desc.includes(q) || amountStr.includes(q) || subName.includes(q);
+    });
+  }
+
+  list.sort((a,b)=>{
+    if(movSortOrder === 'reciente') return b.date.localeCompare(a.date);
+    if(movSortOrder === 'antiguo') return a.date.localeCompare(b.date);
+    if(movSortOrder === 'mayor') return b.amount - a.amount;
+    if(movSortOrder === 'menor') return a.amount - b.amount;
+    return 0;
+  });
   
   const total = totalExpenses(key);
+  const categoriesOptions = STATE.categories.map(c => `<option value="${c.id}" ${movFilterCat===c.id?'selected':''}>${c.icon} ${c.name}</option>`).join('');
+
   return `
-  <div class="card" style="text-align:center">
-    <h3>Total gastado — ${monthLabel(key)}</h3>
-    <div class="big-num">${fmtCOP(total)}</div>
+  <div class="card" style="display:flex; flex-direction:column; gap:12px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+      <div>
+        <h3 style="font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--text-faint);">Gastos — ${monthLabel(key)}</h3>
+        <div class="big-num" style="margin-top:2px;">${fmtCOP(total)}</div>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="btn btn-secondary" data-action="export-csv" style="padding:7px 12px; font-size:12px;">↓ Exportar CSV</button>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:8px; border-top:1px solid var(--border); padding-top:12px; margin-top:4px;">
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div style="flex:2; min-width:180px;">
+          <input type="text" id="movSearch" placeholder="🔍 Buscar etiqueta, subcategoría o monto..." value="${movSearchQuery}" style="padding:8px 12px; font-size:13.5px;">
+        </div>
+        <div style="flex:1; min-width:140px;">
+          <select id="movCatFilter" style="padding:8px 12px; font-size:13.5px;">
+            <option value="todas">Todas las categorías</option>
+            ${categoriesOptions}
+          </select>
+        </div>
+        <div style="flex:1; min-width:130px;">
+          <select id="movSortSelect" style="padding:8px 12px; font-size:13.5px;">
+            <option value="reciente" ${movSortOrder==='reciente'?'selected':''}>Más reciente</option>
+            <option value="antiguo" ${movSortOrder==='antiguo'?'selected':''}>Más antiguo</option>
+            <option value="mayor" ${movSortOrder==='mayor'?'selected':''}>Mayor monto</option>
+            <option value="menor" ${movSortOrder==='menor'?'selected':''}>Menor monto</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs" style="margin-bottom:0; margin-top:4px;">
+      ${['todos','debo','necesito','quiero'].map(n=>`<div class="tab ${movFilterNivel===n?'active':''}" data-action="filter-nivel" data-nivel="${n}" style="padding:5px 12px; font-size:12px;">${n==='todos'?'Todos':nivelLabel(n)}</div>`).join('')}
+    </div>
   </div>
-  <div class="tabs">
-    ${['todos','debo','necesito','quiero'].map(n=>`<div class="tab ${movFilterNivel===n?'active':''}" data-action="filter-nivel" data-nivel="${n}">${n==='todos'?'Todos':nivelLabel(n)}</div>`).join('')}
-    <div class="tab" data-action="export-csv">Exportar CSV</div>
-  </div>
+
   <div class="card">
-    ${list.length===0 ? `<div class="empty-state"><span class="ic">◯</span>No hay gastos registrados con este filtro</div>` : list.map(e=>{
+    ${list.length===0 ? `<div class="empty-state"><span class="ic">◯</span>No hay gastos registrados con estos filtros</div>` : list.map(e=>{
       const c = findCat(e.catId); const s = findSub(e.catId, e.subId);
-      return `<div class="list-item" data-action="edit-expense" data-id="${e.id}">
+      return `<div class="list-item" data-action="edit-expense" data-id="${e.id}" style="cursor:pointer;">
         <div class="ic-bubble">${c?c.icon:'•'}</div>
         <div class="info">
           <div class="title">${e.desc || (s?s.name:'Gasto')}</div>
-          <div class="meta">${s?s.name:''} · ${new Date(e.date+'T00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short'})}</div>
+          <div class="meta">${c?c.name:''} › ${s?s.name:''} · ${new Date(e.date+'T00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short'})}</div>
         </div>
         <div class="amount neg">−${fmtCOP(e.amount)}</div>
       </div>`;
@@ -928,6 +988,21 @@ function bindViewEvents(){
   document.querySelectorAll('[data-action="filter-nivel"]').forEach(el=>{ el.onclick = ()=>{ movFilterNivel = el.dataset.nivel; render(); }; });
   document.querySelectorAll('[data-action="export-csv"]').forEach(el=> el.onclick = exportCSV);
   
+  const searchInput = document.getElementById('movSearch');
+  if(searchInput){
+    searchInput.oninput = (e)=>{ movSearchQuery = e.target.value; render(); };
+    searchInput.focus();
+    try{ searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length); }catch(err){}
+  }
+  const catFilterSelect = document.getElementById('movCatFilter');
+  if(catFilterSelect){
+    catFilterSelect.onchange = (e)=>{ movFilterCat = e.target.value; render(); };
+  }
+  const sortSelect = document.getElementById('movSortSelect');
+  if(sortSelect){
+    sortSelect.onchange = (e)=>{ movSortOrder = e.target.value; render(); };
+  }
+
   document.querySelectorAll('[data-action="edit-expense"]').forEach(el=> el.onclick = ()=> openEditExpenseModal(el.dataset.id));
   document.querySelectorAll('[data-action="edit-income"]').forEach(el=> el.onclick = ()=> openEditIncomeModal(el.dataset.id));
   document.querySelectorAll('[data-action="add-income"]').forEach(el=> el.onclick = ()=> openAddModal('ingreso'));
@@ -980,6 +1055,10 @@ function openAddModal(defaultTab = 'gasto') {
   const uniqueDescs = [...new Set(STATE.expenses.map(e=>e.desc).filter(Boolean))];
   const datalistHtml = `<datalist id="descList">${uniqueDescs.map(d=>`<option value="${d}">`).join('')}</datalist>`;
 
+  // Memoria y autocompletado para ingresos
+  const uniqueIncDescs = [...new Set(STATE.incomes.map(i=>i.desc).filter(Boolean))];
+  const incDatalistHtml = `<datalist id="incDescList">${uniqueIncDescs.map(d=>`<option value="${d}">`).join('')}</datalist>`;
+
   openModal(`
     <div class="modal-head">
       <h3>Nuevo Registro</h3><button class="close-x" onclick="closeModal()">✕</button>
@@ -1012,7 +1091,11 @@ function openAddModal(defaultTab = 'gasto') {
 
     <div id="addIngreso" class="tab-content ${defaultTab==='ingreso'?'active':''}">
       <label>Monto (COP)</label><input type="text" id="addIncAmount" class="money-input">
-      <label>Motivo / Origen</label><input type="text" id="addIncDesc" placeholder="Ej: Salario, Venta de bici...">
+      
+      <label>Motivo / Origen</label>
+      <input type="text" id="addIncDesc" list="incDescList" placeholder="Ej: Salario, Arriendo, Venta...">
+      ${incDatalistHtml}
+
       <label>Cuenta de destino (A dónde entra el dinero)</label>
       <select id="addIncAcc">${STATE.accounts.map(a=>`<option value="${a.id}">${a.name}</option>`).join('')}</select>
       <label>Fecha</label><input type="date" id="addIncDate" value="${today()}">
@@ -1078,6 +1161,18 @@ function openAddModal(defaultTab = 'gasto') {
       fillSubs(match.catId);
       subSel.value = match.subId;
       updateNivelBadge();
+    }
+  });
+
+  // Memoria y autocompletado para el monto del ingreso al escribir motivo recurrente
+  const incDesc = document.getElementById('addIncDesc');
+  const incAmountInput = document.getElementById('addIncAmount');
+  incDesc.addEventListener('input', (e) => {
+    const val = e.target.value.trim().toLowerCase();
+    if(!val) return;
+    const match = STATE.incomes.slice().reverse().find(inc => (inc.desc||'').toLowerCase() === val);
+    if(match){
+      incAmountInput.value = formatMoneyInputValue(match.amount);
     }
   });
 
@@ -1397,7 +1492,7 @@ function openSettingsModal(){
            alert("⚠️ El archivo cargado no parece ser un respaldo válido de la app.");
         }
       } catch(err){ 
-        alert("❌ Error al leer el archivo. Asegúrate de que seja el archivo .json correcto."); 
+        alert("❌ Error al leer el archivo. Asegúrate de que sea el archivo .json correcto."); 
       }
     };
     reader.readAsText(file);
