@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de salario e ingresos · Colombia 2026</title>
+<style>
+  :root{
+    --navy:#0B1220;
+    --navy2:#111C2E;
+    --paper:#F5F6F3;
+    --ink:#151A21;
+    --ink-soft:#586072;
+    --teal:#1F9D8A;
+    --teal-dark:#167467;
+    --amber:#E8A33D;
+    --coral:#D1495B;
+    --blue:#3B7DD8;
+    --violet:#9B6BC7;
+    --line:#E1E4E0;
+    --white:#FFFFFF;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;
+  }
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Roboto Mono",monospace; font-variant-numeric: tabular-nums;}
+
+  header.hero{
+    background:linear-gradient(180deg,var(--navy) 0%, var(--navy2) 100%);
+    color:#EAF0EF;
+    padding:2.4rem 1.4rem 2rem;
+  }
+  .hero-inner{max-width:960px;margin:0 auto;}
+  .hero h1{ font-size:1.7rem; margin:0 0 .3rem; font-weight:700; letter-spacing:-0.01em; }
+  .hero p{margin:0; color:#AEBBCB; font-size:.95rem; max-width:64ch;}
+  .hero .badges{display:flex; gap:.5rem; flex-wrap:wrap; margin-top:1rem;}
+  .badge{
+    font-size:.72rem; color:#CFE3DE;
+    background:rgba(31,157,138,0.18);
+    border:1px solid rgba(31,157,138,0.4);
+    padding:.28rem .6rem; border-radius:20px;
+  }
+
+  main{max-width:960px; margin:0 auto; padding:1.4rem 1.2rem 4rem;}
+
+  /* TABS PALS */
+  .tabs-main { display:flex; gap:1rem; margin-bottom:1.5rem; justify-content:center; flex-wrap: wrap;}
+  .tabs-main button {
+    flex:1; min-width: 250px; max-width:400px; padding:1rem 1rem; border-radius:10px; font-size:1rem;
+    font-weight:700; cursor:pointer; border:1px solid var(--line); background:#fff;
+    color:var(--ink-soft); transition:all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+  }
+  .tabs-main button:hover { border-color: var(--teal); }
+  .tabs-main button.active {
+    background:var(--navy); color:#fff; border-color:var(--navy); box-shadow: 0 4px 8px rgba(11,18,32,0.15);
+  }
+
+  .card{
+    background:var(--white);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:1.3rem 1.3rem 1.4rem;
+    margin-bottom:1.1rem;
+  }
+  .card h2{ font-size:1.02rem; margin:0 0 1rem; font-weight:700; display:block; }
+  .card h2 .n{ color:var(--teal-dark); margin-right:.4rem; }
+
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:.9rem;}
+  .grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:.6rem;}
+  @media(max-width:640px){.grid2{grid-template-columns:1fr;} .grid3{grid-template-columns:1fr;}}
+
+  label{ display:block; font-size:.78rem; color:var(--ink-soft); margin-bottom:.3rem; font-weight:600; }
+  input[type=number], input[type=text], input[type=date], select{
+    width:100%; padding:.55rem .6rem; border:1px solid var(--line); border-radius:7px;
+    font-size:.95rem; background:var(--paper); color:var(--ink);
+  }
+  input:focus, select:focus, button:focus{outline:2px solid var(--teal); outline-offset:1px;}
+
+  .field{margin-bottom:.8rem;}
+  .check-row{display:flex; align-items:center; gap:.5rem; margin-top:.3rem;}
+  .check-row input{width:auto; cursor: pointer; width: 1.1rem; height: 1.1rem; accent-color: var(--teal);}
+  .hint{font-size:.75rem; color:var(--ink-soft); margin-top:.25rem;}
+  .warn-banner{
+    background:#FCEEE9; border:1px solid #E8A33D; color:#7A4A0F;
+    border-radius:8px; padding:.65rem .8rem; font-size:.8rem; margin-bottom:.7rem;
+  }
+  .info-banner{
+    background:#EEF6F4; border:1px solid #BFE3DB; color:#0F5E51;
+    border-radius:8px; padding:.65rem .8rem; font-size:.8rem; margin-bottom:.7rem;
+  }
+
+  /* month tabs */
+  .months{display:flex; gap:.35rem; overflow-x:auto; padding-bottom:.3rem; margin-bottom:1rem;}
+  .months button{
+    flex:0 0 auto; background:var(--paper); border:1px solid var(--line); color:var(--ink-soft);
+    font-size:.8rem; font-weight:600; padding:.45rem .75rem; border-radius:20px; cursor:pointer;
+  }
+  .months button.active{ background:var(--navy); color:#fff; border-color:var(--navy); }
+
+  .toolbar{display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:.8rem;}
+  .toolbar button{
+    font-size:.78rem; padding:.45rem .8rem; border-radius:20px; cursor:pointer;
+    border:1px solid var(--line); background:#fff; color:var(--ink-soft); font-weight:600;
+  }
+  .toolbar button.on{ background:var(--navy); color:#fff; border-color:var(--navy); }
+
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:.35rem; min-width: 0; }
+  .cal-dow{ font-size:.68rem; text-align:center; color:var(--ink-soft); font-weight:700; padding-bottom:.2rem; overflow:hidden; text-overflow:ellipsis; }
+  .cal-day{
+    aspect-ratio:1/1; border:1px solid var(--line); border-radius:7px; background:var(--paper);
+    cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-size:.78rem; color:var(--ink); position:relative; padding:2px; min-width: 0; overflow:hidden;
+  }
+  .cal-day:hover{border-color:var(--teal);}
+  .cal-day.empty{visibility:hidden; cursor:default;}
+  .cal-day.sunday{background:#FBEFEF;}
+  .cal-day.festivo{background:#FCF3E1; border-color:#EAC98A;}
+  .cal-day .num{font-weight:700;}
+  .cal-day .tag{font-size:.53rem; color:var(--ink-soft); margin-top:1px; text-align:center; line-height:1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;}
+  .cal-day.worked{box-shadow:inset 0 0 0 2px var(--shift-color, var(--teal));}
+  .cal-day.worked::after{
+    content:""; position:absolute; top:3px; right:3px; width:7px; height:7px; border-radius:50%;
+    background:var(--shift-color, var(--teal));
+  }
+  .cal-day.selected{outline:2px solid var(--navy); outline-offset:1px;}
+  .cal-day.multiselected{outline:2px dashed var(--navy); outline-offset:1px; background:#EDEFFE;}
+
+  .legend{display:flex; gap:1rem; flex-wrap:wrap; margin-top:.8rem; font-size:.72rem; color:var(--ink-soft);}
+  .legend span{display:inline-flex; align-items:center; gap:.35rem;}
+  .dot{width:9px; height:9px; border-radius:50%; display:inline-block;}
+
+  .day-editor{ margin-top:1rem; padding:1rem; border:1px dashed var(--line); border-radius:8px; background:var(--paper); }
+  .day-editor h3{margin:0 0 .6rem; font-size:.9rem;}
+
+  .row-actions{display:flex; gap:.5rem; margin-top:.8rem; flex-wrap:wrap;}
+  button.primary{
+    background:var(--teal); color:#fff; border:none; padding:.55rem 1rem; border-radius:7px;
+    font-weight:700; cursor:pointer; font-size:.85rem;
+  }
+  button.primary:hover{background:var(--teal-dark);}
+  button.ghost{
+    background:transparent; border:1px solid var(--line); padding:.55rem 1rem; border-radius:7px;
+    cursor:pointer; font-size:.85rem; color:var(--ink-soft);
+  }
+  button.small-del{ background:none; border:none; color:var(--coral); cursor:pointer; font-size:.72rem; }
+
+  details.presets-edit{ margin:.6rem 0 1rem; font-size:.82rem; }
+  details.presets-edit summary{ cursor:pointer; color:var(--teal-dark); font-weight:600; font-size:.8rem; }
+  .turno-card{ border:1px solid var(--line); border-radius:8px; padding:.7rem .8rem; margin-top:.6rem; background:var(--paper); }
+  .turno-card-top{ display:flex; align-items:center; gap:.5rem; }
+  .turno-card-top input[type=color]{ width:34px; height:34px; padding:0; border:1px solid var(--line); border-radius:6px; cursor:pointer; flex:0 0 auto; }
+  .turno-card-top input[type=text]{ flex:1 1 auto; }
+  .turno-card-top button{ flex:0 0 auto; }
+
+  table.summary{width:100%; border-collapse:collapse; font-size:.87rem;}
+  table.summary td{padding:.42rem 0; border-bottom:1px solid var(--line);}
+  table.summary td.val{text-align:right; font-weight:600;}
+  table.summary tr.total td{border-top:2px solid var(--ink); border-bottom:none; padding-top:.7rem; font-size:1rem; font-weight:800;}
+  table.summary tr.deduct td.val{color:var(--coral);}
+  table.summary tr.add td.val{color:var(--teal-dark);}
+  table.summary tr.sub-item td{color:var(--ink-soft); font-size:.8rem;}
+  table.summary tr.sub-item td.val{color:var(--ink-soft); font-weight:500;}
+  table.summary tr.important td {font-weight: 700; color: var(--navy); font-size:.95rem;}
+  table.summary tr.important td.val {font-weight: 700; color: var(--navy);}
+
+  .days-list{margin-top:1rem; font-size:.82rem;}
+  .days-list table, .weekly-table table, .prima-table table{width:100%; border-collapse:collapse;}
+  .days-list th, .weekly-table th, .prima-table th{text-align:left; font-size:.7rem; color:var(--ink-soft); padding:.3rem .4rem; border-bottom:1px solid var(--line);}
+  .days-list td, .weekly-table td, .prima-table td{padding:.35rem .4rem; border-bottom:1px solid var(--line);}
+  .days-list td.num, .weekly-table td.num, .prima-table td.num{text-align:right;}
+
+  .weekly-table{margin-top:.8rem; font-size:.8rem;}
+  .weekly-table tr.over td{color:var(--coral); font-weight:700;}
+
+  footer{ max-width:960px; margin:0 auto; padding:0 1.2rem 3rem; color:var(--ink-soft); font-size:.75rem; line-height:1.6; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <h1>Calculadora de salario e ingresos · Colombia 2026</h1>
+    <p id="heroTextEmpleado">Tu salario fijo del contrato se paga completo cada mes, incluyendo fines de semana. El calendario solo se usa para las excepciones que lo hacen subir (turnos nocturnos, extras, festivos). Nunca baja por debajo de lo pactado.</p>
+    <p id="heroTextContratista" style="display:none;">Para trabajadores independientes. Los aportes a seguridad social se calculan sobre el 40% de tu contrato (IBC). Tú asumes el 100% de la salud, pensión y otros aportes correspondientes.</p>
+    <div class="badges">
+      <span class="badge">SMLMV 2026: $1.750.905</span>
+      <span class="badge" id="badgeJornada">Jornada 42 h/semana</span>
+      <span class="badge" id="badgeRecargo">Recargo dominical/festivo 90%</span>
+      <span class="badge">UVT 2026: $52.374</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  
+  <div class="tabs-main">
+    <button id="btnTabEmpleado" class="active" onclick="switchMainTab('empleado')">Tiempo completo (Laboral)</button>
+    <button id="btnTabContratista" onclick="switchMainTab('contratista')">Contratista / Prestación de servicios</button>
+  </div>
+
+  <!-- RESPALDO / SINCRONIZACIÓN -->
+  <div style="margin-bottom: 1.2rem; background: var(--white); border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .8rem; margin-bottom: .6rem;">
+      <div style="font-size: .85rem; color: var(--ink);">
+        <strong>¿Cambias de dispositivo o borras caché?</strong> Guarda una copia de seguridad de tus turnos y datos.
+      </div>
+      <div style="display: flex; gap: .5rem;">
+        <button class="ghost" type="button" onclick="exportarDatos()" style="font-size: .78rem; padding: .35rem .7rem;">Exportar datos (Backup)</button>
+        <button class="ghost" type="button" onclick="importarDatosPrompt()" style="font-size: .78rem; padding: .35rem .7rem;">Importar datos</button>
+      </div>
+    </div>
+    <div style="font-size: .75rem; color: var(--ink-soft); line-height: 1.4;">
+      ℹ️ <em>Nota importante:</em> Al ser una herramienta 100% gratuita y privada que no usa servidores ni contraseñas, tus datos se guardan exclusivamente en la memoria interna (caché/navegador) de este dispositivo. Si limpias los temporales, cambias de equipo o pierdes tu celular, la información local podría borrarse. <strong>Recomendación:</strong> Exporta tu archivo de backup periódicamente y guárdalo en tu correo o nube; así podrás importarlo en tu equipo en segundos y conservar todo intacto.
+    </div>
+  </div>
+
+  <!-- ================= VISTA: CONTRATISTA ================= -->
+  <div id="viewContratista" style="display:none;">
+    
+    <section class="card">
+      <h2><span class="n">1</span> Tu contrato de prestación de servicios</h2>
+      <div class="grid2">
+        <div class="field">
+          <label for="valorContrato">Valor mensual del contrato (COP)</label>
+          <input type="text" inputmode="numeric" id="valorContrato" value="1.750.905">
+          <div class="hint">El valor bruto que te pagan cada mes, sin incluir IVA.</div>
+        </div>
+        <div class="field">
+          <label for="retefuenteTipo">Retención en la fuente</label>
+          <select id="retefuenteTipo" onchange="onRetefuenteChange()">
+            <option value="0.11">Honorarios - No declarante de renta (11%)</option>
+            <option value="0.10">Honorarios - Declarante de renta (10%)</option>
+            <option value="0.06">Servicios generales (manual/técnico) - No declarante (6%)</option>
+            <option value="0.04">Servicios generales (manual/técnico) - Declarante (4%)</option>
+            <option value="custom">Personalizado (Monto exacto en pesos)</option>
+            <option value="0">No aplica / No me retienen (0%)</option>
+          </select>
+          
+          <div id="retefuenteCustomContainer" style="display:none; margin-top:.6rem;">
+            <label for="retefuenteCustomValor">Monto mensual exacto de retención (COP)</label>
+            <input type="text" inputmode="numeric" id="retefuenteCustomValor" value="0">
+            <div class="hint">Escribe exactamente cuánto te descuentan de retención en la fuente al mes.</div>
+          </div>
+
+          <details class="info-banner" style="margin-top:.5rem; padding:.5rem .8rem;">
+            <summary style="cursor:pointer; font-weight:600; outline:none;">¿No sabes cuál elegir? Guía rápida aquí</summary>
+            <div style="margin-top:.6rem; font-size:.8rem; line-height:1.5;">
+              <p style="margin-top:0;"><strong>1. Honorarios (Trabajo intelectual):</strong> Predomina el conocimiento, el intelecto o la creatividad sobre el trabajo físico. <em>Ejemplos: Desarrolladores de software, ingenieros, consultores, diseñadores, abogados, contadores, médicos, publicistas.</em></p>
+              <p><strong>2. Servicios generales (Trabajo manual/mecánico):</strong> Predomina la labor física, destreza manual o mecánica sin requerir un conocimiento especializado exhaustivo. <em>Ejemplos: Mantenimiento, limpieza, transporte, construcción, digitación básica, reparaciones físicas.</em></p>
+              <p><strong>3. Personalizado:</strong> Úsalo si tu empresa te descuenta un monto fijo o específico en pesos (como $159.000) y prefieres ingresarlo directamente.</p>
+              <p style="margin-bottom:0;"><strong>4. No aplica:</strong> Úsalo si la empresa/persona que te contrata no está obligada a retener impuestos o si tienes una exención contable específica.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <div class="check-row">
+            <input type="checkbox" id="pagaARL">
+            <span style="font-size:.85rem; font-weight:600;">Pago ARL (Riesgos Laborales)</span>
+          </div>
+          <div id="arlFields" style="display:none; margin-top:.5rem;">
+            <select id="nivelARL">
+              <option value="0.00522">Riesgo I - Oficinas, finanzas, educación (0.522%)</option>
+              <option value="0.01044">Riesgo II - Manufactura, agricultura (1.044%)</option>
+              <option value="0.02436">Riesgo III - Procesos industriales (2.436%)</option>
+              <option value="0.04350">Riesgo IV - Transporte, aceites (4.350%)</option>
+              <option value="0.06960">Riesgo V - Construcción, minería, bomberos (6.960%)</option>
+            </select>
+            <details class="info-banner" style="margin-top:.5rem; padding:.5rem .8rem;">
+              <summary style="cursor:pointer; font-weight:600; outline:none;">¿Cómo sé qué nivel de riesgo soy?</summary>
+              <div style="margin-top:.6rem; font-size:.8rem; line-height:1.5;">
+                <p style="margin-top:0;">El nivel se asigna según la peligrosidad de la actividad que realizas:</p>
+                <ul style="margin-top:0; padding-left:1.2rem; margin-bottom:0.5rem;">
+                  <li><strong>Riesgo I (0.522%):</strong> Mínimo. Trabajo de oficina, consultoría, profesores, comercio al por menor, desarrollo de software. <em>(Es el más común para profesionales)</em>.</li>
+                  <li><strong>Riesgo II (1.044%):</strong> Bajo. Manufactura ligera (confecciones, textiles), labores agrícolas básicas.</li>
+                  <li><strong>Riesgo III (2.436%):</strong> Medio. Procesos industriales, talleres de mecánica, fabricación de objetos en cuero/metal.</li>
+                  <li><strong>Riesgo IV (4.350%):</strong> Alto. Transporte de pasajeros o carga, empresas de aseo, seguridad privada.</li>
+                  <li><strong>Riesgo V (6.960%):</strong> Máximo. Construcción, minería, manejo de explosivos, trabajo en alturas.</li>
+                </ul>
+                <p style="margin-bottom:0;"><strong>Ojo al dato:</strong> Si tu labor es de <strong>Riesgo IV o V</strong>, por ley (Decreto 723 de 2013) <strong>la empresa contratante es quien debe pagar el 100% de la ARL</strong>, no te lo deben descontar de tus honorarios.</p>
+              </div>
+            </details>
+          </div>
+        </div>
+        <div class="field">
+          <div class="check-row">
+            <input type="checkbox" id="pagaCCF" onchange="toggleCCFFields()">
+            <span style="font-size:.85rem; font-weight:600;">Pago Caja de Compensación (CCF)</span>
+          </div>
+          <div id="ccfFields" style="display:none; margin-top:.5rem;">
+            <label for="ccfRateSelect">Tarifa voluntaria de aporte sobre el IBC</label>
+            <select id="ccfRateSelect" onchange="renderContratista()">
+              <option value="0.02">2.0% (Tarifa estándar completa)</option>
+              <option value="0.01">1.0% (Tarifa intermedia)</option>
+              <option value="0.006">0.6% (Tarifa mínima especial)</option>
+              <option value="custom">Otra tarifa personalizada (%)</option>
+            </select>
+            <div id="ccfCustomContainer" style="display:none; margin-top:.4rem;">
+              <input type="number" id="ccfCustomValor" value="2" min="0.1" max="4" step="0.1" placeholder="Ej: 1.5" oninput="renderContratista()">
+              <div class="hint">Escribe el porcentaje exacto (ej: 0.8 para 0.8%).</div>
+            </div>
+            <div class="hint" style="margin-top:.4rem;">Aporte voluntario de independientes para acceder a subsidios, turismo y recreación.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">2</span> Aportes a seguridad social (los asume 100% el contratista)</h2>
+      <p class="hint" style="margin-top:.4rem; margin-bottom:.9rem;">
+        La base de cotización (IBC) es el 40% del valor mensual del contrato. La ley establece que el IBC nunca puede ser menor a 1 SMLMV ($1.750.905) ni mayor a 25 SMLMV.
+      </p>
+      <table class="summary" id="ibcTableContratista"></table>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">3</span> Resultado del mes (Neto)</h2>
+      <p class="hint" style="margin-top:.4rem; margin-bottom:.9rem;">
+        La prestación de servicios no genera prima, cesantías, vacaciones remuneradas ni auxilio de transporte.
+      </p>
+      <table class="summary" id="summaryTableContratista"></table>
+    </section>
+
+  </div>
+
+
+  <!-- ================= VISTA: TIEMPO COMPLETO ================= -->
+  <div id="viewEmpleado">
+    
+    <section class="card">
+      <h2><span class="n">1.5</span> Comisiones y bonos por ventas (para el mes de <span id="comisionMesLabel"></span>)</h2>
+      <p class="hint" style="margin-top:.4rem; margin-bottom:.9rem;">
+        Las comisiones pertenecen al mes que tengas seleccionado en el calendario. Al cambiar de mes podrás registrar las comisiones correspondientes a ese período sin acumular listas innecesarias.
+      </p>
+      <div class="check-row" style="margin-bottom:.8rem;">
+        <input type="checkbox" id="tieneComisiones" onchange="toggleComisiones()">
+        <span style="font-size:.85rem; font-weight:600;">En el mes de <span id="comisionMesLabelCheck"></span> recibí comisiones o bonos habituales</span>
+      </div>
+      <div id="comisionesContainer" style="display:none; margin-top:.8rem;">
+        <div id="comisionesList"></div>
+        <div class="row-actions" style="margin-top:.6rem;">
+          <button class="ghost" type="button" onclick="addComisionRow()">+ Agregar comisión a este mes</button>
+        </div>
+        <div style="margin-top:.8rem; text-align:right; font-weight:700; font-size:.9rem;" id="totalComisionesLabel">
+          Total comisiones del mes: $0
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">1</span> Tu contrato</h2>
+      <div class="grid2">
+        <div class="field">
+          <label for="salarioBase">Salario mensual base (COP)</label>
+          <input type="text" inputmode="numeric" id="salarioBase" value="1.750.905">
+          <div class="hint">Es tu sueldo fijo de contrato: se paga completo todos los meses (incluidos fines de semana), aunque no marques nada en el calendario. Solo sube si trabajas de noche, en festivo/domingo o haces horas extra.</div>
+        </div>
+        <div class="field">
+          <label for="jornadaPactada">Horas ordinarias pactadas por día</label>
+          <input type="number" id="jornadaPactada" value="8" min="1" max="12" step="0.5">
+          <div class="hint">Lo que trabajas más allá de esto, en tu turno normal, cuenta como extra.</div>
+        </div>
+        <div class="field">
+          <label for="almuerzo">Horas de almuerzo (no remuneradas)</label>
+          <input type="number" id="almuerzo" value="1" min="0" max="3" step="0.25">
+        </div>
+        <div class="field">
+          <label for="auxTransporte">Auxilio de transporte</label>
+          <div class="check-row">
+            <input type="checkbox" id="auxTransporte">
+            <span id="auxTransporteLabel" style="font-size:.85rem;">Aplica ($249.095/mes, solo si ganas hasta 2 SMLMV)</span>
+          </div>
+          <div class="hint">Se activa y desactiva automáticamente según tu salario y comisiones del mes (tope: 2 SMLMV / $3.501.810).</div>
+        </div>
+        <div class="field">
+          <label for="fechaIngreso">Fecha de ingreso a la empresa (2026)</label>
+          <input type="date" id="fechaIngreso">
+          <div class="hint">Si empezaste a mitad de mes, ese mes se paga proporcional.</div>
+        </div>
+        <div class="field" style="grid-column: 1 / -1; margin-top: .4rem;">
+          <div class="check-row">
+            <input type="checkbox" id="pagaCajaEmpresa">
+            <span style="font-size:.85rem; font-weight:600;">Mi empresa paga Caja de Compensación (Aporte patronal del 4%)</span>
+          </div>
+          <div class="hint">Es una obligación de ley del empleador (no te lo descuentan a ti). Al marcarlo, se mostrará como un beneficio corporativo aportado por la empresa.</div>
+        </div>
+        <div class="field" style="grid-column: 1 / -1; margin-top: .4rem; background: #EEF6F4; padding: .8rem; border-radius: 8px; border: 1px solid #BFE3DB;">
+          <div class="check-row">
+            <input type="checkbox" id="pagoMesVencido">
+            <span style="font-size:.85rem; font-weight:600; color: var(--teal-dark);">Pagar recargos, horas extra y comisiones mes vencido (Nómina vencida)</span>
+          </div>
+          <div class="hint" style="margin-top: .3rem;">Si está activo, los recargos, horas extra y comisiones generados en el mes anterior se te pagan reflejados en el salario de este mes (muy común en turnos rotativos).</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">2</span> Deducciones para la retención en la fuente</h2>
+      <p class="hint" style="margin-top:-.4rem; margin-bottom:1rem;">
+        Estos tres conceptos bajan la base sobre la que se calcula la retención (art. 387 ET).
+      </p>
+      <div class="grid2">
+        <div class="field">
+          <div class="check-row">
+            <input type="checkbox" id="tieneVivienda">
+            <span style="font-size:.85rem; font-weight:600;">Pago crédito hipotecario/leasing</span>
+          </div>
+          <div id="viviendaFields" style="display:none; margin-top:.5rem;">
+            <label for="interesesVivienda">Intereses que pagas al mes (COP)</label>
+            <input type="text" inputmode="numeric" id="interesesVivienda" value="0">
+            <div class="hint">Solo los intereses. Tope: 100 UVT/mes.</div>
+          </div>
+        </div>
+        <div class="field">
+          <div class="check-row">
+            <input type="checkbox" id="tienePrepagada">
+            <span style="font-size:.85rem; font-weight:600;">Pago medicina prepagada</span>
+          </div>
+          <div id="prepagadaFields" style="display:none; margin-top:.5rem;">
+            <label for="pagoPrepagada">Cuánto pagas al mes (COP)</label>
+            <input type="text" inputmode="numeric" id="pagoPrepagada" value="0">
+            <div class="hint">Tope legal: 16 UVT/mes.</div>
+          </div>
+        </div>
+        <div class="field">
+          <div class="check-row">
+            <input type="checkbox" id="tieneDependientes">
+            <span style="font-size:.85rem; font-weight:600;">Tengo dependientes económicos</span>
+          </div>
+          <div class="hint" style="margin-top:.4rem;">Deducción del 10% del ingreso, tope 32 UVT/mes.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">3</span> Marca las excepciones en tu calendario</h2>
+      <p class="hint" style="margin-top:-.6rem; margin-bottom:.8rem;">No necesitas marcar cada día normal: tu salario fijo ya los cubre. Marca solo los días que suman algo extra (turno distinto, festivo trabajado, horas extra específicas) o que quieras registrar (vacaciones).</p>
+
+      <details class="presets-edit">
+        <summary>Turnos base: editar, eliminar o crear (color, horario)</summary>
+        <div id="turnosManager"></div>
+        <div class="row-actions"><button class="ghost" type="button" onclick="addTurno()">+ Agregar turno base</button></div>
+      </details>
+
+      <div class="months" id="monthTabs"></div>
+
+      <div class="toolbar">
+        <button type="button" id="btnMulti" onclick="toggleMultiMode()">Seleccionar varios días</button>
+      </div>
+
+      <div id="ingresoWarning"></div>
+
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="legend" id="legend"></div>
+
+      <!-- EDITOR MULTIPLE -->
+      <div class="day-editor" id="multiPanel" style="display:none;">
+        <h3><span id="multiCount">0</span> días seleccionados</h3>
+        <div class="grid3">
+          <div class="field">
+            <label for="multiTurno">Turno Base</label>
+            <select id="multiTurno" onchange="onMultiTurnoChange()"></select>
+          </div>
+          <div class="field">
+            <label for="multiInicio">Hora de inicio</label>
+            <input type="text" id="multiInicio" value="08:00">
+          </div>
+          <div class="field">
+            <label for="multiFin">Hora de fin</label>
+            <input type="text" id="multiFin" value="17:00">
+          </div>
+        </div>
+        
+        <div class="check-row" style="margin-top:.5rem;">
+          <input type="checkbox" id="checkExtraMulti" onchange="toggleExtraCampos('Multi')">
+          <span style="font-weight:600; font-size:.85rem; color:var(--teal-dark);">+ Agregar horas extra en un horario específico</span>
+        </div>
+        <div id="camposExtraMulti" style="display:none; margin-top:.8rem; background:#F5F6F3; padding:1rem; border-radius:8px; border:1px solid #D5D9D4;">
+          <p class="hint" style="margin-top:0; margin-bottom:.8rem;">Indica a qué hora hiciste el trabajo extra para calcular con precisión los recargos nocturnos o dominicales según aplique.</p>
+          <div class="grid2">
+            <div class="field">
+              <label>Hora de inicio extra</label>
+              <input type="text" id="multiExtraInicio" placeholder="Ej: 03:00">
+            </div>
+            <div class="field">
+              <label>Hora de fin extra</label>
+              <input type="text" id="multiExtraFin" placeholder="Ej: 05:00">
+            </div>
+          </div>
+        </div>
+
+        <div class="row-actions" style="margin-top:1.2rem;">
+          <button class="primary" type="button" onclick="aplicarMulti()">Aplicar a los días seleccionados</button>
+          <button class="ghost" type="button" onclick="limpiarSeleccionMulti()">Limpiar selección</button>
+          <button class="ghost" type="button" onclick="toggleMultiMode()">Salir de selección múltiple</button>
+        </div>
+      </div>
+
+      <!-- EDITOR SIMPLE -->
+      <div class="day-editor" id="dayEditor" style="display:none;">
+        <h3 id="dayEditorTitle">Día seleccionado</h3>
+        <div class="grid3">
+          <div class="field">
+            <label for="turnoDia">Turno Base</label>
+            <select id="turnoDia" onchange="onTurnoDiaChange()"></select>
+          </div>
+          <div class="field">
+            <label for="horaInicio">Hora de inicio</label>
+            <input type="text" id="horaInicio" placeholder="08:00" value="08:00">
+          </div>
+          <div class="field">
+            <label for="horaFin">Hora de fin</label>
+            <input type="text" id="horaFin" placeholder="17:00" value="17:00">
+          </div>
+        </div>
+        
+        <div class="check-row" style="margin-top:.5rem;">
+          <input type="checkbox" id="checkExtraDia" onchange="toggleExtraCampos('Dia')">
+          <span style="font-weight:600; font-size:.85rem; color:var(--teal-dark);">+ Agregar horas extra en un horario específico</span>
+        </div>
+        <div id="camposExtraDia" style="display:none; margin-top:.8rem; background:#F5F6F3; padding:1rem; border-radius:8px; border:1px solid #D5D9D4;">
+          <p class="hint" style="margin-top:0; margin-bottom:.8rem;">Indica a qué hora hiciste el trabajo extra para calcular con precisión los recargos nocturnos o dominicales según aplique.</p>
+          <div class="grid2">
+            <div class="field">
+              <label>Hora de inicio extra</label>
+              <input type="text" id="diaExtraInicio" placeholder="Ej: 18:00">
+            </div>
+            <div class="field">
+              <label>Hora de fin extra</label>
+              <input type="text" id="diaExtraFin" placeholder="Ej: 21:00">
+            </div>
+          </div>
+        </div>
+        <div class="hint" style="margin-top:1rem;">Formato 24 horas, HH:MM. Si cruza la medianoche (ej: 22:00 a 06:00), se calcula el recargo que caiga en el día calendario real.</div>
+        
+        <div class="row-actions" style="margin-top:1.2rem;">
+          <button class="primary" type="button" onclick="saveDay()">Guardar día trabajado</button>
+          <button class="ghost" type="button" onclick="removeDay()">Quitar / no trabajé este día</button>
+        </div>
+      </div>
+
+      <div id="weeklyHours" class="weekly-table"></div>
+      <div class="days-list" id="daysList"></div>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">4</span> Resultado del mes</h2>
+      <table class="summary" id="summaryTable"></table>
+      <!-- INPUT OPCIONAL PARA INTERESES DE CESANTÍAS EN ENERO -->
+      <div id="eneroInteresesContainer" style="display:none; margin-top:1rem; background:#F5F6F3; padding:1rem; border-radius:8px; border:1px solid #D5D9D4;">
+        <label for="interesesCesantiasEnero">Valor de intereses sobre cesantías pagados por la empresa en Enero (COP)</label>
+        <input type="text" inputmode="numeric" id="interesesCesantiasEnero" value="0" oninput="onInteresesEneroInput()">
+        <div class="hint">Si trabajaste el año anterior (2025) en la misma empresa, escribe aquí el valor exacto del 12% que te pagaron este mes. Si eres empleado nuevo o retiraste cesantías, déjalo en 0.</div>
+      </div>
+      <div id="notaMesEspecial" style="margin-top:.8rem;"></div>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">5</span> Prima de servicios, cesantías e intereses</h2>
+      <p class="hint" style="margin-top:-.4rem; margin-bottom:.9rem;">
+        Se van acumulando solos tomando el total devengado real de cada mes (incluyendo reglas de mes vencido si aplican).
+      </p>
+      <div id="primaTable" class="prima-table"></div>
+      <div id="cesantiasBox" style="margin-top:1rem;"></div>
+      <div class="row-actions" style="margin-top:.8rem;">
+        <button class="primary" type="button" onclick="guardarMesPrima()">Guardar el mes de <span id="mesActualLabel"></span> en el historial</button>
+      </div>
+    </section>
+  </div>
+
+</main>
+
+<footer>
+  <div id="footerEmpleado">
+    <strong>Supuestos y normativa aplicada (vigente en septiembre de 2026):</strong> Salario mínimo y auxilio de transporte 2026 fijados por los decretos de diciembre de 2025. Jornada máxima de 42 horas semanales (Ley 2101 de 2021, último escalón desde el 15 de julio de 2026); valor de la hora ordinaria = salario ÷ 210. Recargo dominical/festivo del 90% (Ley 2466 de 2025, vigente entre el 1 de julio de 2026 y el 30 de junio de 2027). Recargo nocturno del 35% entre las 7:00 p.m. y las 6:00 a.m. Horas extra: +25% diurna, +75% nocturna, combinables con el recargo festivo. Aportes obligatorios: salud 4% y pensión 4%; Fondo de Solidaridad Pensional (1% a 2%) si el ingreso supera 4 SMLMV. Retención en la fuente por el procedimiento 1 del artículo 383 del Estatuto Tributario (UVT $52.374, renta exenta 25% con tope 790 UVT anuales), con las deducciones del artículo 387 (intereses de vivienda hasta 100 UVT/mes, salud prepagada hasta 16 UVT/mes, dependientes 10% del ingreso hasta 32 UVT/mes), sujetas al límite conjunto del 40% del ingreso o 1.340 UVT anuales.
+    <br><br>
+    <strong>Cómo se calcula el mes:</strong> tu salario mensual pactado se paga completo (prorrateado solo si el mes de ingreso empezó a mitad de mes), cubriendo también los fines de semana como descanso remunerado. El calendario solo se usa para las excepciones que suma por encima de ese salario: recargo nocturno, recargo dominical/festivo y horas extra. Marcar un día de un turno "sin pago adicional" (por defecto, vacaciones) no cambia el pago; es solo para tu registro. El auxilio de transporte se prorratea por los días del período, no por lo marcado en el calendario. La prima usa el mismo devengado (salario del período + recargos/extras del semestre), sumado y dividido entre 12 (equivale a salario promedio × días trabajados ÷ 360).
+    <br><br>
+    Esta calculadora da una estimación de referencia. Para una liquidación oficial de nómina, confírmala con el área de talento humano o un contador.
+  </div>
+
+  <div id="footerContratista" style="display:none;">
+    <strong>Supuestos y normativa aplicada para Contratistas (vigente en septiembre de 2026):</strong> La base de cotización (IBC) para trabajadores independientes por cuenta propia y con contratos de prestación de servicios personales es del 40% del valor mensualizado del contrato (Ley 2277 de 2022). El IBC no puede ser inferior a un (1) Salario Mínimo Legal Mensual Vigente (SMLMV $1.750.905) ni superior a veinticinco (25) SMLMV. Los aportes a seguridad social son asumidos en su totalidad por el contratista: Salud 12.5% y Pensión 16%. El aporte a Riesgos Laborales (ARL) varía entre el 0.522% y el 6.960% según la clase de riesgo y se calcula sobre el mismo IBC. La afiliación a Caja de Compensación Familiar (CCF) es voluntaria con un aporte variable sobre el IBC.
+    <br><br>
+    <strong>Retención en la fuente:</strong> Se aplican las tarifas establecidas en el Estatuto Tributario. Para honorarios y consultorías (servicios calificados o intelectuales) se retiene el 11% para no declarantes y el 10% para declarantes de renta. Para servicios generales (labor manual o técnica), la retención es del 6% para no declarantes y del 4% para declarantes. Eres declarante si tus ingresos del año gravable anterior superaron el tope establecido por la DIAN (aprox. $65.8 millones anuales).
+    <br><br>
+    Esta calculadora da una estimación de referencia. Para la liquidación oficial de tus planillas de seguridad social (PILA) o declaración de impuestos, confírmalo con tu contador de confianza.
+  </div>
+  
+  <div style="margin-top: 1.5rem; text-align: center; font-weight: 600; color: var(--teal-dark); border-top: 1px dashed var(--line); padding-top: 1rem;">
+    ✨ Creado por Andrés Amézquita
+  </div>
+</footer>
+
+<script>
+// ---------- Lógica de Cambio de Pestañas ----------
+let currentTab = 'empleado';
+function switchMainTab(tabId) {
+  currentTab = tabId;
+  document.getElementById('btnTabEmpleado').classList.toggle('active', tabId === 'empleado');
+  document.getElementById('btnTabContratista').classList.toggle('active', tabId === 'contratista');
+  
+  document.getElementById('viewEmpleado').style.display = (tabId === 'empleado') ? 'block' : 'none';
+  document.getElementById('viewContratista').style.display = (tabId === 'contratista') ? 'block' : 'none';
+  
+  document.getElementById('heroTextEmpleado').style.display = (tabId === 'empleado') ? 'block' : 'none';
+  document.getElementById('heroTextContratista').style.display = (tabId === 'contratista') ? 'block' : 'none';
+  document.getElementById('badgeJornada').style.display = (tabId === 'empleado') ? 'inline-block' : 'none';
+  document.getElementById('badgeRecargo').style.display = (tabId === 'empleado') ? 'inline-block' : 'none';
+  
+  document.getElementById('footerEmpleado').style.display = (tabId === 'empleado') ? 'block' : 'none';
+  document.getElementById('footerContratista').style.display = (tabId === 'contratista') ? 'block' : 'none';
+
+  renderAll();
+}
+
+// ---------- Constantes normativas 2026 ----------
+const SMLMV = 1750905;
+const AUX_TRANSPORTE = 249095;
+const UVT = 52374;
+const DIVISOR_HORARIO = 210;
+const RECARGO_NOCTURNO = 0.35;
+const RECARGO_DOMFEST = 0.90;
+const EXTRA_DIURNA = 0.25;
+const EXTRA_NOCTURNA = 0.75;
+const SALUD_PCT = 0.04;
+const PENSION_PCT = 0.04;
+
+// Contratistas
+const CONTRATO_SALUD_PCT = 0.125;
+const CONTRATO_PENSION_PCT = 0.16;
+
+const TOPE_VIVIENDA_UVT = 100;
+const TOPE_PREPAGADA_UVT = 16;
+const TOPE_DEPENDIENTES_UVT = 32;
+const TOPE_GLOBAL_UVT_ANUAL = 1340;
+
+const FESTIVOS_2026 = [
+  [1,1,"Año Nuevo"],[1,12,"Reyes Magos"],[3,23,"San José"],
+  [4,2,"Jueves Santo"],[4,3,"Viernes Santo"],[5,1,"Día del Trabajo"],
+  [5,18,"Ascensión"],[6,8,"Corpus Christi"],[6,15,"Sagrado Corazón"],
+  [6,29,"San Pedro y San Pablo"],[7,13,"Virgen de Chiquinquirá"],[7,20,"Independencia"],
+  [8,7,"Batalla de Boyacá"],[8,17,"Asunción de la Virgen"],[10,12,"Día de la Raza"],
+  [11,2,"Todos los Santos"],[11,16,"Independencia de Cartagena"],[12,8,"Inmaculada Concepción"],
+  [12,25,"Navidad"]
+];
+function festivoInfo(month,day){ return FESTIVOS_2026.find(f=>f[0]===month && f[1]===day) || null; }
+
+const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const DOW = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+const DEFAULT_PRESETS = {
+  colombia:{label:"Colombia", start:"08:00", end:"17:00", color:"#1F9D8A", sinRecargo:false},
+  alaska:{label:"Alaska", start:"11:00", end:"20:00", color:"#3B7DD8", sinRecargo:false},
+  vacaciones:{label:"Vacaciones", start:"08:00", end:"17:00", color:"#9B6BC7", sinRecargo:true}
+};
+const PALETA_TURNOS = ['#1F9D8A','#3B7DD8','#9B6BC7','#E8A33D','#D1495B','#4C9F70','#C2554D','#6C6FBF','#2AA9A9','#B98900'];
+
+// ---------- Estado y Persistencia ----------
+let currentMonth = new Date().getMonth();
+if (new Date().getFullYear() !== 2026) currentMonth = 8;
+let selectedKey = null;
+let multiMode = false;
+let multiSelected = new Set();
+let workdays = JSON.parse(localStorage.getItem('co2026_workdays') || '{}');
+let historialPrima = JSON.parse(localStorage.getItem('co2026_historial_prima') || '{}');
+let shiftPresets = Object.assign({}, DEFAULT_PRESETS, JSON.parse(localStorage.getItem('co2026_presets') || '{}'));
+let lastAuxEligible = true;
+
+// Almacén de comisiones y de intereses de enero
+let comisionesPorMes = JSON.parse(localStorage.getItem('co2026_comisiones_por_mes') || '{}');
+let interesesEneroVal = parseInt(localStorage.getItem('co2026_intereses_enero') || '0', 10) || 0;
+
+// Cargar parámetros guardados o usar valores por defecto
+let appConfig = JSON.parse(localStorage.getItem('co2026_config') || '{}');
+document.getElementById('salarioBase').value = appConfig.salarioBase || '1.750.905';
+document.getElementById('jornadaPactada').value = appConfig.jornadaPactada || '8';
+document.getElementById('almuerzo').value = appConfig.almuerzo || '1';
+document.getElementById('fechaIngreso').value = appConfig.fechaIngreso || '';
+document.getElementById('pagaCajaEmpresa').checked = !!appConfig.pagaCajaEmpresa;
+document.getElementById('pagoMesVencido').checked = !!appConfig.pagoMesVencido;
+document.getElementById('interesesCesantiasEnero').value = interesesEneroVal ? interesesEneroVal.toLocaleString('es-CO') : '0';
+
+// Configuración de contratista guardada
+document.getElementById('valorContrato').value = appConfig.valorContrato || '1.750.905';
+document.getElementById('retefuenteTipo').value = appConfig.retefuenteTipo || '0.11';
+document.getElementById('retefuenteCustomValor').value = appConfig.retefuenteCustomValor || '0';
+document.getElementById('pagaARL').checked = !!appConfig.pagaARL;
+document.getElementById('nivelARL').value = appConfig.nivelARL || '0.00522';
+document.getElementById('pagaCCF').checked = !!appConfig.pagaCCF;
+document.getElementById('ccfRateSelect').value = appConfig.ccfRateSelect || '0.02';
+document.getElementById('ccfCustomValor').value = appConfig.ccfCustomValor || '2';
+
+function saveConfig(){
+  const config = {
+    salarioBase: document.getElementById('salarioBase').value,
+    jornadaPactada: document.getElementById('jornadaPactada').value,
+    almuerzo: document.getElementById('almuerzo').value,
+    fechaIngreso: document.getElementById('fechaIngreso').value,
+    pagaCajaEmpresa: document.getElementById('pagaCajaEmpresa').checked,
+    pagoMesVencido: document.getElementById('pagoMesVencido').checked,
+    // Contratista
+    valorContrato: document.getElementById('valorContrato').value,
+    retefuenteTipo: document.getElementById('retefuenteTipo').value,
+    retefuenteCustomValor: document.getElementById('retefuenteCustomValor').value,
+    pagaARL: document.getElementById('pagaARL').checked,
+    nivelARL: document.getElementById('nivelARL').value,
+    pagaCCF: document.getElementById('pagaCCF').checked,
+    ccfRateSelect: document.getElementById('ccfRateSelect').value,
+    ccfCustomValor: document.getElementById('ccfCustomValor').value
+  };
+  localStorage.setItem('co2026_config', JSON.stringify(config));
+}
+
+function save(){ localStorage.setItem('co2026_workdays', JSON.stringify(workdays)); }
+function savePrima(){ localStorage.setItem('co2026_historial_prima', JSON.stringify(historialPrima)); }
+function savePresets(){ localStorage.setItem('co2026_presets', JSON.stringify(shiftPresets)); }
+function saveComisiones(){ localStorage.setItem('co2026_comisiones_por_mes', JSON.stringify(comisionesPorMes)); }
+function saveInteresesEnero(){ localStorage.setItem('co2026_intereses_enero', interesesEneroVal); }
+
+function nextPaletteColor(){
+  const usados = Object.values(shiftPresets).map(p=>p.color);
+  const libre = PALETA_TURNOS.find(c=>!usados.includes(c));
+  return libre || PALETA_TURNOS[Object.keys(shiftPresets).length % PALETA_TURNOS.length];
+}
+function normalizePresets(){
+  let cambiado=false;
+  Object.keys(shiftPresets).forEach(id=>{
+    const p = shiftPresets[id];
+    if(typeof p.sinRecargo !== 'boolean'){ p.sinRecargo = (id==='vacaciones'); cambiado=true; }
+    if(!p.color){ p.color = nextPaletteColor(); cambiado=true; }
+    if(!p.label){ p.label = 'Turno'; cambiado=true; }
+    if(!p.start){ p.start='08:00'; cambiado=true; }
+    if(!p.end){ p.end='17:00'; cambiado=true; }
+  });
+  if(cambiado) savePresets();
+}
+normalizePresets();
+
+// ---------- Utilidades de Dinero ----------
+function attachMoneyFormatting(id){
+  const el = document.getElementById(id);
+  el.addEventListener('input', ()=>{
+    let raw = el.value.replace(/\D/g,'').replace(/^0+(?=\d)/,'');
+    if(raw==='') raw='0';
+    const num = parseInt(raw,10)||0;
+    el.value = num.toLocaleString('es-CO');
+    saveConfig();
+    renderAll();
+  });
+}
+function getMoney(id){
+  const el = document.getElementById(id);
+  return parseInt((el.value||'0').replace(/\D/g,''),10)||0;
+}
+function fmtCOP(n){ return '$'+Math.round(n).toLocaleString('es-CO'); }
+
+// Días esperados
+function diasEsperadosMes(monthIndex){
+  const ingresoStr = document.getElementById('fechaIngreso').value;
+  if(!ingresoStr) return 30;
+  const ing = new Date(ingresoStr+'T00:00:00');
+  if(ing.getFullYear()!==2026) return 30;
+  const ingMonth = ing.getMonth();
+  const ingDay = Math.min(ing.getDate(),30);
+  if(monthIndex < ingMonth) return 0;
+  if(monthIndex > ingMonth) return 30;
+  return Math.max(0, 31-ingDay);
+}
+
+// FSP
+function fspRate(ibc){
+  const m = ibc / SMLMV;
+  if(m < 4) return 0;
+  if(m < 16) return 0.01;
+  if(m < 17) return 0.012;
+  if(m < 18) return 0.014;
+  if(m < 19) return 0.016;
+  if(m < 20) return 0.018;
+  return 0.02;
+}
+// Retefuente ET 383
+function impuestoUVT(baseUVT){
+  if(baseUVT<=95) return 0;
+  if(baseUVT<=150) return (baseUVT-95)*0.19;
+  if(baseUVT<=360) return (baseUVT-150)*0.28+10.45;
+  if(baseUVT<=640) return (baseUVT-360)*0.33+69.25;
+  if(baseUVT<=945) return (baseUVT-640)*0.35+161.65;
+  if(baseUVT<=2300) return (baseUVT-945)*0.37+268.4;
+  return (baseUVT-2300)*0.39+769.75;
+}
+
+// Almuerzo (turno completo)
+function findLunchBlock(startMin,endMin,lunchMin){
+  if(lunchMin<=0) return null;
+  for(let s=startMin; s+lunchMin<=endMin; s++){
+    let ok=true;
+    for(let x=0;x<lunchMin;x++){
+      const cm=((s+x)%1440+1440)%1440;
+      const hr=cm/60;
+      if(hr>=19||hr<6){ok=false;break;}
+    }
+    if(ok) return s;
+  }
+  return null;
+}
+function festivoODomingo(dateObj){
+  const dow = dateObj.getDay();
+  const fest = (dateObj.getFullYear()===2026) ? festivoInfo(dateObj.getMonth()+1, dateObj.getDate()) : null;
+  return !!fest || dow===0;
+}
+
+// CORE: Cálculo de un día exacto con soporte a horas extra con horario específico
+function computeDiaPago(wd, baseDate, horaOrdinaria, jornadaPactada, almuerzo){
+  const preset = shiftPresets[wd.type];
+  if(preset && preset.sinRecargo){
+    return {recargoNocturno:0, recargoFestivo:0, extraDiurnaPago:0, extraNocturnaPago:0, total:0, horasTrabajadas:0, esVacacion:true};
+  }
+  
+  let recargoNocturno=0, recargoFestivo=0, extraDiurnaPago=0, extraNocturnaPago=0;
+  let totalHorasTrabajadas = 0;
+  const festivoCache = {};
+  function esFestivoOffset(offset){
+    if(festivoCache[offset]===undefined){
+      const dt = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate()+offset);
+      festivoCache[offset] = festivoODomingo(dt);
+    }
+    return festivoCache[offset];
+  }
+
+  const horaPorMin = horaOrdinaria/60;
+  
+  const [sh,sm]=wd.start.split(':').map(Number);
+  const [eh,em]=wd.end.split(':').map(Number);
+  if(!isNaN(sh) && !isNaN(eh)) {
+    let startMin = sh*60+sm, endMin = eh*60+em;
+    if(endMin <= startMin) endMin += 1440;
+    
+    const jornadaMin = Math.round((jornadaPactada||0)*60);
+    const lunchMin = Math.round((almuerzo||0)*60);
+    const lunchStart = findLunchBlock(startMin,endMin,lunchMin);
+    const lunchEnd = lunchStart!==null ? lunchStart+lunchMin : null;
+
+    let validMinutes = 0;
+    for(let m=startMin; m<endMin; m++){
+      if(lunchStart!==null && m>=lunchStart && m<lunchEnd) continue;
+      
+      const clock = ((m%1440)+1440)%1440;
+      const hour = clock/60;
+      const isNight = hour>=19 || hour<6;
+      const offset = Math.floor(m/1440);
+      const festivo = esFestivoOffset(offset);
+
+      if(validMinutes < jornadaMin){
+        if(isNight) recargoNocturno += horaPorMin*RECARGO_NOCTURNO;
+        if(festivo) recargoFestivo += horaPorMin*RECARGO_DOMFEST;
+      } else {
+        let factor = 1 + (isNight ? EXTRA_NOCTURNA : EXTRA_DIURNA);
+        if(festivo) factor += RECARGO_DOMFEST;
+        if(isNight) extraNocturnaPago += (horaPorMin*factor); 
+        else extraDiurnaPago += (horaPorMin*factor);
+      }
+      validMinutes++;
+    }
+    totalHorasTrabajadas += validMinutes/60;
+  }
+
+  if(wd.tieneExtra && wd.extraStart && wd.extraEnd){
+    const [esh,esm]=wd.extraStart.split(':').map(Number);
+    const [eeh,eem]=wd.extraEnd.split(':').map(Number);
+    if(!isNaN(esh) && !isNaN(eeh)) {
+      let exStartMin = esh*60+esm, exEndMin = eeh*60+eem;
+      if(exEndMin <= exStartMin) exEndMin += 1440;
+
+      for(let m=exStartMin; m<exEndMin; m++){
+        const clock = ((m%1440)+1440)%1440;
+        const hour = clock/60;
+        const isNight = hour>=19 || hour<6;
+        const offset = Math.floor(m/1440);
+        const festivo = esFestivoOffset(offset);
+
+        let factor = 1 + (isNight ? EXTRA_NOCTURNA : EXTRA_DIURNA);
+        if(festivo) factor += RECARGO_DOMFEST;
+        const pago = horaPorMin * factor;
+        if(isNight) extraNocturnaPago += pago; else extraDiurnaPago += pago;
+        
+        totalHorasTrabajadas += 1/60;
+      }
+    }
+  }
+
+  const total = recargoNocturno+recargoFestivo+extraDiurnaPago+extraNocturnaPago;
+  return {recargoNocturno, recargoFestivo, extraDiurnaPago, extraNocturnaPago,
+    total, horasTrabajadas: totalHorasTrabajadas, esVacacion:false};
+}
+
+// UI GENERAL
+function renderMonthTabs(){
+  const el = document.getElementById('monthTabs');
+  el.innerHTML='';
+  MESES.forEach((m,i)=>{
+    const b=document.createElement('button');
+    b.textContent=m.slice(0,3);
+    if(i===currentMonth) b.classList.add('active');
+    b.onclick=()=>{
+      currentMonth=i; 
+      selectedKey=null; 
+      multiSelected.clear(); 
+      syncComisionesUI();
+      renderAll();
+    };
+    el.appendChild(b);
+  });
+  syncComisionesUI();
+}
+
+function syncComisionesUI(){
+  const mesNombre = MESES[currentMonth];
+  document.getElementById('comisionMesLabel').textContent = mesNombre;
+  document.getElementById('comisionMesLabelCheck').textContent = mesNombre;
+  
+  const listaMes = comisionesPorMes[currentMonth] || [];
+  const chk = document.getElementById('tieneComisiones');
+  chk.checked = listaMes.length > 0;
+  document.getElementById('comisionesContainer').style.display = chk.checked ? 'block' : 'none';
+  renderComisiones();
+}
+
+function renderTurnosManager(){
+  const el = document.getElementById('turnosManager');
+  let html='';
+  Object.keys(shiftPresets).forEach(id=>{
+    const p = shiftPresets[id];
+    html += `<div class="turno-card">
+      <div class="turno-card-top">
+        <input type="color" value="${p.color}" onchange="updateTurnoField('${id}','color',this.value)">
+        <input type="text" value="${p.label}" onchange="updateTurnoField('${id}','label',this.value)">
+        <button class="small-del" type="button" onclick="deleteTurno('${id}')">Eliminar</button>
+      </div>
+      <div class="grid2" style="margin-top:.5rem;">
+        <div class="field" style="margin-bottom:0;">
+          <label>Inicio</label>
+          <input type="text" value="${p.start}" placeholder="HH:MM" onchange="updateTurnoField('${id}','start',this.value)">
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Fin</label>
+          <input type="text" value="${p.end}" placeholder="HH:MM" onchange="updateTurnoField('${id}','end',this.value)">
+        </div>
+      </div>
+      <div class="check-row">
+        <input type="checkbox" ${p.sinRecargo?'checked':''} onchange="updateTurnoField('${id}','sinRecargo',this.checked)">
+        <span style="font-size:.78rem;">No genera pago adicional (ej: vacaciones, permiso)</span>
+      </div>
+    </div>`;
+  });
+  if(Object.keys(shiftPresets).length===0){
+    html = '<p class="hint">No tienes turnos guardados. Solo quedará "Personalizado".</p>';
+  }
+  el.innerHTML = html;
+}
+function updateTurnoField(id, field, value){
+  if(!shiftPresets[id]) return;
+  if(field==='start' || field==='end'){
+    const v = value.trim();
+    if(!/^\d{1,2}:\d{2}$/.test(v)){ renderAll(); return; }
+    shiftPresets[id][field] = v;
+  } else { shiftPresets[id][field] = value; }
+  savePresets(); renderAll();
+}
+function addTurno(){
+  const id = 't_'+Date.now();
+  shiftPresets[id] = {label:'Nuevo turno', start:'08:00', end:'17:00', color:nextPaletteColor(), sinRecargo:false};
+  savePresets(); renderAll();
+}
+function deleteTurno(id){ delete shiftPresets[id]; savePresets(); renderAll(); }
+
+function renderLegend(){
+  const el = document.getElementById('legend');
+  let html = `<span><span class="dot" style="background:#FBEFEF; border:1px solid #D1495B;"></span> Domingo</span>
+    <span><span class="dot" style="background:#FCF3E1; border:1px solid #E8A33D;"></span> Festivo</span>`;
+  Object.keys(shiftPresets).forEach(id=>{
+    const p = shiftPresets[id];
+    html += `<span><span class="dot" style="background:${p.color};"></span> ${p.label}</span>`;
+  });
+  el.innerHTML = html;
+}
+function turnoOptionsHTML(){
+  let html='';
+  Object.keys(shiftPresets).forEach(id=>{ html += `<option value="${id}">${shiftPresets[id].label}</option>`; });
+  html += `<option value="personalizado">Personalizado</option>`;
+  return html;
+}
+
+// CALENDARIO
+function renderCalendar(){
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML='';
+  DOW.forEach(d=>{
+    const el=document.createElement('div');
+    el.className='cal-dow'; el.textContent=d;
+    grid.appendChild(el);
+  });
+  const year=2026;
+  const firstDow = (new Date(year,currentMonth,1).getDay()+6)%7;
+  const daysInMonth = new Date(year,currentMonth+1,0).getDate();
+  for(let i=0;i<firstDow;i++){
+    const el=document.createElement('div'); el.className='cal-day empty'; grid.appendChild(el);
+  }
+  for(let d=1; d<=daysInMonth; d++){
+    const dow = new Date(year,currentMonth,d).getDay();
+    const fest = festivoInfo(currentMonth+1,d);
+    const key = `2026-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const el=document.createElement('div');
+    el.className='cal-day';
+    if(dow===0) el.classList.add('sunday');
+    if(fest) el.classList.add('festivo');
+    const wd = workdays[key];
+    if(wd){
+      el.classList.add('worked');
+      const color = (shiftPresets[wd.type]||{}).color || '#1F9D8A';
+      el.style.setProperty('--shift-color', color);
+    }
+    if(key===selectedKey) el.classList.add('selected');
+    if(multiSelected.has(key)) el.classList.add('multiselected');
+    el.innerHTML = `<span class="num">${d}</span>` + (fest?`<span class="tag">${fest[2]}</span>`:'');
+    el.onclick=()=>{
+      if(multiMode) toggleMultiSelect(key);
+      else selectDay(key,d,fest,dow);
+    };
+    grid.appendChild(el);
+  }
+}
+
+// UI EXTRAS
+function toggleExtraCampos(tipo){
+  const checked = document.getElementById('checkExtra'+tipo).checked;
+  document.getElementById('camposExtra'+tipo).style.display = checked ? 'block' : 'none';
+}
+
+// MULTI-SELECCIÓN
+function toggleMultiMode(){
+  multiMode = !multiMode;
+  if(!multiMode) multiSelected.clear();
+  else { selectedKey=null; document.getElementById('dayEditor').style.display='none'; }
+  document.getElementById('btnMulti').classList.toggle('on', multiMode);
+  document.getElementById('multiPanel').style.display = multiMode ? 'block' : 'none';
+  if(multiMode){
+    document.getElementById('multiTurno').innerHTML = turnoOptionsHTML();
+    onMultiTurnoChange();
+    document.getElementById('checkExtraMulti').checked = false;
+    toggleExtraCampos('Multi');
+  }
+  renderCalendar();
+  updateMultiCount();
+}
+function toggleMultiSelect(key){
+  if(multiSelected.has(key)) multiSelected.delete(key); else multiSelected.add(key);
+  renderCalendar(); updateMultiCount();
+}
+function updateMultiCount(){ document.getElementById('multiCount').textContent = multiSelected.size; }
+function onMultiTurnoChange(){
+  const type = document.getElementById('multiTurno').value;
+  if(type!=='personalizado' && shiftPresets[type]){
+    document.getElementById('multiInicio').value = shiftPresets[type].start;
+    document.getElementById('multiFin').value = shiftPresets[type].end;
+  }
+}
+function limpiarSeleccionMulti(){ multiSelected.clear(); renderCalendar(); updateMultiCount(); }
+function aplicarMulti(){
+  if(multiSelected.size===0){ alert('Selecciona al menos un día en el calendario.'); return; }
+  const type = document.getElementById('multiTurno').value;
+  const start = document.getElementById('multiInicio').value.trim();
+  const end = document.getElementById('multiFin').value.trim();
+  const tieneExtra = document.getElementById('checkExtraMulti').checked;
+  const extraStart = document.getElementById('multiExtraInicio').value.trim();
+  const extraEnd = document.getElementById('multiExtraFin').value.trim();
+
+  if(!/^\d{1,2}:\d{2}$/.test(start) || !/^\d{1,2}:\d{2}$/.test(end)){
+    alert('Escribe la hora base en formato HH:MM (ej: 08:00)'); return;
+  }
+  if(tieneExtra && (!/^\d{1,2}:\d{2}$/.test(extraStart) || !/^\d{1,2}:\d{2}$/.test(extraEnd))){
+    alert('Escribe las horas extra en formato HH:MM (ej: 18:00)'); return;
+  }
+  multiSelected.forEach(key=>{ workdays[key] = {start, end, type, tieneExtra, extraStart, extraEnd}; });
+  save(); multiSelected.clear(); renderAll();
+}
+
+// DÍA ÚNICO
+function selectDay(key,d,fest,dow){
+  selectedKey=key;
+  const ed=document.getElementById('dayEditor');
+  ed.style.display='block';
+  const nombreDia = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][dow];
+  let titulo = `${nombreDia} ${d} de ${MESES[currentMonth]}`;
+  if(fest) titulo += ` — Festivo (${fest[2]})`; else if(dow===0) titulo += ` — Domingo`;
+  document.getElementById('dayEditorTitle').textContent = titulo;
+  const wd = workdays[key];
+  document.getElementById('turnoDia').innerHTML = turnoOptionsHTML();
+  const primerTurno = Object.keys(shiftPresets)[0];
+  document.getElementById('turnoDia').value = wd ? (wd.type||'personalizado') : (primerTurno||'personalizado');
+  const dflt = primerTurno ? shiftPresets[primerTurno] : {start:'08:00', end:'17:00'};
+  document.getElementById('horaInicio').value = wd ? wd.start : dflt.start;
+  document.getElementById('horaFin').value = wd ? wd.end : dflt.end;
+  
+  document.getElementById('checkExtraDia').checked = wd && wd.tieneExtra;
+  toggleExtraCampos('Dia');
+  document.getElementById('diaExtraInicio').value = wd && wd.extraStart ? wd.extraStart : '';
+  document.getElementById('diaExtraFin').value = wd && wd.extraEnd ? wd.extraEnd : '';
+
+  renderCalendar(); renderDaysList();
+}
+function onTurnoDiaChange(){
+  const type = document.getElementById('turnoDia').value;
+  if(type!=='personalizado' && shiftPresets[type]){
+    document.getElementById('horaInicio').value = shiftPresets[type].start;
+    document.getElementById('horaFin').value = shiftPresets[type].end;
+  }
+}
+function saveDay(){
+  if(!selectedKey) return;
+  const type = document.getElementById('turnoDia').value;
+  const start=document.getElementById('horaInicio').value.trim();
+  const end=document.getElementById('horaFin').value.trim();
+  const tieneExtra = document.getElementById('checkExtraDia').checked;
+  const extraStart = document.getElementById('diaExtraInicio').value.trim();
+  const extraEnd = document.getElementById('diaExtraFin').value.trim();
+
+  if(!/^\d{1,2}:\d{2}$/.test(start) || !/^\d{1,2}:\d{2}$/.test(end)){
+    alert('Escribe la hora en formato HH:MM (ej: 08:00)'); return;
+  }
+  if(tieneExtra && (!/^\d{1,2}:\d{2}$/.test(extraStart) || !/^\d{1,2}:\d{2}$/.test(extraEnd))){
+    alert('Escribe las horas extra en formato HH:MM (ej: 18:00)'); return;
+  }
+  workdays[selectedKey]={start,end,type,tieneExtra,extraStart,extraEnd};
+  save(); renderAll();
+}
+function removeDay(){
+  if(!selectedKey) return;
+  delete workdays[selectedKey];
+  save();
+  document.getElementById('dayEditor').style.display='none';
+  selectedKey=null; renderAll();
+}
+
+// LISTA DE DÍAS Y ADVERTENCIAS
+function keysForMonth(monthIndex){ return Object.keys(workdays).filter(k=>k.startsWith(`2026-${String(monthIndex+1).padStart(2,'0')}-`)).sort(); }
+function keysForCurrentMonth(){ return keysForMonth(currentMonth); }
+
+function renderDaysList(){
+  const keys = keysForCurrentMonth();
+  const el = document.getElementById('daysList');
+  if(keys.length===0){ el.innerHTML='<p class="hint">Aún no has marcado excepciones este mes.</p>'; return; }
+  let rows='';
+  keys.forEach(k=>{
+    const day = parseInt(k.slice(8,10),10);
+    const dow = new Date(2026,currentMonth,day).getDay();
+    const fest = festivoInfo(currentMonth+1,day);
+    const wd = workdays[k];
+    const preset = shiftPresets[wd.type];
+    const label = (preset||{label:'Personalizado'}).label;
+    let desc = wd.start+'–'+wd.end;
+    if(preset && preset.sinRecargo) desc = '—';
+    if(wd.tieneExtra) desc += `<br><span style="color:var(--teal);font-size:.7rem">Extra: ${wd.extraStart}–${wd.extraEnd}</span>`;
+    rows += `<tr><td>${day} ${MESES[currentMonth].slice(0,3)}${fest?' · festivo':(dow===0?' · domingo':'')}</td><td>${label}</td><td>${desc}</td><td class="num"><button class="small-del" onclick="quickRemove('${k}')">Quitar</button></td></tr>`;
+  });
+  el.innerHTML = `<table><thead><tr><th>Día</th><th>Turno</th><th>Horario</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function quickRemove(k){ delete workdays[k]; save(); if(selectedKey===k){ selectedKey=null; document.getElementById('dayEditor').style.display='none'; } renderAll(); }
+
+function renderIngresoWarning(){
+  const el = document.getElementById('ingresoWarning');
+  const ingresoStr = document.getElementById('fechaIngreso').value;
+  if(!ingresoStr){ el.innerHTML=''; return; }
+  const antes = Object.keys(workdays).filter(k=>k < ingresoStr).sort();
+  if(antes.length===0){ el.innerHTML=''; return; }
+  const lista = antes.slice(0,6).map(k=>`${parseInt(k.split('-')[2],10)} ${MESES[parseInt(k.split('-')[1],10)-1].slice(0,3)}`).join(', ');
+  el.innerHTML = `<div class="warn-banner">⚠️ Tienes días marcados antes de tu fecha de ingreso (${ingresoStr}): ${lista}${antes.length>6?'…':''}.</div>`;
+}
+
+function renderWeeklyHours(){
+  const jornadaPactada = parseFloat(document.getElementById('jornadaPactada').value)||8;
+  const almuerzo = parseFloat(document.getElementById('almuerzo').value)||0;
+  const horaOrdinaria = getMoney('salarioBase') / DIVISOR_HORARIO;
+  const keys = keysForCurrentMonth();
+  const weeks = {};
+  keys.forEach(k=>{
+    const baseDate = new Date(2026,currentMonth,parseInt(k.slice(8,10),10));
+    const wd = workdays[k];
+    const pago = computeDiaPago(wd, baseDate, horaOrdinaria, jornadaPactada, almuerzo);
+    if(!pago || pago.esVacacion) return;
+    
+    const mon = new Date(baseDate); 
+    const dow = (mon.getDay()+6)%7; 
+    mon.setDate(mon.getDate()-dow);
+    
+    const wkKey = mon.toISOString().slice(0,10);
+    if(!weeks[wkKey]) weeks[wkKey] = {start:mon, horas:0};
+    weeks[wkKey].horas += pago.horasTrabajadas;
+  });
+  const el = document.getElementById('weeklyHours');
+  const wkKeys = Object.keys(weeks).sort();
+  if(wkKeys.length===0){ el.innerHTML=''; return; }
+  let rows='';
+  wkKeys.forEach(wk=>{
+    const w = weeks[wk];
+    const fin = new Date(w.start); fin.setDate(fin.getDate()+6);
+    const horas = Math.round(w.horas*10)/10;
+    if(horas>42) rows += `<tr class="over"><td>Sem. ${w.start.getDate()} al ${fin.getDate()} ${MESES[fin.getMonth()].slice(0,3)}</td><td class="num">${horas} h ⚠️ > 42h</td></tr>`;
+    else rows += `<tr><td>Sem. ${w.start.getDate()} al ${fin.getDate()} ${MESES[fin.getMonth()].slice(0,3)}</td><td class="num">${horas} h</td></tr>`;
+  });
+  el.innerHTML = `<table><thead><tr><th>Horas trabajadas (con calendario) por semana</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ================= CÁLCULO EMPLEADO =================
+function calcularDevengadoMesReal(monthIndex) {
+  const salarioBase = getMoney('salarioBase');
+  const jornadaPactada = parseFloat(document.getElementById('jornadaPactada').value)||8;
+  const almuerzo = parseFloat(document.getElementById('almuerzo').value)||0;
+  const horaOrdinaria = salarioBase / DIVISOR_HORARIO;
+  const pagoMesVencido = document.getElementById('pagoMesVencido').checked;
+
+  const diasPeriodo = diasEsperadosMes(monthIndex);
+  const salarioBaseProrateado = (salarioBase/30)*diasPeriodo;
+
+  const ingresoStr = document.getElementById('fechaIngreso').value;
+  let esMesIngreso = false;
+  if(ingresoStr) {
+    const ing = new Date(ingresoStr+'T00:00:00');
+    if(ing.getFullYear() === 2026 && ing.getMonth() === monthIndex) {
+      esMesIngreso = true;
+    }
+  }
+
+  const aplicarVencidoEsteMes = pagoMesVencido && !esMesIngreso;
+  let targetMonthForExtras = monthIndex;
+  let tieneExtrasMesAnterior = true;
+  if (aplicarVencidoEsteMes) {
+    if (monthIndex === 0) {
+      tieneExtrasMesAnterior = false;
+    } else {
+      targetMonthForExtras = monthIndex - 1;
+    }
+  }
+
+  let sumRecargoNocturno=0, sumRecargoFestivo=0, sumExtraDiurna=0, sumExtraNocturna=0;
+  const keysToEvaluate = tieneExtrasMesAnterior ? keysForMonth(targetMonthForExtras) : [];
+
+  keysToEvaluate.forEach(k=>{
+    const dayNum = parseInt(k.slice(8,10),10);
+    const baseDate = new Date(2026, targetMonthForExtras, dayNum);
+    const wd = workdays[k];
+    const pago = computeDiaPago(wd, baseDate, horaOrdinaria, jornadaPactada, almuerzo);
+    if(!pago || pago.esVacacion) return;
+    sumRecargoNocturno += pago.recargoNocturno;
+    sumRecargoFestivo += pago.recargoFestivo;
+    sumExtraDiurna += pago.extraDiurnaPago;
+    sumExtraNocturna += pago.extraNocturnaPago;
+  });
+
+  const totalAdiciones = sumRecargoNocturno+sumRecargoFestivo+sumExtraDiurna+sumExtraNocturna;
+  const totalComisiones = tieneExtrasMesAnterior ? getTotalComisionesMes(targetMonthForExtras) : 0;
+  const comisionesProrrateadas = (totalComisiones / 30) * diasPeriodo;
+  
+  const baseTotalMensualParaAux = salarioBase + totalComisiones;
+  const auxTransporte = (baseTotalMensualParaAux <= 2 * SMLMV) ? (AUX_TRANSPORTE / 30) * diasPeriodo : 0;
+
+  const ibc = salarioBaseProrateado + totalAdiciones + comisionesProrrateadas + auxTransporte;
+  return ibc;
+}
+
+function onInteresesEneroInput(){
+  interesesEneroVal = getMoney('interesesCesantiasEnero');
+  saveInteresesEnero();
+  renderSummaryEmpleado();
+}
+
+function renderSummaryEmpleado(){
+  const salarioBase = getMoney('salarioBase');
+  const jornadaPactada = parseFloat(document.getElementById('jornadaPactada').value)||8;
+  const almuerzo = parseFloat(document.getElementById('almuerzo').value)||0;
+  const horaOrdinaria = salarioBase / DIVISOR_HORARIO;
+  const pagoMesVencido = document.getElementById('pagoMesVencido').checked;
+
+  const diasPeriodo = diasEsperadosMes(currentMonth);
+  const salarioBaseProrateado = (salarioBase/30)*diasPeriodo;
+  const pagoDiario = salarioBase/30;
+
+  const ingresoStr = document.getElementById('fechaIngreso').value;
+  let esMesIngreso = false;
+  if(ingresoStr) {
+    const ing = new Date(ingresoStr+'T00:00:00');
+    if(ing.getFullYear() === 2026 && ing.getMonth() === currentMonth) {
+      esMesIngreso = true;
+    }
+  }
+
+  const aplicarVencidoEsteMes = pagoMesVencido && !esMesIngreso;
+  let targetMonthForExtras = currentMonth;
+  let tieneExtrasMesAnterior = true;
+  if (aplicarVencidoEsteMes) {
+    if (currentMonth === 0) {
+      tieneExtrasMesAnterior = false;
+    } else {
+      targetMonthForExtras = currentMonth - 1;
+    }
+  }
+
+  let sumRecargoNocturno=0, sumRecargoFestivo=0, sumExtraDiurna=0, sumExtraNocturna=0;
+  const keysToEvaluate = tieneExtrasMesAnterior ? keysForMonth(targetMonthForExtras) : [];
+
+  keysToEvaluate.forEach(k=>{
+    const dayNum = parseInt(k.slice(8,10),10);
+    const baseDate = new Date(2026, targetMonthForExtras, dayNum);
+    const wd = workdays[k];
+    const pago = computeDiaPago(wd, baseDate, horaOrdinaria, jornadaPactada, almuerzo);
+    if(!pago) return;
+    if(pago.esVacacion) return;
+    sumRecargoNocturno += pago.recargoNocturno;
+    sumRecargoFestivo += pago.recargoFestivo;
+    sumExtraDiurna += pago.extraDiurnaPago;
+    sumExtraNocturna += pago.extraNocturnaPago;
+  });
+
+  const totalAdiciones = sumRecargoNocturno+sumRecargoFestivo+sumExtraDiurna+sumExtraNocturna;
+  const totalComisiones = tieneExtrasMesAnterior ? getTotalComisionesMes(targetMonthForExtras) : 0;
+  const comisionesProrrateadas = (totalComisiones / 30) * diasPeriodo;
+  
+  const baseTotalMensualParaAux = salarioBase + totalComisiones;
+  const chkAux = document.getElementById('auxTransporte');
+  const auxLabel = document.getElementById('auxTransporteLabel');
+
+  let auxTransporte = 0;
+  const isEligible = baseTotalMensualParaAux <= 2 * SMLMV;
+
+  if(isEligible) {
+    chkAux.disabled = false;
+    if(!lastAuxEligible) {
+      chkAux.checked = true;
+    }
+    lastAuxEligible = true;
+
+    if(chkAux.checked) {
+      auxTransporte = (AUX_TRANSPORTE / 30) * diasPeriodo;
+      auxLabel.textContent = `Aplica ($249.095/mes, prorrateado)`;
+    } else {
+      auxLabel.textContent = `Aplica por tope salarial (puedes marcarlo o desmarcarlo)`;
+    }
+  } else {
+    lastAuxEligible = false;
+    chkAux.checked = false;
+    chkAux.disabled = true;
+    auxLabel.textContent = `No aplica — el salario base + comisiones supera 2 SMLMV ($3.501.810)`;
+  }
+
+  const ibcSinAux = salarioBaseProrateado + totalAdiciones + comisionesProrrateadas;
+  const salud = ibcSinAux*SALUD_PCT;
+  const pension = ibcSinAux*PENSION_PCT;
+  const fsp = ibcSinAux*fspRate(ibcSinAux);
+  const deduccionesSS = salud+pension+fsp;
+  const subtotal1 = Math.max(0, ibcSinAux - deduccionesSS);
+
+  const tieneVivienda = document.getElementById('tieneVivienda').checked;
+  const tienePrepagada = document.getElementById('tienePrepagada').checked;
+  const tieneDependientes = document.getElementById('tieneDependientes').checked;
+  const interesesVivienda = tieneVivienda ? Math.min(getMoney('interesesVivienda'), TOPE_VIVIENDA_UVT*UVT) : 0;
+  const pagoPrepagada = tienePrepagada ? Math.min(getMoney('pagoPrepagada'), TOPE_PREPAGADA_UVT*UVT) : 0;
+  const dedDependientes = tieneDependientes ? Math.min(0.10*ibcSinAux, TOPE_DEPENDIENTES_UVT*UVT) : 0;
+  let deduccionesArt387 = interesesVivienda+pagoPrepagada+dedDependientes;
+
+  const subtotal2 = Math.max(0, subtotal1 - deduccionesArt387);
+  const topeExentaMensual = (790/12)*UVT;
+  const rentaExenta = Math.min(0.25*subtotal2, topeExentaMensual);
+
+  const topeGlobalMensual = Math.min(0.40*subtotal1, (TOPE_GLOBAL_UVT_ANUAL/12)*UVT);
+  let totalBeneficios = deduccionesArt387+rentaExenta;
+  if(totalBeneficios > topeGlobalMensual) totalBeneficios = topeGlobalMensual;
+
+  const baseGravable = Math.max(0, subtotal1 - totalBeneficios);
+  const baseGravableUVT = baseGravable/UVT;
+  const retefuente = impuestoUVT(baseGravableUVT)*UVT;
+
+  const ibcTotal = ibcSinAux + auxTransporte;
+  const netoAPagar = ibcTotal - deduccionesSS - retefuente;
+
+  const rows = [];
+  rows.push(['add-header', `Salario fijo — ${diasPeriodo} días`, fmtCOP(salarioBaseProrateado)]);
+  rows.push(['sub-item', `Pago por día (salario ÷ 30)`, fmtCOP(pagoDiario)]);
+  
+  const sufijoVencido = (aplicarVencidoEsteMes && tieneExtrasMesAnterior) ? ` (de ${MESES[targetMonthForExtras]})` : '';
+  if(comisionesProrrateadas>0) rows.push(['sub-item','+ Comisiones y bonos' + sufijoVencido, fmtCOP(comisionesProrrateadas)]);
+  if(sumRecargoNocturno>0) rows.push(['sub-item','+ Recargo nocturno' + sufijoVencido, fmtCOP(sumRecargoNocturno)]);
+  if(sumRecargoFestivo>0) rows.push(['sub-item','+ Recargo dominical/festivo' + sufijoVencido, fmtCOP(sumRecargoFestivo)]);
+  if(sumExtraDiurna>0) rows.push(['sub-item','+ Horas extra diurnas' + sufijoVencido, fmtCOP(sumExtraDiurna)]);
+  if(sumExtraNocturna>0) rows.push(['sub-item','+ Horas extra nocturnas' + sufijoVencido, fmtCOP(sumExtraNocturna)]);
+  
+  rows.push(['add','Total devengado', fmtCOP(ibcTotal)]);
+  rows.push(['deduct','− Salud (4%)', fmtCOP(salud)]);
+  rows.push(['deduct','− Pensión (4%)', fmtCOP(pension)]);
+  if(fsp>0) rows.push(['deduct',`− Fondo de Solidaridad (${(fspRate(ibcSinAux)*100).toFixed(1)}%)`, fmtCOP(fsp)]);
+  if(retefuente>0) rows.push(['deduct','− Retención en la fuente', fmtCOP(retefuente)]);
+  if(auxTransporte>0) rows.push(['add','+ Auxilio de transporte', fmtCOP(auxTransporte)]);
+  
+  if (document.getElementById('pagaCajaEmpresa').checked) {
+    const aporteCaja = ibcSinAux * 0.04;
+    rows.push(['sub-item','+ Caja de Compensación (Aporte patronal 4%)', fmtCOP(aporteCaja)]);
+  }
+
+  const notaEl = document.getElementById('notaMesEspecial');
+  notaEl.innerHTML = '';
+  const eneroBox = document.getElementById('eneroInteresesContainer');
+  eneroBox.style.display = (currentMonth === 0) ? 'block' : 'none';
+
+  if(currentMonth === 5 || currentMonth === 11) {
+    const semStart = currentMonth < 6 ? 0 : 6;
+    const semEnd = semStart + 5;
+    let totalSemestre = 0;
+    for(let m = semStart; m <= semEnd; m++){
+      const key = `2026-${String(m+1).padStart(2,'0')}`;
+      const guardado = historialPrima[key];
+      const data = guardado || computeMesPrestacional(m);
+      totalSemestre += data.devengadoPrestacional;
+    }
+    const primaSemestral = totalSemestre / 12;
+    const pagoTotalMesConPrima = netoAPagar + primaSemestral;
+
+    rows.push(['total','Salario neto a recibir', fmtCOP(netoAPagar)]);
+    rows.push(['add', '+ Prima de servicios (Semestral)', fmtCOP(primaSemestral)]);
+    rows.push(['total', 'Pago total estimado del mes (Salario + Prima)', fmtCOP(pagoTotalMesConPrima)]);
+
+    notaEl.innerHTML = `<div class="info-banner">ℹ️ <strong>Nota sobre la prima:</strong> Dependiendo de la empresa y políticas internas, la prima de servicios puede pagarse junto con el salario mensual o de forma independiente (generalmente en la primera quincena de junio / diciembre).</div>`;
+  } else if(currentMonth === 0) {
+    if (interesesEneroVal > 0) {
+      const pagoTotalMesConIntereses = netoAPagar + interesesEneroVal;
+      rows.push(['total','Salario neto a recibir', fmtCOP(netoAPagar)]);
+      rows.push(['add', '+ Intereses sobre cesantías (Ingresados manualmente)', fmtCOP(interesesEneroVal)]);
+      rows.push(['total', 'Pago total estimado del mes (Salario + Intereses)', fmtCOP(pagoTotalMesConIntereses)]);
+    } else {
+      rows.push(['total','Salario neto a recibir', fmtCOP(netoAPagar)]);
+    }
+
+    notaEl.innerHTML = `<div class="info-banner">ℹ️ <strong>Nota sobre intereses de cesantías:</strong> Por ley, los intereses sobre las cesantías acumuladas del año anterior (2025) se pagan directamente al trabajador a más tardar el 31 de enero. Si trabajaste el año pasado en la misma empresa y recibiste este pago, puedes ingresarlo en el campo superior para sumarlo al neto del mes.</div>`;
+  } else {
+    rows.push(['total','Salario neto a recibir', fmtCOP(netoAPagar)]);
+  }
+
+  let html='';
+  rows.forEach(([cls,label,val])=>{ html+=`<tr class="${cls}"><td>${label}</td><td class="val">${val}</td></tr>`; });
+  document.getElementById('summaryTable').innerHTML = html;
+}
+
+function computeMesPrestacional(monthIndex){
+  const diasPeriodo = diasEsperadosMes(monthIndex);
+  const devengadoReal = calcularDevengadoMesReal(monthIndex);
+  return {dias: diasPeriodo, devengadoPrestacional: devengadoReal};
+}
+
+function guardarMesPrima(){
+  const data = computeMesPrestacional(currentMonth);
+  const key = `2026-${String(currentMonth+1).padStart(2,'0')}`;
+  historialPrima[key] = data; savePrima(); renderPrima();
+}
+function eliminarMesPrima(key){ delete historialPrima[key]; savePrima(); renderPrima(); }
+
+function renderPrima(){
+  const semStart = currentMonth<6 ? 0 : 6;
+  const semEnd = semStart+5;
+
+  let totalSemestre=0, rows='';
+  for(let m=semStart; m<=semEnd; m++){
+    const key = `2026-${String(m+1).padStart(2,'0')}`;
+    const guardado = historialPrima[key];
+    const data = guardado || computeMesPrestacional(m);
+    totalSemestre += data.devengadoPrestacional;
+    let accion = guardado ? `✓ guardado <button class="small-del" onclick="eliminarMesPrima('${key}')">quitar</button>` : (data.dias===0?'—':'estimado');
+    rows += `<tr><td>${MESES[m]}</td><td class="num">${data.dias}</td><td class="num">${fmtCOP(data.devengadoPrestacional)}</td><td style="font-size:.75rem; color:var(--ink-soft);">${accion}</td></tr>`;
+  }
+
+  let totalAnualDevengado = 0;
+  for(let m=0; m<12; m++){
+    const key = `2026-${String(m+1).padStart(2,'0')}`;
+    const guardado = historialPrima[key];
+    const data = guardado || computeMesPrestacional(m);
+    totalAnualDevengado += data.devengadoPrestacional;
+  }
+  const cesantiasAnuales = totalAnualDevengado / 12;
+  const interesesCesantias = cesantiasAnuales * 0.12;
+
+  document.getElementById('primaTable').innerHTML = `
+    <table><thead><tr><th>Mes</th><th>Días</th><th>Devengado prestacional (Real)</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+    <table class="summary" style="margin-top:.6rem;"><tr class="total"><td>Prima estimada del semestre</td><td class="val">${fmtCOP(totalSemestre/12)}</td></tr></table>`;
+
+  document.getElementById('cesantiasBox').innerHTML = `
+    <table class="summary">
+      <tr class="add-header">
+        <td>Cesantías estimadas (Acumulado anual)<br><small style="font-weight:normal; color:var(--ink-soft);">ℹ️ Se consignan directamente a tu Fondo a más tardar el 14 de febrero.</small></td>
+        <td class="val">${fmtCOP(cesantiasAnuales)}</td>
+      </tr>
+      <tr class="sub-item">
+        <td>Intereses sobre cesantías (12% anual)<br><small style="color:var(--ink-soft);">ℹ️ Te los pagan directamente en dinero a más tardar el 31 de enero.</small></td>
+        <td class="val">${fmtCOP(interesesCesantias)}</td>
+      </tr>
+    </table>`;
+
+  document.getElementById('mesActualLabel').textContent = MESES[currentMonth];
+}
+
+
+// ================= CÁLCULO CONTRATISTA =================
+function onRetefuenteChange() {
+  const tipo = document.getElementById('retefuenteTipo').value;
+  const customContainer = document.getElementById('retefuenteCustomContainer');
+  customContainer.style.display = (tipo === 'custom') ? 'block' : 'none';
+  renderContratista();
+}
+
+function toggleCCFFields(){
+  const paga = document.getElementById('pagaCCF').checked;
+  document.getElementById('ccfFields').style.display = paga ? 'block' : 'none';
+  renderContratista();
+}
+
+function getCCFRate(){
+  if(!document.getElementById('pagaCCF').checked) return 0;
+  const sel = document.getElementById('ccfRateSelect').value;
+  const customCont = document.getElementById('ccfCustomContainer');
+  if(sel === 'custom'){
+    customCont.style.display = 'block';
+    const val = parseFloat(document.getElementById('ccfCustomValor').value) || 0;
+    return val / 100;
+  } else {
+    customCont.style.display = 'none';
+    return parseFloat(sel) || 0;
+  }
+}
+
+function renderContratista(){
+  const valorContrato = getMoney('valorContrato');
+  
+  let ibcCrudo = valorContrato * 0.40;
+  let ibc = Math.max(SMLMV, Math.min(25 * SMLMV, ibcCrudo));
+  
+  let htmlIBC = `
+    <tr><td>Valor mensual del contrato</td><td class="val">${fmtCOP(valorContrato)}</td></tr>
+    <tr class="sub-item"><td>40% del contrato (Base teórica)</td><td class="val">${fmtCOP(ibcCrudo)}</td></tr>
+  `;
+  if(ibcCrudo < SMLMV) htmlIBC += `<tr class="sub-item"><td>Ajuste al mínimo legal (1 SMLMV)</td><td class="val" style="color:var(--amber)">Sube a ${fmtCOP(SMLMV)}</td></tr>`;
+  if(ibcCrudo > 25*SMLMV) htmlIBC += `<tr class="sub-item"><td>Ajuste al máximo legal (25 SMLMV)</td><td class="val" style="color:var(--amber)">Baja a ${fmtCOP(25*SMLMV)}</td></tr>`;
+  htmlIBC += `<tr class="important"><td>Ingreso Base de Cotización (IBC)</td><td class="val">${fmtCOP(ibc)}</td></tr>`;
+  document.getElementById('ibcTableContratista').innerHTML = htmlIBC;
+
+  const salud = ibc * CONTRATO_SALUD_PCT;
+  const pension = ibc * CONTRATO_PENSION_PCT;
+  
+  const retefuenteTipoVal = document.getElementById('retefuenteTipo').value;
+  let retefuente = 0;
+  let retefuenteLabel = "Retención en la fuente";
+
+  if (retefuenteTipoVal === 'custom') {
+    retefuente = getMoney('retefuenteCustomValor');
+    retefuenteLabel = "− Retención en la fuente (Monto manual)";
+  } else {
+    const retefuentePct = parseFloat(retefuenteTipoVal) || 0;
+    retefuente = valorContrato * retefuentePct;
+    retefuenteLabel = `− Retención en la fuente (${(retefuentePct*100).toFixed(0)}%)`;
+  }
+
+  const pagaARL = document.getElementById('pagaARL').checked;
+  const arlPct = parseFloat(document.getElementById('nivelARL').value) || 0;
+  const arl = pagaARL ? (ibc * arlPct) : 0;
+  
+  const pagaCCF = document.getElementById('pagaCCF').checked;
+  const ccfRate = getCCFRate();
+  const ccf = pagaCCF ? (ibc * ccfRate) : 0;
+
+  const neto = valorContrato - salud - pension - arl - ccf - retefuente;
+
+  let htmlRes = `
+    <tr><td>Valor mensual del contrato</td><td class="val">${fmtCOP(valorContrato)}</td></tr>
+    <tr class="deduct"><td>− Salud (12,5% del IBC)</td><td class="val">${fmtCOP(salud)}</td></tr>
+    <tr class="deduct"><td>− Pensión (16% del IBC)</td><td class="val">${fmtCOP(pension)}</td></tr>
+  `;
+  if(pagaARL) htmlRes += `<tr class="deduct"><td>− ARL (${(arlPct*100).toFixed(3)}% del IBC)</td><td class="val">${fmtCOP(arl)}</td></tr>`;
+  if(pagaCCF) htmlRes += `<tr class="deduct"><td>− Caja de Compensación (${(ccfRate*100).toFixed(2)}% del IBC)</td><td class="val">${fmtCOP(ccf)}</td></tr>`;
+  if(retefuente > 0) htmlRes += `<tr class="deduct"><td>${retefuenteLabel}</td><td class="val">${fmtCOP(retefuente)}</td></tr>`;
+  
+  htmlRes += `<tr class="total"><td>Neto a recibir</td><td class="val">${fmtCOP(neto)}</td></tr>`;
+  document.getElementById('summaryTableContratista').innerHTML = htmlRes;
+  saveConfig();
+}
+
+// ================= RENDERIZADO GLOBAL =================
+function wireOptionalFields(){
+  document.getElementById('tieneVivienda').addEventListener('change', function(){
+    document.getElementById('viviendaFields').style.display = this.checked ? 'block' : 'none'; renderAll();
+  });
+  document.getElementById('tienePrepagada').addEventListener('change', function(){
+    document.getElementById('prepagadaFields').style.display = this.checked ? 'block' : 'none'; renderAll();
+  });
+  
+  document.getElementById('pagaARL').addEventListener('change', function(){
+    document.getElementById('arlFields').style.display = this.checked ? 'block' : 'none'; renderAll();
+  });
+}
+
+// ---------- Comisiones State & Logic por Mes ----------
+function toggleComisiones(){
+  const checked = document.getElementById('tieneComisiones').checked;
+  document.getElementById('comisionesContainer').style.display = checked ? 'block' : 'none';
+  if(checked && (!comisionesPorMes[currentMonth] || comisionesPorMes[currentMonth].length === 0)){
+    comisionesPorMes[currentMonth] = [{desc: 'Comisión de ventas', valor: 0}];
+  } else if(!checked) {
+    comisionesPorMes[currentMonth] = [];
+  }
+  saveComisiones();
+  renderComisiones();
+  renderAll();
+}
+
+function addComisionRow(){
+  if(!comisionesPorMes[currentMonth]) comisionesPorMes[currentMonth] = [];
+  comisionesPorMes[currentMonth].push({desc: 'Nueva comisión', valor: 0});
+  saveComisiones();
+  renderComisiones();
+  renderAll();
+}
+
+function updateComision(index, field, val){
+  if(!comisionesPorMes[currentMonth]) return;
+  if(field === 'valor'){
+    let raw = val.replace(/\D/g,'').replace(/^0+(?=\d)/,'');
+    if(raw==='') raw='0';
+    comisionesPorMes[currentMonth][index].valor = parseInt(raw,10)||0;
+  } else {
+    comisionesPorMes[currentMonth][index].desc = val;
+  }
+  saveComisiones();
+  document.getElementById('totalComisionesLabel').textContent = 'Total comisiones del mes: ' + fmtCOP(getTotalComisionesMes(currentMonth));
+  renderAll();
+}
+
+function formatComisionInput(inputEl, index){
+  if(!comisionesPorMes[currentMonth]) return;
+  let raw = inputEl.value.replace(/\D/g,'').replace(/^0+(?=\d)/,'');
+  if(raw==='') raw='0';
+  const num = parseInt(raw,10)||0;
+  comisionesPorMes[currentMonth][index].valor = num;
+  saveComisiones();
+  inputEl.value = num.toLocaleString('es-CO');
+  document.getElementById('totalComisionesLabel').textContent = 'Total comisiones del mes: ' + fmtCOP(getTotalComisionesMes(currentMonth));
+  renderAll();
+}
+
+function removeComision(index){
+  if(!comisionesPorMes[currentMonth]) return;
+  comisionesPorMes[currentMonth].splice(index, 1);
+  if(comisionesPorMes[currentMonth].length === 0){
+    document.getElementById('tieneComisiones').checked = false;
+    document.getElementById('comisionesContainer').style.display = 'none';
+  }
+  saveComisiones();
+  renderComisiones();
+  renderAll();
+}
+
+function getTotalComisionesMes(monthIdx){
+  const lista = comisionesPorMes[monthIdx];
+  if(!lista || !Array.isArray(lista)) return 0;
+  return lista.reduce((acc, curr) => acc + (curr.valor || 0), 0);
+}
+
+function renderComisiones(){
+  const container = document.getElementById('comisionesList');
+  const lista = comisionesPorMes[currentMonth] || [];
+  let html = '';
+  lista.forEach((item, idx) => {
+    html += `<div style="display: flex; gap: .5rem; margin-bottom: .5rem; align-items: center;">
+      <input type="text" value="${item.desc}" placeholder="Descripción (ej: Venta vehículos)" oninput="updateComision(${idx}, 'desc', this.value)" style="flex: 2;">
+      <input type="text" inputmode="numeric" value="${item.valor ? item.valor.toLocaleString('es-CO') : ''}" placeholder="Valor COP" oninput="updateComision(${idx}, 'valor', this.value)" onblur="formatComisionInput(this, ${idx})" style="flex: 1;">
+      <button class="small-del" type="button" onclick="removeComision(${idx})">Eliminar</button>
+    </div>`;
+  });
+  container.innerHTML = html;
+  document.getElementById('totalComisionesLabel').textContent = 'Total comisiones del mes: ' + fmtCOP(getTotalComisionesMes(currentMonth));
+}
+
+// ---------- Exportar / Importar Datos ----------
+function exportarDatos(){
+  const backup = {
+    workdays: workdays,
+    historialPrima: historialPrima,
+    shiftPresets: shiftPresets,
+    comisionesPorMes: comisionesPorMes,
+    interesesEneroVal: interesesEneroVal,
+    appConfig: JSON.parse(localStorage.getItem('co2026_config') || '{}'),
+    version: "2026.13"
+  };
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup, null, 2));
+  const dlAnchor = document.createElement('a');
+  dlAnchor.setAttribute("href", dataStr);
+  dlAnchor.setAttribute("download", "respaldo_calculadora_salario_2026.json");
+  document.body.appendChild(dlAnchor);
+  dlAnchor.click();
+  dlAnchor.remove();
+}
+
+function importarDatosPrompt(){
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = event => {
+      try {
+        const backup = JSON.parse(event.target.result);
+        if(backup.workdays) { workdays = backup.workdays; save(); }
+        if(backup.historialPrima) { historialPrima = backup.historialPrima; savePrima(); }
+        if(backup.shiftPresets) { shiftPresets = backup.shiftPresets; savePresets(); }
+        if(backup.comisionesPorMes) { comisionesPorMes = backup.comisionesPorMes; saveComisiones(); }
+        if(backup.interesesEneroVal !== undefined) { 
+          interesesEneroVal = backup.interesesEneroVal; 
+          saveInteresesEnero(); 
+          document.getElementById('interesesCesantiasEnero').value = interesesEneroVal ? interesesEneroVal.toLocaleString('es-CO') : '0';
+        }
+        if(backup.appConfig) {
+          localStorage.setItem('co2026_config', JSON.stringify(backup.appConfig));
+          const cfg = backup.appConfig;
+          document.getElementById('salarioBase').value = cfg.salarioBase || '1.750.905';
+          document.getElementById('jornadaPactada').value = cfg.jornadaPactada || '8';
+          document.getElementById('almuerzo').value = cfg.almuerzo || '1';
+          document.getElementById('fechaIngreso').value = cfg.fechaIngreso || '';
+          document.getElementById('pagaCajaEmpresa').checked = !!cfg.pagaCajaEmpresa;
+          document.getElementById('pagoMesVencido').checked = !!cfg.pagoMesVencido;
+
+          document.getElementById('valorContrato').value = cfg.valorContrato || '1.750.905';
+          document.getElementById('retefuenteTipo').value = cfg.retefuenteTipo || '0.11';
+          document.getElementById('retefuenteCustomValor').value = cfg.retefuenteCustomValor || '0';
+          document.getElementById('pagaARL').checked = !!cfg.pagaARL;
+          document.getElementById('nivelARL').value = cfg.nivelARL || '0.00522';
+          document.getElementById('pagaCCF').checked = !!cfg.pagaCCF;
+          document.getElementById('ccfRateSelect').value = cfg.ccfRateSelect || '0.02';
+          document.getElementById('ccfCustomValor').value = cfg.ccfCustomValor || '2';
+          toggleCCFFields();
+        }
+        
+        syncComisionesUI();
+        renderAll();
+        alert('¡Datos restaurados con éxito!');
+      } catch(err) {
+        alert('El archivo no es válido o está corrupto.');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function initAuxTransporteState(){
+  const salarioBase = getMoney('salarioBase');
+  const totalComisiones = getTotalComisionesMes(currentMonth);
+  const chkAux = document.getElementById('auxTransporte');
+  if((salarioBase + totalComisiones) <= 2 * SMLMV) {
+    chkAux.checked = true;
+  }
+}
+
+function renderAll(){
+  if(currentTab === 'empleado') {
+    renderMonthTabs();
+    renderTurnosManager();
+    renderLegend();
+    renderIngresoWarning();
+    renderCalendar();
+    renderDaysList();
+    renderWeeklyHours();
+    renderSummaryEmpleado();
+    renderPrima();
+    document.getElementById('dayEditor').style.display = (selectedKey && !multiMode) ? 'block' : 'none';
+    document.getElementById('multiPanel').style.display = multiMode ? 'block' : 'none';
+    updateMultiCount();
+  } else {
+    renderContratista();
+  }
+}
+
+attachMoneyFormatting('salarioBase');
+attachMoneyFormatting('interesesVivienda');
+attachMoneyFormatting('pagoPrepagada');
+attachMoneyFormatting('valorContrato');
+attachMoneyFormatting('retefuenteCustomValor');
+attachMoneyFormatting('interesesCesantiasEnero');
+wireOptionalFields();
+initAuxTransporteState();
+toggleCCFFields();
+
+['jornadaPactada','almuerzo','auxTransporte','fechaIngreso','tieneDependientes','pagaCajaEmpresa','pagoMesVencido','valorContrato','retefuenteCustomValor','nivelARL','pagaARL','pagaCCF','ccfRateSelect','ccfCustomValor'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.addEventListener('input', ()=>{
+    saveConfig();
+    renderAll();
+  });
+  el.addEventListener('change', ()=>{
+    saveConfig();
+    renderAll();
+  });
+});
+
+['retefuenteTipo'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', renderAll);
+});
+
+renderAll();
+</script>
+
+</body>
+</html>
