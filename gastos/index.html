@@ -485,9 +485,14 @@ function viewResumen(){
   const key = STATE.viewingMonth;
   const gasto = totalExpenses(key);
   
-  // AHORA EL SALDO ES EL REAL Y EXACTO (No se suma el ingreso de nuevo)
   const saldoCuentasTotal = totalAccountsBalance();
   const saldoCuentasPositivo = positiveAccountsBalance();
+  
+  // SOLUCIÓN AL BUG:
+  // El "Total Capacidad" es igual a todo lo que tienes AHORA en tus cuentas + todo lo que YA GASTASTE este mes.
+  // De esta manera vemos el 100% del fondo disponible sin contar los ingresos dos veces.
+  const totalCapacidad = saldoCuentasTotal + gasto; 
+  
   const detailedNivel = expensesByNivelDetailed(key);
 
   return `
@@ -495,8 +500,8 @@ function viewResumen(){
   <div class="card">
     <div class="card-header" style="margin-bottom:4px;">
       <div>
-        <h3 style="font-size:16px;">Saldo por cuentas</h3>
-        <div class="sub-label">El dinero real con el que cuentas (arrastrado mes a mes)</div>
+        <h3 style="font-size:16px;">Saldo actual por cuentas</h3>
+        <div class="sub-label">El dinero físico con el que cuentas en este momento</div>
       </div>
     </div>
     <div class="big-num" style="margin-bottom:16px;">${fmtCOP(saldoCuentasTotal)}</div>
@@ -510,12 +515,12 @@ function viewResumen(){
     </div>
     <div class="flow-bar-wrapper">
       <div class="flow-row">
-        <div class="flow-label-row"><span>Dinero disponible (Cuentas)</span><span style="color:var(--positive)">${fmtCOP(saldoCuentasTotal)}</span></div>
+        <div class="flow-label-row"><span>Fondo Total (Cuentas actuales + Gastos)</span><span style="color:var(--positive)">${fmtCOP(totalCapacidad)}</span></div>
         <div class="bar-track"><div class="bar-fill" style="width:100%; background:var(--positive)"></div></div>
       </div>
       <div class="flow-row">
         <div class="flow-label-row"><span>Gastos del mes</span><span style="color:var(--debo)">${fmtCOP(gasto)}</span></div>
-        <div class="bar-track"><div class="bar-fill" style="width:${saldoCuentasTotal>0?Math.min(Math.round((gasto/saldoCuentasTotal)*100),100):0}%; background:var(--debo)"></div></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${totalCapacidad>0?Math.min(Math.round((gasto/totalCapacidad)*100),100):0}%; background:var(--debo)"></div></div>
       </div>
     </div>
   </div>
@@ -769,24 +774,23 @@ function viewMovimientos(){
   `;
 }
 
+// SOLUCIÓN AL BUG EN LA VISTA DE INGRESOS
 function viewIngresos(){
   const key = STATE.viewingMonth;
   const list = STATE.incomes.filter(i=>i.date.slice(0,7)===key).sort((a,b)=>b.date.localeCompare(a.date));
   const total = receivedIncome(key);
-  
-  // AHORA NO SE SUMAN DOS VECES LOS INGRESOS
   const saldoCuentas = totalAccountsBalance();
   
   return `
   <div class="card" style="text-align:center">
-    <h3>Dinero en Cuentas</h3>
-    <div class="big-num">${fmtCOP(saldoCuentas)}</div>
-    <div class="sub-label">Ingresos recibidos este mes: ${fmtCOP(total)}</div>
+    <h3>Ingresos del mes — ${monthLabel(key)}</h3>
+    <div class="big-num" style="color:var(--positive)">+${fmtCOP(total)}</div>
+    <div class="sub-label">Saldo actual disponible en cuentas: ${fmtCOP(saldoCuentas)}</div>
   </div>
   
   <div class="card">
     <div class="card-header">
-      <h3 style="margin:0">Detalle de Ingresos</h3>
+      <h3 style="margin:0">Listado de Ingresos</h3>
       <button class="btn-ghost" data-action="add-income" style="padding:0; color:var(--positive);">+ agregar ingreso</button>
     </div>
     
