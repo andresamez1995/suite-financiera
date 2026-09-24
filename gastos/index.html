@@ -326,7 +326,6 @@ function fmtCOP(n){
   });
 }
 
-// Nueva función helper para calcular y formatear porcentajes
 function pctOf(val, total) {
   if (!total || total === 0) return '0%';
   const p = (val / total) * 100;
@@ -486,10 +485,9 @@ function viewResumen(){
   const key = STATE.viewingMonth;
   const gasto = totalExpenses(key);
   
+  // AHORA EL SALDO ES EL REAL Y EXACTO (No se suma el ingreso de nuevo)
   const saldoCuentasTotal = totalAccountsBalance();
   const saldoCuentasPositivo = positiveAccountsBalance();
-  const ingresosMes = receivedIncome(key);
-  const totalEntradasCuentasEIngresos = saldoCuentasTotal + ingresosMes;
   const detailedNivel = expensesByNivelDetailed(key);
 
   return `
@@ -512,12 +510,12 @@ function viewResumen(){
     </div>
     <div class="flow-bar-wrapper">
       <div class="flow-row">
-        <div class="flow-label-row"><span>Ingresos del mes + Cuentas</span><span style="color:var(--positive)">${fmtCOP(totalEntradasCuentasEIngresos)}</span></div>
+        <div class="flow-label-row"><span>Dinero disponible (Cuentas)</span><span style="color:var(--positive)">${fmtCOP(saldoCuentasTotal)}</span></div>
         <div class="bar-track"><div class="bar-fill" style="width:100%; background:var(--positive)"></div></div>
       </div>
       <div class="flow-row">
         <div class="flow-label-row"><span>Gastos del mes</span><span style="color:var(--debo)">${fmtCOP(gasto)}</span></div>
-        <div class="bar-track"><div class="bar-fill" style="width:${totalEntradasCuentasEIngresos>0?Math.min(Math.round((gasto/totalEntradasCuentasEIngresos)*100),100):0}%; background:var(--debo)"></div></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${saldoCuentasTotal>0?Math.min(Math.round((gasto/saldoCuentasTotal)*100),100):0}%; background:var(--debo)"></div></div>
       </div>
     </div>
   </div>
@@ -640,7 +638,6 @@ function renderMainCategoriesAndDonut(key, total){
     const color = CAT_PALETTE[i%CAT_PALETTE.length];
     const catObj = STATE.categories.find(c=>c.name===name);
     
-    // AQUI ESTÁN LOS PORCENTAJES DE LAS SUBCATEGORÍAS EN LA TORTA
     const subs = catObj ? catObj.subcats.map(s => {
       const subSum = realizedExpensesOfMonth(key).filter(e=>e.catId===catObj.id && e.subId===s.id).reduce((acc,e)=>acc+e.amount,0);
       if (subSum > 0) {
@@ -687,7 +684,6 @@ function renderStackedNivelDetailed(detailedNivel, total){
 
     return sortedGroup.map(([k,v])=>{
       const pctBar = (v/localMax)*100;
-      // AQUÍ ESTÁN LOS PORCENTAJES GLOBALES DE LAS SUBCATEGORÍAS EN LA NATURALEZA DEL GASTO
       return `
         <div style="margin-bottom:12px;">
           <div style="display:flex; justify-content:space-between; font-size:12.5px; font-weight:500; margin-bottom:4px;">
@@ -702,7 +698,6 @@ function renderStackedNivelDetailed(detailedNivel, total){
     }).join('');
   }
 
-  // TÍTULOS Y LEYENDA ACTUALIZADOS CON PORCENTAJES GLOBALES
   return `
     <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px; font-weight:600;">
       <span style="color:var(--debo)"><span class="legend-dot" style="background:var(--debo)"></span> Debo (${pctOf(debo.total, total)})</span>
@@ -778,18 +773,20 @@ function viewIngresos(){
   const key = STATE.viewingMonth;
   const list = STATE.incomes.filter(i=>i.date.slice(0,7)===key).sort((a,b)=>b.date.localeCompare(a.date));
   const total = receivedIncome(key);
+  
+  // AHORA NO SE SUMAN DOS VECES LOS INGRESOS
   const saldoCuentas = totalAccountsBalance();
   
   return `
   <div class="card" style="text-align:center">
-    <h3>Panorama de Ingresos y Cuentas — ${monthLabel(key)}</h3>
-    <div class="big-num">${fmtCOP(total + saldoCuentas)}</div>
-    <div class="sub-label">Incluye ${fmtCOP(saldoCuentas)} en cuentas + ${fmtCOP(total)} en ingresos del mes</div>
+    <h3>Dinero en Cuentas</h3>
+    <div class="big-num">${fmtCOP(saldoCuentas)}</div>
+    <div class="sub-label">Ingresos recibidos este mes: ${fmtCOP(total)}</div>
   </div>
   
   <div class="card">
     <div class="card-header">
-      <h3 style="margin:0">Ingresos del mes</h3>
+      <h3 style="margin:0">Detalle de Ingresos</h3>
       <button class="btn-ghost" data-action="add-income" style="padding:0; color:var(--positive);">+ agregar ingreso</button>
     </div>
     
