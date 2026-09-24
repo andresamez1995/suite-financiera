@@ -13,6 +13,7 @@
   --text:#1E201B; --text-dim:#656255; --text-faint:#95907F;
   --accent:#2A8F65; --accent-ink:#FFFFFF;
   --positive:#2A8F65; --debo:#D94F4F; --necesito:#E09F3E; --quiero:#2A8F65;
+  --warning:#E67E22;
   --shadow:0 2px 8px rgba(30,32,27,.06);
   --radius:16px; --radius-sm:10px;
   --font-display:'Space Grotesk', sans-serif;
@@ -24,6 +25,7 @@
     --text:#ECEFF1; --text-dim:#94A1A7; --text-faint:#637178;
     --accent:#31B07B; --accent-ink:#121618;
     --positive:#31B07B; --debo:#F25A5A; --necesito:#F5B041; --quiero:#31B07B;
+    --warning:#E67E22;
     --shadow:0 2px 10px rgba(0,0,0,.3);
   }
 }
@@ -32,6 +34,7 @@
   --text:#ECEFF1; --text-dim:#94A1A7; --text-faint:#637178;
   --accent:#31B07B; --accent-ink:#121618;
   --positive:#31B07B; --debo:#F25A5A; --necesito:#F5B041; --quiero:#31B07B;
+  --warning:#E67E22;
   --shadow:0 2px 10px rgba(0,0,0,.3);
 }
 *{box-sizing:border-box;}
@@ -172,6 +175,17 @@ label:first-child{margin-top:0;}
 .close-x{background:none; border:none; font-size:20px; color:var(--text-dim); cursor:pointer; padding:4px;}
 .footer-note{text-align:center; font-size:11px; color:var(--text-faint); padding:18px 8px 4px; line-height:1.6;}
 .legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+
+.alert-box {
+  padding: 14px;
+  border-radius: 12px;
+  margin-bottom: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
 </style>
 </head>
 <body>
@@ -484,19 +498,48 @@ function render(){
 function viewResumen(){
   const key = STATE.viewingMonth;
   const gasto = totalExpenses(key);
+  const saldoCuentasTotal = totalAccountsBalance(); // Saldo actual de hoy
+  const ingresosMes = receivedIncome(key);
   
-  const saldoCuentasTotal = totalAccountsBalance();
+  // Reconstruyendo la historia del mes:
+  // Saldo Inicial (Tenías) = Lo que tienes hoy - lo que te entró + lo que gastaste
+  const saldoInicial = saldoCuentasTotal - ingresosMes + gasto;
+  
+  // Total Disponible = Lo que tenías + lo que te ingresó
+  const totalDisponible = saldoInicial + ingresosMes; 
+  
   const saldoCuentasPositivo = positiveAccountsBalance();
-  
-  // SOLUCIÓN AL BUG:
-  // El "Total Capacidad" es igual a todo lo que tienes AHORA en tus cuentas + todo lo que YA GASTASTE este mes.
-  // De esta manera vemos el 100% del fondo disponible sin contar los ingresos dos veces.
-  const totalCapacidad = saldoCuentasTotal + gasto; 
-  
   const detailedNivel = expensesByNivelDetailed(key);
+  
+  // Cálculo de Alertas Inteligentes
+  let pctSpentNum = totalDisponible > 0 ? (gasto / totalDisponible) * 100 : (gasto > 0 ? 100 : 0);
+  let pctDisplay = (pctSpentNum % 1 === 0 ? pctSpentNum : pctSpentNum.toFixed(1)) + '%';
+  
+  let alertColor, alertIcon, alertMsg;
+  if(pctSpentNum <= 40) {
+    alertColor = 'var(--positive)'; alertIcon = '🟢';
+    alertMsg = `Has gastado el <b>${pctDisplay}</b> de tu dinero disponible. Tu flujo de caja es muy saludable y mantienes un excelente colchón financiero.`;
+  } else if(pctSpentNum <= 70) {
+    alertColor = 'var(--necesito)'; alertIcon = '🟡';
+    alertMsg = `Has gastado el <b>${pctDisplay}</b> de tu dinero disponible. Tu flujo es normal, pero vigila tus próximos movimientos para asegurar que tus ingresos cubran tus gastos.`;
+  } else if(pctSpentNum <= 90) {
+    alertColor = 'var(--warning)'; alertIcon = '🟠';
+    alertMsg = `¡Ten cuidado! Has gastado el <b>${pctDisplay}</b> de tu dinero total. Estás consumiendo tus fondos rápidamente. Frena los gastos 'Quiero'.`;
+  } else {
+    alertColor = 'var(--debo)'; alertIcon = '🔴';
+    alertMsg = `¡Peligro! Has gastado el <b>${pctDisplay}</b> de tu capacidad. Estás gastando muy por encima de tus límites y tus cuentas están a punto de quedar en cero. Evita cualquier gasto no esencial inmediatamente.`;
+  }
+
+  // Bonus Warning: Gastar más del ingreso del mes, incluso si hay ahorros previos
+  let bonusMsg = '';
+  if (gasto > ingresosMes && ingresosMes > 0) {
+    bonusMsg = `<div style="margin-top:8px; font-size:11.5px; color:var(--text-dim); border-top:1px dashed var(--border); padding-top:8px;">
+      <b>Nota:</b> Aunque tienes saldo global, este mes has gastado más de lo que te ingresó (${fmtCOP(gasto)} vs ${fmtCOP(ingresosMes)}).
+    </div>`;
+  }
 
   return `
-  <!-- 1. Saldo por Cuentas -->
+  <!-- 1. Saldo Actual -->
   <div class="card">
     <div class="card-header" style="margin-bottom:4px;">
       <div>
@@ -507,25 +550,55 @@ function viewResumen(){
     <div class="big-num" style="margin-bottom:16px;">${fmtCOP(saldoCuentasTotal)}</div>
     ${renderDetailedAccounts(saldoCuentasPositivo)}
   </div>
+  
+  <!-- 2. Alertas Inteligentes -->
+  <div class="alert-box" style="border-left: 4px solid ${alertColor};">
+    <div style="font-size:22px; line-height:1;">${alertIcon}</div>
+    <div style="font-size:13px; line-height:1.4; color:var(--text);">
+      ${alertMsg}
+      ${bonusMsg}
+    </div>
+  </div>
 
-  <!-- 2. Flujo de caja -->
+  <!-- 3. Flujo de caja (Historia del mes) -->
   <div class="card">
     <div class="card-header">
       <h3 style="font-size:16px;">Flujo de caja</h3>
     </div>
+    
+    <div style="font-size:13px; margin-bottom:14px;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+         <span style="color:var(--text-dim)">Tenías (Saldo inicial)</span>
+         <span>${fmtCOP(saldoInicial)}</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+         <span style="color:var(--text-dim)">Te ingresó este mes</span>
+         <span style="color:var(--positive)">+${fmtCOP(ingresosMes)}</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-weight:600; border-top:1px solid var(--border); padding-top:6px; margin-bottom:14px;">
+         <span>Tu total es esto</span>
+         <span>${fmtCOP(totalDisponible)}</span>
+      </div>
+    </div>
+    
     <div class="flow-bar-wrapper">
       <div class="flow-row">
-        <div class="flow-label-row"><span>Ingresos en el Mes (Saldo + Ingresos)</span><span style="color:var(--positive)">${fmtCOP(totalCapacidad)}</span></div>
+        <div class="flow-label-row"><span>Capacidad total (100%)</span></div>
         <div class="bar-track"><div class="bar-fill" style="width:100%; background:var(--positive)"></div></div>
       </div>
       <div class="flow-row">
-        <div class="flow-label-row"><span>Gastos del mes</span><span style="color:var(--debo)">${fmtCOP(gasto)}</span></div>
-        <div class="bar-track"><div class="bar-fill" style="width:${totalCapacidad>0?Math.min(Math.round((gasto/totalCapacidad)*100),100):0}%; background:var(--debo)"></div></div>
+        <div class="flow-label-row"><span>Tus gastos son estos</span><span style="color:var(--debo)">-${fmtCOP(gasto)}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pctSpentNum}%; background:var(--debo)"></div></div>
       </div>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; font-size:15px; font-weight:700; margin-top:16px; padding-top:12px; border-top:1px solid var(--border);">
+       <span>Tu saldo actual es este</span>
+       <span>${fmtCOP(saldoCuentasTotal)}</span>
     </div>
   </div>
 
-  <!-- 3. Top 5 Gastos Individuales -->
+  <!-- 4. Top 5 Gastos Individuales -->
   <div class="card">
     <div class="card-header">
       <h3 style="font-size:13px; color:var(--text-faint); letter-spacing:1px; text-transform:uppercase;">TOP 5 GASTOS INDIVIDUALES</h3>
@@ -533,7 +606,7 @@ function viewResumen(){
     ${renderTopExpenses(key)}
   </div>
 
-  <!-- 4. Categorías Principales (Torta) -->
+  <!-- 5. Categorías Principales (Torta) -->
   <div class="card">
     <div class="card-header">
       <h3 style="font-size:13px; color:var(--text-faint); letter-spacing:1px; text-transform:uppercase;">CATEGORÍAS PRINCIPALES</h3>
@@ -541,7 +614,7 @@ function viewResumen(){
     ${gasto===0 ? `<div class="empty-state">Aún no hay gastos este mes</div>` : renderMainCategoriesAndDonut(key, gasto)}
   </div>
 
-  <!-- 5. Naturaleza del Gasto -->
+  <!-- 6. Naturaleza del Gasto -->
   <div class="card">
     <div class="card-header" style="margin-bottom:4px;">
       <div>
@@ -774,7 +847,6 @@ function viewMovimientos(){
   `;
 }
 
-// SOLUCIÓN AL BUG EN LA VISTA DE INGRESOS
 function viewIngresos(){
   const key = STATE.viewingMonth;
   const list = STATE.incomes.filter(i=>i.date.slice(0,7)===key).sort((a,b)=>b.date.localeCompare(a.date));
