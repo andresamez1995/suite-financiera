@@ -88,11 +88,10 @@ main{flex:1; overflow-y:auto; padding:16px 16px 90px;}
 .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
 @media (max-width: 500px) { .grid-2 { grid-template-columns: 1fr; } }
 
-/* Componentes Visuales */
 .flow-bar-wrapper{margin-top:10px;}
 .flow-row{margin-bottom:12px;}
 .flow-label-row{display:flex; justify-content:space-between; font-size:12.5px; font-weight:600; margin-bottom:6px;}
-.bar-track{width:100%; height:12px; background:var(--surface-2); border-radius:99px; overflow:hidden;}
+.bar-track{width:100%; height:10px; background:var(--surface-2); border-radius:99px; overflow:hidden;}
 .bar-fill{height:100%; border-radius:99px; transition:width 0.5s ease;}
 
 .donut-container{display:flex; align-items:center; gap:24px; flex-wrap:wrap; justify-content:center; margin:20px 0;}
@@ -218,7 +217,6 @@ const STORAGE_KEY = 'finanzas_app_v12';
 const APP_VERSION = 12;
 let storageOk = true;
 
-// CATEGORÍAS EXACTAS
 function defaultCategories(){
   return [
     {id:'hogar', name:'Hogar', icon:'⌂', subcats:[
@@ -292,27 +290,6 @@ function loadState(){
       const parsed = JSON.parse(raw);
       STATE = Object.assign(defaultState(), parsed);
       if(!STATE.categories || !STATE.categories.length) STATE.categories = defaultCategories();
-      
-      if(STATE.incomeLog) {
-        if(!STATE.incomes) STATE.incomes = [];
-        for(const month in STATE.incomeLog) {
-          for(const srcId in STATE.incomeLog[month]) {
-            const log = STATE.incomeLog[month][srcId];
-            if(log && log.received) {
-              const srcName = (STATE.incomeSources||[]).find(s=>s.id===srcId)?.name || 'Ingreso';
-              STATE.incomes.push({
-                id: uid(),
-                date: log.date || month+'-01',
-                amount: log.amount,
-                desc: srcName,
-                accountId: log.accountId
-              });
-            }
-          }
-        }
-        delete STATE.incomeLog;
-        delete STATE.incomeSources;
-      }
       if(!STATE.incomes) STATE.incomes = [];
       return;
     }
@@ -391,9 +368,8 @@ function today(){ return new Date().toISOString().slice(0,10); }
 function findCat(catId){ return STATE.categories.find(c=>c.id===catId); }
 function findSub(catId,subId){ const c=findCat(catId); return c && c.subcats.find(s=>s.id===subId); }
 function nivelLabel(n){ return n==='debo'?'Debo':n==='necesito'?'Necesito':'Quiero'; }
-function getAccountName(id){ const a=STATE.accounts.find(x=>x.id===id); return a?a.name:'Efectivo'; }
 
-/* ================= CÁLCULOS (EN TIEMPO REAL) ================= */
+/* ================= CÁLCULOS ================= */
 function isRealized(e){ return e.date <= today(); }
 function reconcileScheduledExpenses(){
   let changed = false;
@@ -498,20 +474,15 @@ function render(){
 function viewResumen(){
   const key = STATE.viewingMonth;
   const gasto = totalExpenses(key);
-  const saldoCuentasTotal = totalAccountsBalance(); // Saldo actual de hoy
+  const saldoCuentasTotal = totalAccountsBalance();
   const ingresosMes = receivedIncome(key);
   
-  // Reconstruyendo la historia del mes:
-  // Saldo Inicial (Tenías) = Lo que tienes hoy - lo que te entró + lo que gastaste
   const saldoInicial = saldoCuentasTotal - ingresosMes + gasto;
-  
-  // Total Disponible = Lo que tenías + lo que te ingresó
   const totalDisponible = saldoInicial + ingresosMes; 
   
   const saldoCuentasPositivo = positiveAccountsBalance();
   const detailedNivel = expensesByNivelDetailed(key);
   
-  // Cálculo de Alertas Inteligentes
   let pctSpentNum = totalDisponible > 0 ? (gasto / totalDisponible) * 100 : (gasto > 0 ? 100 : 0);
   let pctDisplay = (pctSpentNum % 1 === 0 ? pctSpentNum : pctSpentNum.toFixed(1)) + '%';
   
@@ -530,7 +501,6 @@ function viewResumen(){
     alertMsg = `¡Peligro! Has gastado el <b>${pctDisplay}</b> de tu capacidad. Estás gastando muy por encima de tus límites y tus cuentas están a punto de quedar en cero. Evita cualquier gasto no esencial inmediatamente.`;
   }
 
-  // Bonus Warning: Gastar más del ingreso del mes, incluso si hay ahorros previos
   let bonusMsg = '';
   if (gasto > ingresosMes && ingresosMes > 0) {
     bonusMsg = `<div style="margin-top:8px; font-size:11.5px; color:var(--text-dim); border-top:1px dashed var(--border); padding-top:8px;">
@@ -560,7 +530,7 @@ function viewResumen(){
     </div>
   </div>
 
-  <!-- 3. Flujo de caja (Historia del mes) -->
+  <!-- 3. Flujo de caja -->
   <div class="card">
     <div class="card-header">
       <h3 style="font-size:16px;">Flujo de caja</h3>
@@ -598,12 +568,12 @@ function viewResumen(){
     </div>
   </div>
 
-  <!-- 4. Top 5 Gastos Individuales -->
+  <!-- 4. Top 5 Gastos Globales por Etiquetas -->
   <div class="card">
     <div class="card-header">
-      <h3 style="font-size:13px; color:var(--text-faint); letter-spacing:1px; text-transform:uppercase;">TOP 5 GASTOS INDIVIDUALES</h3>
+      <h3 style="font-size:13px; color:var(--text-faint); letter-spacing:1px; text-transform:uppercase;">TOP 5 GASTOS GLOBALES (ETIQUETAS)</h3>
     </div>
-    ${renderTopExpenses(key)}
+    ${renderTopGlobalExpenses(key, gasto)}
   </div>
 
   <!-- 5. Categorías Principales (Torta) -->
@@ -614,7 +584,7 @@ function viewResumen(){
     ${gasto===0 ? `<div class="empty-state">Aún no hay gastos este mes</div>` : renderMainCategoriesAndDonut(key, gasto)}
   </div>
 
-  <!-- 6. Naturaleza del Gasto -->
+  <!-- 6. Naturaleza del Gasto (Mejorada y Limpia) -->
   <div class="card">
     <div class="card-header" style="margin-bottom:4px;">
       <div>
@@ -651,23 +621,43 @@ function renderDetailedAccounts(totalPositivo){
   }).join('');
 }
 
-function renderTopExpenses(key){
-  const list = realizedExpensesOfMonth(key).sort((a,b)=>b.amount - a.amount).slice(0,5);
-  if(list.length===0) return `<div class="empty-state">No hay gastos recientes</div>`;
-  return list.map(e=>{
-    const c = findCat(e.catId); const s = findSub(e.catId, e.subId);
-    const title = s ? s.name : (c ? c.name : 'Gasto');
-    const day = new Date(e.date+'T00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short'});
+// TOP 5 GASTOS GLOBALES POR ETIQUETA/SUBCATEGORÍA
+function renderTopGlobalExpenses(key, totalGasto){
+  const list = realizedExpensesOfMonth(key);
+  const map = {};
+  
+  list.forEach(e=>{
+    const c = findCat(e.catId);
+    const s = findSub(e.catId, e.subId);
+    const subName = s ? s.name : (e.desc || 'Gasto');
+    const catName = c ? c.name : 'Otros';
+    const icon = c ? c.icon : '•';
+    
+    const keyId = `${e.catId}_${e.subId||e.desc}`;
+    if(!map[keyId]){
+      map[keyId] = { catName, subName, icon, total:0 };
+    }
+    map[keyId].total += e.amount;
+  });
+
+  const sorted = Object.values(map).sort((a,b)=> b.total - a.total).slice(0,5);
+  if(sorted.length===0) return `<div class="empty-state">No hay gastos recientes</div>`;
+
+  return sorted.map(item=>{
+    const pct = totalGasto > 0 ? (item.total / totalGasto) * 100 : 0;
+    const pctStr = (pct % 1 === 0 ? pct : pct.toFixed(1)) + '%';
     return `
-      <div class="list-item" style="padding:12px 0;">
-        <div class="ic-bubble green" style="border-radius:50%; font-size:16px;">${c?c.icon:'💸'}</div>
+      <div class="list-item" style="padding:10px 0;">
+        <div class="ic-bubble green" style="border-radius:12px; font-size:16px;">${item.icon}</div>
         <div class="info">
-          <div class="title" style="font-size:14.5px;">${e.desc || title}</div>
-          <div class="meta">${c?c.name:''} ${s?`› ${s.name}`:''}</div>
-        </div>
-        <div style="text-align:right;">
-          <div class="amount neg" style="font-size:14.5px; font-weight:600;">−${fmtCOP(e.amount)}</div>
-          <div class="meta">${day}</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+            <span style="font-size:14px; font-weight:600;">${item.subName}</span>
+            <span class="amount neg" style="font-size:14px;">${fmtCOP(item.total)}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="meta">${item.catName}</span>
+            <span style="font-size:11px; color:var(--text-faint); font-weight:600;">${pctStr}</span>
+          </div>
         </div>
       </div>
     `;
@@ -733,7 +723,7 @@ function renderMainCategoriesAndDonut(key, total){
           <span>${name}</span>
           <span>${fmtCOP(val)} <span style="font-size:11.5px; font-weight:500; color:var(--text-faint);">(${pctOf(val, total)})</span></span>
         </div>
-        <div class="bar-track" style="height:12px; background:var(--surface-2); border-radius:4px; margin-bottom:8px;">
+        <div class="bar-track" style="height:10px; background:var(--surface-2); border-radius:4px; margin-bottom:8px;">
           <div class="bar-fill" style="width:${pctRelative}%; background:${color}; border-radius:4px;"></div>
         </div>
         ${subs}
@@ -744,36 +734,47 @@ function renderMainCategoriesAndDonut(key, total){
   return html;
 }
 
+// NATURALEZA DEL GASTO LIMPIA Y ORGANIZADA
 function renderStackedNivelDetailed(detailedNivel, total){
   const {debo, necesito, quiero} = detailedNivel;
   const deboPct = total>0 ? Math.round((debo.total/total)*100) : 0;
   const necesitoPct = total>0 ? Math.round((necesito.total/total)*100) : 0;
   const quieroPct = total>0 ? Math.round((quiero.total/total)*100) : 0;
 
-  function renderSubList(items, colorClass){
+  function renderCleanGroup(items, colorClass, titleText, totalSec){
     if(!items.length) return '';
     const grouped = {};
     items.forEach(it => {
-      const key = `${it.catName} › ${it.subName}`;
-      grouped[key] = (grouped[key]||0) + it.amount;
+      const k = `${it.catName} › ${it.subName}`;
+      grouped[k] = (grouped[k]||0) + it.amount;
     });
     const sortedGroup = Object.entries(grouped).sort((a,b)=>b[1]-a[1]);
-    const localMax = sortedGroup[0]?.[1] || 1;
+    const maxSub = sortedGroup[0]?.[1] || 1;
 
-    return sortedGroup.map(([k,v])=>{
-      const pctBar = (v/localMax)*100;
-      return `
-        <div style="margin-bottom:12px;">
-          <div style="display:flex; justify-content:space-between; font-size:12.5px; font-weight:500; margin-bottom:4px;">
-            <span>${k}</span>
-            <span>${fmtCOP(v)} <span style="color:var(--text-faint); font-size:11px; font-weight:600;">(${pctOf(v, total)})</span></span>
-          </div>
-          <div class="bar-track" style="height:8px; border-radius:3px;">
-            <div class="bar-fill" style="width:${pctBar}%; background:var(--${colorClass}); border-radius:3px;"></div>
-          </div>
+    return `
+      <div style="margin-top:20px; padding-top:14px; border-top:1px solid var(--border);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <span style="font-size:12px; color:var(--text-faint); letter-spacing:1px; text-transform:uppercase; font-weight:700;">
+            ${titleText}
+          </span>
+          <span class="pill ${colorClass}" style="font-size:11px;">${fmtCOP(totalSec)} (${pctOf(totalSec, total)})</span>
         </div>
-      `;
-    }).join('');
+        ${sortedGroup.map(([k,v])=>{
+          const pBar = (v/maxSub)*100;
+          return `
+            <div style="margin-bottom:10px;">
+              <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:500; margin-bottom:3px;">
+                <span>${k}</span>
+                <span style="font-weight:600;">${fmtCOP(v)} <span style="color:var(--text-faint); font-size:11px; font-weight:400;">(${pctOf(v, total)})</span></span>
+              </div>
+              <div class="bar-track" style="height:6px; border-radius:3px;">
+                <div class="bar-fill" style="width:${pBar}\%; background:var(--${colorClass}); border-radius:3px;"></div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
   }
 
   return `
@@ -783,28 +784,15 @@ function renderStackedNivelDetailed(detailedNivel, total){
       <span style="color:var(--quiero)"><span class="legend-dot" style="background:var(--quiero)"></span> Quiero (${pctOf(quiero.total, total)})</span>
     </div>
     
-    <div class="stacked-stack" style="height:28px; border-radius:4px; gap:0;">
+    <div class="stacked-stack" style="height:24px; border-radius:6px; gap:2px;">
       <div class="stacked-segment" style="width:${deboPct}%; background:var(--debo)" title="Debo: ${fmtCOP(debo.total)}"></div>
       <div class="stacked-segment" style="width:${necesitoPct}%; background:var(--necesito)" title="Necesito: ${fmtCOP(necesito.total)}"></div>
       <div class="stacked-segment" style="width:${quieroPct}%; background:var(--quiero)" title="Quiero: ${fmtCOP(quiero.total)}"></div>
     </div>
-    
-    <div style="margin-top:24px;">
-      <div style="font-size:12px; color:var(--text-faint); letter-spacing:1px; text-transform:uppercase; margin-bottom:12px;">
-        DETALLE DE GASTOS DEBO <span style="float:right; font-weight:600; color:var(--debo);">${pctOf(debo.total, total)} DEL TOTAL</span>
-      </div>
-      ${renderSubList(debo.items, 'debo') || '<div style="font-size:12px;color:var(--text-dim)">Sin gastos</div>'}
-      
-      <div style="font-size:12px; color:var(--text-faint); letter-spacing:1px; text-transform:uppercase; margin-top:20px; margin-bottom:12px;">
-        DETALLE DE GASTOS NECESITO <span style="float:right; font-weight:600; color:var(--necesito);">${pctOf(necesito.total, total)} DEL TOTAL</span>
-      </div>
-      ${renderSubList(necesito.items, 'necesito') || '<div style="font-size:12px;color:var(--text-dim)">Sin gastos</div>'}
-      
-      <div style="font-size:12px; color:var(--text-faint); letter-spacing:1px; text-transform:uppercase; margin-top:20px; margin-bottom:12px;">
-        DETALLE DE GASTOS QUIERO <span style="float:right; font-weight:600; color:var(--quiero);">${pctOf(quiero.total, total)} DEL TOTAL</span>
-      </div>
-      ${renderSubList(quiero.items, 'quiero') || '<div style="font-size:12px;color:var(--text-dim)">Sin gastos</div>'}
-    </div>
+
+    ${renderCleanGroup(debo.items, 'debo', 'Gastos Debo', debo.total)}
+    ${renderCleanGroup(necesito.items, 'necesito', 'Gastos Necesito', necesito.total)}
+    ${renderCleanGroup(quiero.items, 'quiero', 'Gastos Quiero', quiero.total)}
   `;
 }
 
@@ -1001,7 +989,6 @@ function openAddModal(defaultTab = 'gasto') {
       <div class="tab ${defaultTab==='transfer'?'active':''}" data-target="addTransfer">Transferir</div>
     </div>
     
-    <!-- PESTAÑA: GASTO -->
     <div id="addGasto" class="tab-content ${defaultTab==='gasto'?'active':''}">
       <label>Monto (COP)</label><input type="text" id="addExpAmount" class="money-input">
       
@@ -1021,7 +1008,6 @@ function openAddModal(defaultTab = 'gasto') {
       <div style="margin-top:18px"><button class="btn btn-primary btn-block" id="saveExpBtn">Guardar Gasto</button></div>
     </div>
 
-    <!-- PESTAÑA: INGRESO -->
     <div id="addIngreso" class="tab-content ${defaultTab==='ingreso'?'active':''}">
       <label>Monto (COP)</label><input type="text" id="addIncAmount" class="money-input">
       <label>Motivo / Origen</label><input type="text" id="addIncDesc" placeholder="Ej: Salario, Venta de bici...">
@@ -1032,7 +1018,6 @@ function openAddModal(defaultTab = 'gasto') {
       <div style="margin-top:18px"><button class="btn btn-primary btn-block" id="saveIncBtn" style="background:var(--positive)">Abonar Ingreso</button></div>
     </div>
 
-    <!-- PESTAÑA: TRANSFERENCIA -->
     <div id="addTransfer" class="tab-content ${defaultTab==='transfer'?'active':''}">
       <div style="font-size:12px; color:var(--text-dim); margin-bottom:12px;">Mueve dinero entre tus cuentas. Esto no afecta tu flujo de ingresos ni gastos.</div>
       
