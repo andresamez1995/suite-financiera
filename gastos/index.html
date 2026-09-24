@@ -688,7 +688,7 @@ function renderMainCategoriesAndDonut(key, total){
         ${entries.map(([name, val], i)=>{
           const pct = Math.round((val/total)*100); const color = CAT_PALETTE[i%CAT_PALETTE.length];
           return `
-            <div class="legend-item" style="justify-content:flex-start; gap:8px;">
+            <div class="legend-item" style="display:flex; align-items:center; justify-content:flex-start; gap:8px;">
               <span class="legend-dot" style="background:${color}; flex-shrink:0;"></span>
               <span style="font-weight:600; flex:1;">${name}</span>
               <span style="color:var(--text-dim); font-size:11.5px;">${pct}%</span>
@@ -706,27 +706,29 @@ function renderMainCategoriesAndDonut(key, total){
     const color = CAT_PALETTE[i%CAT_PALETTE.length];
     const catObj = STATE.categories.find(c=>c.name===name);
     
-    const subs = catObj ? catObj.subcats.map(s => {
+    // Calcular y ordenar las subcategorías de forma descendente (mayor a menor)
+    const subsList = catObj ? catObj.subcats.map(s => {
       const subSum = realizedExpensesOfMonth(key).filter(e=>e.catId===catObj.id && e.subId===s.id).reduce((acc,e)=>acc+e.amount,0);
-      if (subSum > 0) {
-        return `<div style="display:flex; justify-content:space-between; font-size:11.5px; color:var(--text-dim); margin-top:4px; padding-left:8px; border-left:2px solid ${color}40;">
-                  <span>↳ ${s.name}</span>
-                  <span>${fmtCOP(subSum)} <span style="color:var(--text-faint); font-weight:500;">(${pctOf(subSum, total)})</span></span>
-                </div>`;
-      }
-      return null;
-    }).filter(Boolean).join('') : '';
+      return { name: s.name, amount: subSum };
+    }).filter(s => s.amount > 0).sort((a, b) => b.amount - a.amount) : [];
+
+    const subsHtml = subsList.map(s => `
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--text-dim); margin-top:6px; padding-left:10px; border-left:2px solid ${color}60;">
+        <span>↳ ${s.name}</span>
+        <span>${fmtCOP(s.amount)} <span style="color:var(--text-faint); font-weight:500;">(${pctOf(s.amount, total)})</span></span>
+      </div>
+    `).join('');
 
     return `
-      <div style="margin-bottom:18px;">
-        <div style="display:flex; justify-content:space-between; font-size:13.5px; font-weight:600; margin-bottom:6px;">
-          <span>${name}</span>
+      <div style="margin-bottom:14px; background:var(--surface-2); padding:12px; border-radius:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:13.5px; font-weight:600; margin-bottom:8px;">
+          <span><span class="legend-dot" style="background:${color}; margin-right:6px;"></span>${name}</span>
           <span>${fmtCOP(val)} <span style="font-size:11.5px; font-weight:500; color:var(--text-faint);">(${pctOf(val, total)})</span></span>
         </div>
-        <div class="bar-track" style="height:10px; background:var(--surface-2); border-radius:4px; margin-bottom:8px;">
+        <div class="bar-track" style="height:6px; background:var(--surface); border-radius:4px; margin-bottom:8px;">
           <div class="bar-fill" style="width:${pctRelative}%; background:${color}; border-radius:4px;"></div>
         </div>
-        ${subs}
+        ${subsHtml}
       </div>
     `;
   }).join('');
@@ -1395,7 +1397,7 @@ function openSettingsModal(){
            alert("⚠️ El archivo cargado no parece ser un respaldo válido de la app.");
         }
       } catch(err){ 
-        alert("❌ Error al leer el archivo. Asegúrate de que sea el archivo .json correcto."); 
+        alert("❌ Error al leer el archivo. Asegúrate de que seja el archivo .json correcto."); 
       }
     };
     reader.readAsText(file);
