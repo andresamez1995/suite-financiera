@@ -18,13 +18,14 @@
 </head>
 <body>
   <nav>
-<button onclick="cambiarApp('./calculadora/index.html')">Calculadora Salarial</button>
-<button onclick="cambiarApp('./gastos/index.html')">Gestión de Gastos</button>
+<nav>
+    <button onclick="cambiarApp('/suite-financiera/calculadora/index.html')">Calculadora Salarial</button>
+    <button onclick="cambiarApp('/suite-financiera/gastos/index.html')">Gestión de Gastos</button>
     <!-- Botón automático de instalación -->
     <button id="btn-instalar">📲 Instalar App</button>
   </nav>
 
-  <iframe id="app-frame" src="./calculadora/index.html"></iframe>
+  <iframe id="app-frame" src="/suite-financiera/calculadora/index.html"></iframe>
 
   <script>
     function cambiarApp(ruta) {
