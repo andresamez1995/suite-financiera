@@ -1,8 +1,8 @@
 {
   "name": "Suite Financiera",
   "short_name": "Finanzas",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "/suite-financiera/",
+  "scope": "/suite-financiera/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#1e293b",
