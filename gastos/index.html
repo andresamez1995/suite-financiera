@@ -223,7 +223,7 @@ label:first-child{margin-top:0;}
 const STORAGE_KEY = 'finanzas_app_v12';
 const APP_VERSION = 12;
 let storageOk = true;
-let movSearchQuery = ''; // Estado para la barra de búsqueda de gastos
+let movSearchQuery = ''; 
 
 function defaultCategories(){
   return [
@@ -297,14 +297,22 @@ function loadState(){
     if(raw){
       const parsed = JSON.parse(raw);
       STATE = Object.assign(defaultState(), parsed);
-      if(!STATE.categories || !STATE.categories.length) STATE.categories = defaultCategories();
-      if(!STATE.incomes) STATE.incomes = [];
       
-      // Retrocompatibilidad para añadir icono a cuentas viejas
+      // SISTEMA DE DEFENSA: Reconstrucción estricta de memoria para evitar crasheos (pantalla en negro)
+      if(!STATE.categories || !Array.isArray(STATE.categories) || STATE.categories.length === 0) STATE.categories = defaultCategories();
+      if(!STATE.incomes || !Array.isArray(STATE.incomes)) STATE.incomes = [];
+      if(!STATE.expenses || !Array.isArray(STATE.expenses)) STATE.expenses = [];
+      if(!STATE.accounts || !Array.isArray(STATE.accounts) || STATE.accounts.length === 0) STATE.accounts = defaultState().accounts;
+      if(!STATE.viewingMonth || typeof STATE.viewingMonth !== 'string') STATE.viewingMonth = monthKey(new Date());
+
+      // Retrocompatibilidad para añadir icono a cuentas viejas si no lo tenían
       STATE.accounts.forEach(a => { if(!a.icon) a.icon = '🏦'; });
       return;
     }
-  }catch(e){ storageOk = false; }
+  }catch(e){ 
+    storageOk = false; 
+    console.error("Error cargando caché:", e);
+  }
   STATE = defaultState();
 }
 function saveState(){
@@ -313,6 +321,8 @@ function saveState(){
     storageOk = true;
   }catch(e){ storageOk = false; }
 }
+
+// Inicialización segura
 loadState();
 if(STATE.theme) document.documentElement.setAttribute('data-theme', STATE.theme);
 
@@ -322,10 +332,7 @@ const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto'
 function fmtCOP(n){
   n = Number(n)||0;
   const hasDecimals = n % 1 !== 0;
-  return 'COP ' + n.toLocaleString('es-CO', {
-    minimumFractionDigits: hasDecimals ? 2 : 0, 
-    maximumFractionDigits: hasDecimals ? 2 : 0
-  });
+  return 'COP ' + n.toLocaleString('es-CO', { minimumFractionDigits: hasDecimals ? 2 : 0, maximumFractionDigits: hasDecimals ? 2 : 0 });
 }
 
 function pctOf(val, total) {
@@ -338,10 +345,7 @@ function formatMoneyInputValue(n){
   if(n===null || n===undefined || n==='' || isNaN(n)) return '';
   n = Number(n);
   const hasDecimals = n % 1 !== 0;
-  return n.toLocaleString('es-CO', {
-    minimumFractionDigits: hasDecimals ? 2 : 0,
-    maximumFractionDigits: hasDecimals ? 2 : 0
-  });
+  return n.toLocaleString('es-CO', { minimumFractionDigits: hasDecimals ? 2 : 0, maximumFractionDigits: hasDecimals ? 2 : 0 });
 }
 
 function parseMoneyInput(el){
@@ -371,20 +375,24 @@ function wireMoneyInputs(root){
     el.addEventListener('input', ()=> liveFormatMoney(el));
   });
 }
+
 function monthLabel(key){
-  const [y,m] = key.split('-').map(Number);
+  if(!key || typeof key !== 'string') return 'Mes';
+  const parts = key.split('-');
+  if(parts.length < 2) return key;
+  const [y,m] = parts.map(Number);
   return MESES[m-1] + ' ' + y;
 }
 function today(){ return new Date().toISOString().slice(0,10); }
 function findCat(catId){ return STATE.categories.find(c=>c.id===catId); }
-function findSub(catId,subId){ const c=findCat(catId); return c && c.subcats.find(s=>s.id===subId); }
+function findSub(catId,subId){ const c=findCat(catId); return c && c.subcats ? c.subcats.find(s=>s.id===subId) : null; }
 function nivelLabel(n){ return n==='debo'?'Debo':n==='necesito'?'Necesito':'Quiero'; }
 
 /* ================= CÁLCULOS ================= */
 function isRealized(e){ return e.date <= today(); }
 function reconcileScheduledExpenses(){
   let changed = false;
-  STATE.expenses.forEach(e=>{
+  (STATE.expenses || []).forEach(e=>{
     if(e.applied===undefined) e.applied = true;
     if(!e.applied && isRealized(e)){
       const acc = STATE.accounts.find(a=>a.id===e.accountId);
@@ -394,11 +402,11 @@ function reconcileScheduledExpenses(){
   });
   if(changed) saveState();
 }
-function expensesOfMonth(key){ return STATE.expenses.filter(e=>e.date.slice(0,7)===key); }
+function expensesOfMonth(key){ return (STATE.expenses || []).filter(e=>e.date && e.date.slice(0,7)===key); }
 function realizedExpensesOfMonth(key){ return expensesOfMonth(key).filter(isRealized); }
-function totalExpenses(key){ return realizedExpensesOfMonth(key).reduce((s,e)=>s+e.amount,0); }
-function totalAccountsBalance(){ return STATE.accounts.reduce((s,a)=>s+(a.balance||0),0); }
-function positiveAccountsBalance(){ return STATE.accounts.filter(a=>a.balance>0).reduce((s,a)=>s+a.balance,0); }
+function totalExpenses(key){ return realizedExpensesOfMonth(key).reduce((s,e)=>s+(Number(e.amount)||0),0); }
+function totalAccountsBalance(){ return (STATE.accounts || []).reduce((s,a)=>s+(Number(a.balance)||0),0); }
+function positiveAccountsBalance(){ return (STATE.accounts || []).filter(a=>(Number(a.balance)||0)>0).reduce((s,a)=>s+Number(a.balance),0); }
 
 function expensesByCategory(key){
   const list = realizedExpensesOfMonth(key);
@@ -406,7 +414,7 @@ function expensesByCategory(key){
   list.forEach(e=>{
     const c = findCat(e.catId);
     const name = c ? c.name : 'Otros';
-    map[name] = (map[name]||0) + e.amount;
+    map[name] = (map[name]||0) + (Number(e.amount)||0);
   });
   return map;
 }
@@ -418,25 +426,28 @@ function expensesByNivelDetailed(key){
     const c = findCat(e.catId);
     const s = findSub(e.catId, e.subId);
     const nivelActual = s ? s.nivel : (e.nivel || 'quiero');
+    const amt = Number(e.amount)||0;
     
-    out[nivelActual].total += e.amount;
-    out[nivelActual].items.push({
-      catName: c ? c.name : 'Otros',
-      subName: s ? s.name : 'Gasto',
-      amount: e.amount
-    });
+    if(out[nivelActual]){
+      out[nivelActual].total += amt;
+      out[nivelActual].items.push({
+        catName: c ? c.name : 'Otros',
+        subName: s ? s.name : 'Gasto',
+        amount: amt
+      });
+    }
   });
   return out;
 }
 
 function receivedIncome(key){
-  return STATE.incomes.filter(i=>i.date.slice(0,7)===key).reduce((s,i)=>s+i.amount,0);
+  return (STATE.incomes || []).filter(i=>i.date && i.date.slice(0,7)===key).reduce((s,i)=>s+(Number(i.amount)||0),0);
 }
 
 /* ================= NAVEGACIÓN ================= */
 let currentView = 'resumen';
 const viewLabel = document.getElementById('monthLabel');
-function refreshMonthLabel(){ viewLabel.textContent = monthLabel(STATE.viewingMonth); }
+function refreshMonthLabel(){ if(viewLabel) viewLabel.textContent = monthLabel(STATE.viewingMonth); }
 
 document.getElementById('prevMonth').onclick = ()=>{
   const [y,m] = STATE.viewingMonth.split('-').map(Number);
@@ -469,17 +480,22 @@ document.getElementById('fabAdd').onclick = ()=> openAddModal('gasto');
 /* ================= RENDER ================= */
 const FOOTER_HTML = `<div class="footer-note">Creado por <b>Andrés Amézquita</b><br>Los datos mostrados aquí son generados localmente.</div>`;
 function render(){
-  reconcileScheduledExpenses();
-  refreshMonthLabel();
-  const view = document.getElementById('view');
-  let html = '';
-  if(currentView==='resumen') html = viewResumen();
-  else if(currentView==='movimientos') html = viewMovimientos();
-  else if(currentView==='ingresos') html = viewIngresos();
-  else if(currentView==='categorias') html = viewCategorias();
-  else if(currentView==='cuentas') html = viewCuentas();
-  view.innerHTML = html + FOOTER_HTML;
-  bindViewEvents();
+  try {
+    reconcileScheduledExpenses();
+    refreshMonthLabel();
+    const view = document.getElementById('view');
+    let html = '';
+    if(currentView==='resumen') html = viewResumen();
+    else if(currentView==='movimientos') html = viewMovimientos();
+    else if(currentView==='ingresos') html = viewIngresos();
+    else if(currentView==='categorias') html = viewCategorias();
+    else if(currentView==='cuentas') html = viewCuentas();
+    view.innerHTML = html + FOOTER_HTML;
+    bindViewEvents();
+  } catch (error) {
+    console.error("Error en render:", error);
+    document.getElementById('view').innerHTML = `<div class="empty-state" style="color:var(--debo);"><br><br><b>Ocurrió un error inesperado al cargar la vista.</b><br><br>Si el problema persiste, ve a ⚙ Ajustes y descarga tu respaldo.</div>`;
+  }
 }
 
 function viewResumen(){
@@ -595,7 +611,7 @@ function viewResumen(){
     ${gasto===0 ? `<div class="empty-state">Aún no hay gastos este mes</div>` : renderMainCategoriesAndDonut(key, gasto)}
   </div>
 
-  <!-- 6. Naturaleza del Gasto (Mejorada y Limpia) -->
+  <!-- 6. Naturaleza del Gasto -->
   <div class="card">
     <div class="card-header" style="margin-bottom:4px;">
       <div>
@@ -612,7 +628,7 @@ function viewResumen(){
 const CAT_PALETTE = ['#00D09E','#FF4C3B','#FFB300','#4A90E2','#9B59B6','#E67E22','#1ABC9C', '#E91E63'];
 
 function renderDetailedAccounts(totalPositivo){
-  if(STATE.accounts.length===0) return `<div class="empty-state">No hay cuentas registradas</div>`;
+  if(!STATE.accounts || STATE.accounts.length===0) return `<div class="empty-state">No hay cuentas registradas</div>`;
   const sorted = [...STATE.accounts].sort((a,b)=> b.balance - a.balance);
   return sorted.map(acc=>{
     let pct = 0; let color = 'var(--text-dim)';
@@ -621,7 +637,7 @@ function renderDetailedAccounts(totalPositivo){
     return `
       <div class="account-row">
         <div class="account-info">
-          <span>${acc.icon} ${acc.name} ${acc.balance<0?'<span style="color:var(--text-faint);font-weight:400;font-size:11px;">(SALDO NEGATIVO)</span>':''}</span>
+          <span>${acc.icon||'🏦'} ${acc.name} ${acc.balance<0?'<span style="color:var(--text-faint);font-weight:400;font-size:11px;">(SALDO NEGATIVO)</span>':''}</span>
           <span>${fmtCOP(acc.balance)}</span>
         </div>
         <div class="account-bar-bg">
@@ -645,7 +661,7 @@ function renderTopGlobalExpenses(key, totalGasto){
     
     const keyId = `${e.catId}_${e.subId||e.desc}`;
     if(!map[keyId]){ map[keyId] = { catName, subName, icon, total:0 }; }
-    map[keyId].total += e.amount;
+    map[keyId].total += (Number(e.amount)||0);
   });
 
   const sorted = Object.values(map).sort((a,b)=> b.total - a.total).slice(0,5);
@@ -657,7 +673,7 @@ function renderTopGlobalExpenses(key, totalGasto){
     return `
       <div class="list-item" style="padding:10px 0;">
         <div class="ic-bubble green" style="border-radius:12px; font-size:16px;">${item.icon}</div>
-        <div class="info">
+        <div class="info" style="overflow:hidden;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
             <span class="text-truncate" style="font-size:14px; font-weight:600; flex:1; padding-right:8px;">${item.subName}</span>
             <span class="amount neg" style="font-size:14px; flex-shrink:0;">${fmtCOP(item.total)}</span>
@@ -672,7 +688,6 @@ function renderTopGlobalExpenses(key, totalGasto){
   }).join('');
 }
 
-// DESGLOSE DE TORTA MEJORADO Y ORDENADO
 function renderMainCategoriesAndDonut(key, total){
   const byCat = expensesByCategory(key);
   const entries = Object.entries(byCat).filter(([_,v])=>v>0).sort((a,b)=>b[1]-a[1]);
@@ -697,7 +712,7 @@ function renderMainCategoriesAndDonut(key, total){
         ${entries.map(([name, val], i)=>{
           const pct = Math.round((val/total)*100); const color = CAT_PALETTE[i%CAT_PALETTE.length];
           return `
-            <div class="legend-item" style="justify-content:flex-start; gap:8px;">
+            <div class="legend-item" style="display:flex; align-items:center; justify-content:flex-start; gap:8px;">
               <span class="legend-dot" style="background:${color}; flex-shrink:0;"></span>
               <span class="text-truncate" style="font-weight:600; flex:1;">${name}</span>
               <span style="color:var(--text-dim); font-size:11.5px; flex-shrink:0;">${pct}%</span>
@@ -715,16 +730,15 @@ function renderMainCategoriesAndDonut(key, total){
     const color = CAT_PALETTE[i%CAT_PALETTE.length];
     const catObj = STATE.categories.find(c=>c.name===name);
     
-    // Calcular, ordenar descendentemente y mapear las subcategorías
     let subsHtml = '';
-    if (catObj) {
+    if (catObj && Array.isArray(catObj.subcats)) {
       const subDataList = catObj.subcats.map(s => {
-        const subSum = realizedExpensesOfMonth(key).filter(e=>e.catId===catObj.id && e.subId===s.id).reduce((acc,e)=>acc+e.amount,0);
+        const subSum = realizedExpensesOfMonth(key).filter(e=>e.catId===catObj.id && e.subId===s.id).reduce((acc,e)=>acc+(Number(e.amount)||0),0);
         return { name: s.name, amount: subSum };
-      }).filter(s => s.amount > 0).sort((a,b) => b.amount - a.amount); // Orden descendente
+      }).filter(s => s.amount > 0).sort((a,b) => b.amount - a.amount);
 
       subsHtml = subDataList.map(s => {
-        return `<div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim); margin-top:6px; padding-left:10px; border-left:2px solid ${color}60;">
+        return `<div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--text-dim); margin-top:6px; padding-left:10px; border-left:2px solid ${color}60;">
                   <span class="text-truncate" style="flex:1; padding-right:8px;">↳ ${s.name}</span>
                   <span style="flex-shrink:0;">${fmtCOP(s.amount)} <span style="color:var(--text-faint); font-weight:500;">(${pctOf(s.amount, total)})</span></span>
                 </div>`;
@@ -748,7 +762,6 @@ function renderMainCategoriesAndDonut(key, total){
   return html;
 }
 
-// NATURALEZA DEL GASTO CON TRUNCAMIENTO
 function renderStackedNivelDetailed(detailedNivel, total){
   const {debo, necesito, quiero} = detailedNivel;
   const deboPct = total>0 ? Math.round((debo.total/total)*100) : 0;
@@ -810,12 +823,10 @@ function renderStackedNivelDetailed(detailedNivel, total){
   `;
 }
 
-// VISTA DE GASTOS REDISEÑADA Y CON BÚSQUEDA
 function viewMovimientos(){
   const key = STATE.viewingMonth;
-  let list = expensesOfMonth(key).slice().sort((a,b)=>b.date.localeCompare(a.date));
+  let list = expensesOfMonth(key).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   
-  // Filtrar por Nivel (Pestañas)
   if(movFilterNivel!=='todos'){
     list = list.filter(e => {
        const s = findSub(e.catId, e.subId);
@@ -824,13 +835,12 @@ function viewMovimientos(){
     });
   }
 
-  // Filtrar por Texto (Búsqueda)
   if(movSearchQuery.trim() !== '') {
     const q = movSearchQuery.toLowerCase();
     list = list.filter(e => {
        const c = findCat(e.catId);
        const s = findSub(e.catId, e.subId);
-       const searchStr = `${e.desc||''} ${c?c.name:''} ${s?s.name:''} ${e.amount} ${e.date}`.toLowerCase();
+       const searchStr = `${e?.desc||''} ${c?.name||''} ${s?.name||''} ${e?.amount||0} ${e?.date||''}`.toLowerCase();
        return searchStr.includes(q);
     });
   }
@@ -844,10 +854,8 @@ function viewMovimientos(){
       <div class="big-num">${fmtCOP(totalGastoGeneral)}</div>
     </div>
     
-    <!-- Barra de Búsqueda -->
     <input type="text" id="movSearchInput" placeholder="🔍 Buscar gasto, categoría o monto..." value="${movSearchQuery}" style="margin-bottom:14px; background:var(--bg); border:1px solid var(--border);">
     
-    <!-- Pestañas de Filtro -->
     <div class="tabs" style="margin-bottom:0;">
       ${['todos','debo','necesito','quiero'].map(n=>`<div class="tab ${movFilterNivel===n?'active':''}" data-action="filter-nivel" data-nivel="${n}">${n==='todos'?'Todos':nivelLabel(n)}</div>`).join('')}
       <div class="tab" data-action="export-csv" style="margin-left:auto;">↓ CSV</div>
@@ -859,9 +867,9 @@ function viewMovimientos(){
       const c = findCat(e.catId); const s = findSub(e.catId, e.subId);
       return `<div class="list-item" data-action="edit-expense" data-id="${e.id}" style="cursor:pointer;">
         <div class="ic-bubble">${c?c.icon:'•'}</div>
-        <div class="info">
+        <div class="info" style="overflow:hidden;">
           <div class="title text-truncate">${e.desc || (s?s.name:'Gasto')}</div>
-          <div class="meta text-truncate">${s?s.name:''} · ${new Date(e.date+'T00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short'})}</div>
+          <div class="meta text-truncate">${s?s.name:''} · ${new Date((e.date||today())+'T00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short'})}</div>
         </div>
         <div class="amount neg flex-shrink-0">−${fmtCOP(e.amount)}</div>
       </div>`;
@@ -872,7 +880,7 @@ function viewMovimientos(){
 
 function viewIngresos(){
   const key = STATE.viewingMonth;
-  const list = STATE.incomes.filter(i=>i.date.slice(0,7)===key).sort((a,b)=>b.date.localeCompare(a.date));
+  const list = (STATE.incomes || []).filter(i=>i.date && i.date.slice(0,7)===key).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const total = receivedIncome(key);
   const saldoCuentas = totalAccountsBalance();
   
@@ -894,9 +902,9 @@ function viewIngresos(){
       return `
       <div class="list-item" data-action="edit-income" data-id="${i.id}" style="cursor:pointer;">
         <div class="ic-bubble green" style="font-size:16px;">↓</div>
-        <div class="info">
+        <div class="info" style="overflow:hidden;">
           <div class="title text-truncate">${i.desc || 'Ingreso'}</div>
-          <div class="meta">${acc?acc.name:'Cuenta'} · ${new Date(i.date+'T00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short'})}</div>
+          <div class="meta text-truncate">${acc?acc.name:'Cuenta'} · ${new Date((i.date||today())+'T00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short'})}</div>
         </div>
         <div class="amount pos flex-shrink-0">+${fmtCOP(i.amount)}</div>
       </div>`;
@@ -910,7 +918,7 @@ function viewCategorias(){
   <div class="card">
     <div class="card-header"><h3 style="margin:0">Categorías</h3><button class="btn-ghost" data-action="add-category">+ categoría</button></div>
   </div>
-  ${STATE.categories.map(c=>`
+  ${(STATE.categories||[]).map(c=>`
     <div class="card">
       <div class="card-header" style="margin-bottom:6px">
         <div style="display:flex; align-items:center; gap:8px;">
@@ -923,7 +931,7 @@ function viewCategorias(){
           <button class="btn-ghost" data-action="del-cat" data-cat="${c.id}" style="color:var(--debo)" title="Eliminar">✕</button>
         </div>
       </div>
-      ${c.subcats.map(s=>`
+      ${(c.subcats||[]).map(s=>`
         <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px;">
           <div class="text-truncate" style="flex:1; padding-right:8px;"><span>${s.name}</span> <span class="pill ${s.nivel}" style="font-size:10px; margin-left:6px;">${nivelLabel(s.nivel)}</span></div>
           <div style="flex-shrink:0;">
@@ -946,7 +954,7 @@ function viewCuentas(){
   </div>
   <div class="card">
     <div class="card-header"><h3 style="margin:0">Tus cuentas</h3><button class="btn-ghost" data-action="add-account">+ agregar</button></div>
-    ${STATE.accounts.map(a=>`
+    ${(STATE.accounts||[]).map(a=>`
       <div class="list-item" data-action="edit-account" data-id="${a.id}" style="cursor:pointer;">
         <div class="ic-bubble" style="font-size:18px;">${a.icon||'🏦'}</div>
         <div class="info"><div class="title">${a.name}</div></div>
@@ -967,10 +975,14 @@ function bindViewEvents(){
       movSearchQuery = e.target.value;
       render();
     });
-    // Volver a enfocar si estábamos escribiendo (truco simple para render-en-vivo)
-    searchInput.focus();
-    const len = searchInput.value.length;
-    searchInput.setSelectionRange(len, len);
+    // Solo enfocar si estamos escribiendo activamente
+    if(movSearchQuery.length > 0) {
+      searchInput.focus();
+      // setTimeout previene errores de rango en algunos navegadores
+      setTimeout(() => { 
+        try { searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length); } catch(e){} 
+      }, 0);
+    }
   }
 
   document.querySelectorAll('[data-action="edit-expense"]').forEach(el=> el.onclick = ()=> openEditExpenseModal(el.dataset.id));
@@ -993,7 +1005,7 @@ function bindViewEvents(){
   document.querySelectorAll('[data-action="del-subcat"]').forEach(el=>{
     el.onclick = ()=>{
       const c = findCat(el.dataset.cat);
-      c.subcats = c.subcats.filter(s=>s.id!==el.dataset.sub);
+      if(c && c.subcats) c.subcats = c.subcats.filter(s=>s.id!==el.dataset.sub);
       saveState(); render();
     };
   });
@@ -1022,13 +1034,11 @@ function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
 
 
 function openAddModal(defaultTab = 'gasto') {
-  // Autocompletado de Gastos
-  const uniqueDescs = [...new Set(STATE.expenses.map(e=>e.desc).filter(Boolean))];
-  const expDatalistHtml = `<datalist id="expDescList">${uniqueDescs.map(d=>`<option value="${d}">`).join('')}</datalist>`;
+  const uniqueDescs = [...new Set((STATE.expenses||[]).map(e=>e.desc).filter(Boolean))];
+  const expDatalistHtml = `<datalist id="expDescList">${uniqueDescs.map(d=>`<option value="${d.replace(/"/g, '&quot;')}">`).join('')}</datalist>`;
   
-  // Autocompletado de Ingresos (MEMORIA REQ 6)
-  const uniqueIncs = [...new Set(STATE.incomes.map(i=>i.desc).filter(Boolean))];
-  const incDatalistHtml = `<datalist id="incDescList">${uniqueIncs.map(d=>`<option value="${d}">`).join('')}</datalist>`;
+  const uniqueIncs = [...new Set((STATE.incomes||[]).map(i=>i.desc).filter(Boolean))];
+  const incDatalistHtml = `<datalist id="incDescList">${uniqueIncs.map(d=>`<option value="${d.replace(/"/g, '&quot;')}">`).join('')}</datalist>`;
 
   openModal(`
     <div class="modal-head">
@@ -1054,7 +1064,7 @@ function openAddModal(defaultTab = 'gasto') {
       <label>Nivel (Automático según categoría)</label>
       <div id="addExpNivel" class="pill" style="font-size:13px; padding:6px 12px; margin-top:2px">Necesito</div>
       
-      <label>Cuenta de origen</label><select id="addExpAcc">${STATE.accounts.map(a=>`<option value="${a.id}">${a.icon\vert{}\vert{}'🏦'} ${a.name}</option>`).join('')}</select>
+      <label>Cuenta de origen</label><select id="addExpAcc">${(STATE.accounts||[]).map(a=>`<option value="${a.id}">${a.icon\vert{}\vert{}'🏦'} ${a.name}</option>`).join('')}</select>
       <label>Fecha</label><input type="date" id="addExpDate" value="${today()}">
       
       <div style="margin-top:18px"><button class="btn btn-primary btn-block" id="saveExpBtn">Guardar Gasto</button></div>
@@ -1068,7 +1078,7 @@ function openAddModal(defaultTab = 'gasto') {
       ${incDatalistHtml}
 
       <label>Cuenta de destino (A dónde entra el dinero)</label>
-      <select id="addIncAcc">${STATE.accounts.map(a=>`<option value="${a.id}">${a.icon\vert{}\vert{}'🏦'} ${a.name}</option>`).join('')}</select>
+      <select id="addIncAcc">${(STATE.accounts||[]).map(a=>`<option value="${a.id}">${a.icon\vert{}\vert{}'🏦'} ${a.name}</option>`).join('')}</select>
       <label>Fecha</label><input type="date" id="addIncDate" value="${today()}">
       
       <div style="margin-top:18px"><button class="btn btn-primary btn-block" id="saveIncBtn" style="background:var(--positive)">Abonar Ingreso</button></div>
@@ -1078,10 +1088,10 @@ function openAddModal(defaultTab = 'gasto') {
       <div style="font-size:12px; color:var(--text-dim); margin-bottom:12px;">Mueve dinero entre tus cuentas. Esto no afecta tu flujo de ingresos ni gastos.</div>
       
       <label>Desde (Saco dinero de...)</label>
-      <select id="addTrFrom">${STATE.accounts.map(a=>`<option value="${a.id}">${a.icon||'🏦'} ${a.name} (${fmtCOP(a.balance)})</option>`).join('')}</select>
+      <select id="addTrFrom">${(STATE.accounts||[]).map(a=>`<option value="${a.id}">${a.icon||'🏦'} ${a.name} (${fmtCOP(a.balance)})</option>`).join('')}</select>
       
       <label>Hacia (Lo pongo en...)</label>
-      <select id="addTrTo">${STATE.accounts.map(a=>`<option value="${a.id}">${a.icon||'🏦'} ${a.name} (${fmtCOP(a.balance)})</option>`).join('')}</select>
+      <select id="addTrTo">${(STATE.accounts||[]).map(a=>`<option value="${a.id}">${a.icon||'🏦'} ${a.name} (${fmtCOP(a.balance)})</option>`).join('')}</select>
       
       <label>Monto (COP)</label><input type="text" id="addTrAmount" class="money-input">
       
@@ -1103,10 +1113,10 @@ function openAddModal(defaultTab = 'gasto') {
   const nivelDisp = document.getElementById('addExpNivel');
   const expDesc = document.getElementById('addExpDesc');
 
-  function fillCats(){ catSel.innerHTML = STATE.categories.map(c=>`<option value="${c.id}">${c.icon} ${c.name}</option>`).join(''); }
+  function fillCats(){ catSel.innerHTML = (STATE.categories||[]).map(c=>`<option value="${c.id}">${c.icon} ${c.name}</option>`).join(''); }
   function fillSubs(catId){ 
     const c = findCat(catId); 
-    subSel.innerHTML = (c?c.subcats:[]).map(s=>`<option value="${s.id}" data-nivel="${s.nivel}">${s.name}</option>`).join(''); 
+    subSel.innerHTML = (c && c.subcats ? c.subcats : []).map(s=>`<option value="${s.id}" data-nivel="${s.nivel}">${s.name}</option>`).join(''); 
     updateNivelBadge(); 
   }
   function updateNivelBadge(){
@@ -1118,7 +1128,7 @@ function openAddModal(defaultTab = 'gasto') {
   }
 
   fillCats();
-  if(STATE.categories.length > 0) {
+  if(STATE.categories && STATE.categories.length > 0) {
     catSel.value = STATE.categories[0].id; 
     fillSubs(catSel.value);
   }
@@ -1126,7 +1136,7 @@ function openAddModal(defaultTab = 'gasto') {
   expDesc.addEventListener('input', (e) => {
     const val = e.target.value.trim().toLowerCase();
     if(!val) return;
-    const match = STATE.expenses.slice().reverse().find(ex => (ex.desc||'').toLowerCase() === val);
+    const match = (STATE.expenses||[]).slice().reverse().find(ex => (ex.desc||'').toLowerCase() === val);
     if(match){
       catSel.value = match.catId;
       fillSubs(match.catId);
@@ -1181,7 +1191,7 @@ function openAddModal(defaultTab = 'gasto') {
     saveState(); closeModal(); render();
   };
 
-  if(STATE.accounts.length > 1) document.getElementById('addTrTo').selectedIndex = 1;
+  if(STATE.accounts && STATE.accounts.length > 1) document.getElementById('addTrTo').selectedIndex = 1;
   document.getElementById('saveTrBtn').onclick = ()=>{
     const from = STATE.accounts.find(a=>a.id===document.getElementById('addTrFrom').value);
     const to = STATE.accounts.find(a=>a.id===document.getElementById('addTrTo').value);
@@ -1207,7 +1217,7 @@ function openEditExpenseModal(id){
     <label>Monto (COP)</label><input type="text" id="expAmount" class="money-input" value="${formatMoneyInputValue(editing.amount)}">
     
     <label>Descripción / Etiqueta</label>
-    <input type="text" id="expDesc" value="${editing.desc||''}">
+    <input type="text" id="expDesc" value="${(editing.desc||'').replace(/"/g, '&quot;')}">
 
     <label>Categoría</label><select id="expCat"></select>
     <label>Subcategoría</label><select id="expSub"></select>
@@ -1215,8 +1225,8 @@ function openEditExpenseModal(id){
     <label>Nivel (Automático según categoría)</label>
     <div id="nivelDisplay" class="pill" style="font-size:13px; padding:6px 12px; margin-top:2px">Necesito</div>
     
-    <label>Cuenta de origen</label><select id="expAccount">${STATE.accounts.map(a=>`<option value="${a.id}">${a.icon\vert{}\vert{}'🏦'} ${a.name}</option>`).join('')}</select>
-    <label>Fecha</label><input type="date" id="expDate" value="${editing.date}">
+    <label>Cuenta de origen</label><select id="expAccount">${(STATE.accounts||[]).map(a=>`<option value="${a.id}">${a.icon\vert{}\vert{}'🏦'} ${a.name}</option>`).join('')}</select>
+    <label>Fecha</label><input type="date" id="expDate" value="${editing.date||today()}">
     
     <div style="display:flex; gap:10px; margin-top:18px">
       <button class="btn btn-secondary" id="delExpBtn" style="flex:1">Eliminar</button>
@@ -1227,10 +1237,10 @@ function openEditExpenseModal(id){
   const subSel = document.getElementById('expSub');
   const nivelDisplay = document.getElementById('nivelDisplay');
 
-  function fillCats(){ catSel.innerHTML = STATE.categories.map(c=>`<option value="${c.id}">${c.icon} ${c.name}</option>`).join(''); }
+  function fillCats(){ catSel.innerHTML = (STATE.categories||[]).map(c=>`<option value="${c.id}">${c.icon} ${c.name}</option>`).join(''); }
   function fillSubs(catId){ 
     const c = findCat(catId); 
-    subSel.innerHTML = (c?c.subcats:[]).map(s=>`<option value="${s.id}" data-nivel="${s.nivel}">${s.name}</option>`).join(''); 
+    subSel.innerHTML = (c && c.subcats ? c.subcats : []).map(s=>`<option value="${s.id}" data-nivel="${s.nivel}">${s.name}</option>`).join(''); 
     updateNivelBadge(); 
   }
   function updateNivelBadge(){
@@ -1291,19 +1301,19 @@ function openEditIncomeModal(id){
   const editing = STATE.incomes.find(i=>i.id===id);
   if(!editing) return;
 
-  const uniqueIncs = [...new Set(STATE.incomes.map(i=>i.desc).filter(Boolean))];
-  const incDatalistHtml = `<datalist id="editIncDescList">${uniqueIncs.map(d=>`<option value="${d}">`).join('')}</datalist>`;
+  const uniqueIncs = [...new Set((STATE.incomes||[]).map(i=>i.desc).filter(Boolean))];
+  const incDatalistHtml = `<datalist id="editIncDescList">${uniqueIncs.map(d=>`<option value="${d.replace(/"/g, '&quot;')}">`).join('')}</datalist>`;
 
   openModal(`
     <div class="modal-head"><h3>Editar Ingreso</h3><button class="close-x" onclick="closeModal()">✕</button></div>
     <label>Monto (COP)</label><input type="text" id="editIncAmount" class="money-input" value="${formatMoneyInputValue(editing.amount)}">
     
     <label>Motivo / Origen</label>
-    <input type="text" id="editIncDesc" list="editIncDescList" value="${editing.desc}">
+    <input type="text" id="editIncDesc" list="editIncDescList" value="${(editing.desc||'').replace(/"/g, '&quot;')}">
     ${incDatalistHtml}
 
-    <label>Cuenta de destino</label><select id="editIncAcc">${STATE.accounts.map(a=>`<option value="${a.id}" ${a.id===editing.accountId?'selected':''}>${a.icon\vert{}\vert{}'🏦'} ${a.name}</option>`).join('')}</select>
-    <label>Fecha</label><input type="date" id="editIncDate" value="${editing.date}">
+    <label>Cuenta de destino</label><select id="editIncAcc">${(STATE.accounts||[]).map(a=>`<option value="${a.id}" ${a.id===editing.accountId?'selected':''}>${a.icon\vert{}\vert{}'🏦'} ${a.name}</option>`).join('')}</select>
+    <label>Fecha</label><input type="date" id="editIncDate" value="${editing.date||today()}">
     <div style="display:flex; gap:10px; margin-top:18px">
       <button class="btn btn-secondary" id="delIncBtn" style="flex:1">Eliminar</button>
       <button class="btn btn-primary" id="saveEditIncBtn" style="flex:2">Guardar Cambios</button>
@@ -1348,7 +1358,7 @@ function openCategoryModal(catId = null){
       </div>
       <div style="flex:1;">
         <label>Nombre</label>
-        <input type="text" id="catName" value="${editing?editing.name:''}">
+        <input type="text" id="catName" value="${editing?(editing.name||'').replace(/"/g, '&quot;'):''}">
       </div>
     </div>
     <div style="margin-top:18px"><button class="btn btn-primary btn-block" id="saveCatBtn">Guardar</button></div>
@@ -1370,10 +1380,11 @@ function openCategoryModal(catId = null){
 
 function openSubcatModal(catId, subId){
   const c = findCat(catId);
-  const editing = subId ? c.subcats.find(s=>s.id===subId) : null;
+  if(!c) return;
+  const editing = subId && c.subcats ? c.subcats.find(s=>s.id===subId) : null;
   openModal(`
     <div class="modal-head"><h3>${editing?'Editar subcategoría':'Nueva subcategoría'}</h3><button class="close-x" onclick="closeModal()">✕</button></div>
-    <label>Nombre</label><input type="text" id="subName" value="${editing?editing.name:''}">
+    <label>Nombre</label><input type="text" id="subName" value="${editing?(editing.name||'').replace(/"/g, '&quot;'):''}">
     <label>Nivel de prioridad</label>
     <div class="seg" id="subNivelSeg" style="display:flex; background:var(--surface-2); border-radius:10px; padding:3px; gap:3px;">
       ${['debo','necesito','quiero'].map(n=>`<button type="button" data-n="${n}" style="flex:1; border:none; padding:8px; border-radius:8px; background:${((editing?editing.nivel:'necesito')===n)?'var(--surface)':'none'}; font-weight:600; cursor:pointer;" class="${n}">${nivelLabel(n)}</button>`).join('')}
@@ -1393,6 +1404,7 @@ function openSubcatModal(catId, subId){
   document.getElementById('saveSubBtn').onclick = ()=>{
     const name = document.getElementById('subName').value.trim();
     if(!name) return;
+    if(!c.subcats) c.subcats = [];
     if(editing){
       editing.name = name; editing.nivel = selectedNivel;
     } else {
@@ -1413,7 +1425,7 @@ function openAccountModal(id){
       </div>
       <div style="flex:1;">
         <label>Nombre</label>
-        <input type="text" id="accName" value="${editing?editing.name:''}">
+        <input type="text" id="accName" value="${editing?(editing.name||'').replace(/"/g, '&quot;'):''}">
       </div>
     </div>
     <label>Saldo actual (COP)</label><input type="text" id="accBalance" class="money-input" value="${editing?formatMoneyInputValue(editing.balance):''}">
@@ -1475,6 +1487,7 @@ function openSettingsModal(){
   };
 }
 
+// Renderizado inicial seguro
 render();
 </script>
 </body>
