@@ -498,7 +498,7 @@ function viewResumen(){
     alertMsg = `¡Ten cuidado! Has gastado el <b>${pctDisplay}</b> de tu dinero total. Estás consumiendo tus fondos rápidamente. Frena los gastos 'Quiero'.`;
   } else {
     alertColor = 'var(--debo)'; alertIcon = '🔴';
-    alertMsg = `¡Peligro! Has gastado el <b>${pctDisplay}</b> de tu capacidad. Estás gastando muy por encima de tus límites y tus cuentas están a punto de quedar en cero. Evita cualquier gasto no esencial inmediatamente.`;
+    alertMsg = `¡Peligro! Has gastado el <b>${pctDisplay}</b> de tu capacidad. Estás gastando muy por encima de tu límite y tus cuentas están a punto de quedar en cero. Evita cualquier gasto no esencial inmediatamente.`;
   }
 
   let bonusMsg = '';
@@ -831,16 +831,24 @@ function viewMovimientos(){
     });
   }
 
+  // Ordenamiento principal por fecha descendente (lo más nuevo primero)
   list.sort((a,b)=>{
-    if(movSortOrder === 'reciente') return b.date.localeCompare(a.date);
-    if(movSortOrder === 'antiguo') return a.date.localeCompare(b.date);
-    if(movSortOrder === 'mayor') return b.amount - a.amount;
-    if(movSortOrder === 'menor') return a.amount - b.amount;
-    return 0;
+    if(a.date !== b.date) return b.date.localeCompare(a.date);
+    // Si tienen la misma fecha, mantenemos orden inverso de creación o ID para que el último agregado esté arriba
+    return b.id.localeCompare(a.id);
   });
   
   const total = totalExpenses(key);
   const categoriesOptions = STATE.categories.map(c => `<option value="${c.id}" ${movFilterCat===c.id?'selected':''}>${c.icon} ${c.name}</option>`).join('');
+
+  // Agrupar por días
+  const groupedByDay = {};
+  list.forEach(e => {
+    if(!groupedByDay[e.date]) groupedByDay[e.date] = [];
+    groupedByDay[e.date].push(e);
+  });
+
+  const sortedDays = Object.keys(groupedByDay).sort((a,b) => b.localeCompare(a));
 
   return `
   <div class="card" style="display:flex; flex-direction:column; gap:12px;">
@@ -865,14 +873,6 @@ function viewMovimientos(){
             ${categoriesOptions}
           </select>
         </div>
-        <div style="flex:1; min-width:130px;">
-          <select id="movSortSelect" style="padding:8px 12px; font-size:13.5px;">
-            <option value="reciente" ${movSortOrder==='reciente'?'selected':''}>Más reciente</option>
-            <option value="antiguo" ${movSortOrder==='antiguo'?'selected':''}>Más antiguo</option>
-            <option value="mayor" ${movSortOrder==='mayor'?'selected':''}>Mayor monto</option>
-            <option value="menor" ${movSortOrder==='menor'?'selected':''}>Menor monto</option>
-          </select>
-        </div>
       </div>
     </div>
 
@@ -881,25 +881,40 @@ function viewMovimientos(){
     </div>
   </div>
 
-  <div class="card">
-    ${list.length===0 ? `<div class="empty-state"><span class="ic">◯</span>No hay gastos registrados con estos filtros</div>` : list.map(e=>{
-      const c = findCat(e.catId); const s = findSub(e.catId, e.subId);
-      return `<div class="list-item" data-action="edit-expense" data-id="${e.id}" style="cursor:pointer;">
-        <div class="ic-bubble">${c?c.icon:'•'}</div>
-        <div class="info">
-          <div class="title">${e.desc || (s?s.name:'Gasto')}</div>
-          <div class="meta">${c?c.name:''} › ${s?s.name:''} · ${new Date(e.date+'T00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short'})}</div>
-        </div>
-        <div class="amount neg">−${fmtCOP(e.amount)}</div>
-      </div>`;
-    }).join('')}
-  </div>
+  ${sortedDays.length === 0 ? `
+    <div class="card"><div class="empty-state"><span class="ic">◯</span>No hay gastos registrados con estos filtros</div></div>
+  ` : sortedDays.map(dayStr => {
+    const dayItems = groupedByDay[dayStr];
+    const formattedDate = new Date(dayStr+'T00:00').toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    
+    return `
+      <div style="font-size:12px; font-weight:700; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.5px; margin:16px 4px 8px;">
+        📅 ${formattedDate}
+      </div>
+      <div class="card" style="padding: 0 18px;">
+        ${dayItems.map(e=>{
+          const c = findCat(e.catId); const s = findSub(e.catId, e.subId);
+          return `<div class="list-item" data-action="edit-expense" data-id="${e.id}" style="cursor:pointer;">
+            <div class="ic-bubble">${c?c.icon:'•'}</div>
+            <div class="info">
+              <div class="title">${e.desc || (s?s.name:'Gasto')}</div>
+              <div class="meta">${c?c.name:''} › ${s?s.name:''}</div>
+            </div>
+            <div class="amount neg">−${fmtCOP(e.amount)}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    `;
+  }).join('')}
   `;
 }
 
 function viewIngresos(){
   const key = STATE.viewingMonth;
-  const list = STATE.incomes.filter(i=>i.date.slice(0,7)===key).sort((a,b)=>b.date.localeCompare(a.date));
+  const list = STATE.incomes.filter(i=>i.date.slice(0,7)===key).sort((a,b)=>{
+    if(a.date !== b.date) return b.date.localeCompare(a.date);
+    return b.id.localeCompare(a.id);
+  });
   const total = receivedIncome(key);
   const saldoCuentas = totalAccountsBalance();
   
@@ -998,10 +1013,6 @@ function bindViewEvents(){
   if(catFilterSelect){
     catFilterSelect.onchange = (e)=>{ movFilterCat = e.target.value; render(); };
   }
-  const sortSelect = document.getElementById('movSortSelect');
-  if(sortSelect){
-    sortSelect.onchange = (e)=>{ movSortOrder = e.target.value; render(); };
-  }
 
   document.querySelectorAll('[data-action="edit-expense"]').forEach(el=> el.onclick = ()=> openEditExpenseModal(el.dataset.id));
   document.querySelectorAll('[data-action="edit-income"]').forEach(el=> el.onclick = ()=> openEditIncomeModal(el.dataset.id));
@@ -1055,7 +1066,6 @@ function openAddModal(defaultTab = 'gasto') {
   const uniqueDescs = [...new Set(STATE.expenses.map(e=>e.desc).filter(Boolean))];
   const datalistHtml = `<datalist id="descList">${uniqueDescs.map(d=>`<option value="${d}">`).join('')}</datalist>`;
 
-  // Memoria y autocompletado para ingresos
   const uniqueIncDescs = [...new Set(STATE.incomes.map(i=>i.desc).filter(Boolean))];
   const incDatalistHtml = `<datalist id="incDescList">${uniqueIncDescs.map(d=>`<option value="${d}">`).join('')}</datalist>`;
 
@@ -1164,7 +1174,6 @@ function openAddModal(defaultTab = 'gasto') {
     }
   });
 
-  // Memoria y autocompletado para el monto del ingreso al escribir motivo recurrente
   const incDesc = document.getElementById('addIncDesc');
   const incAmountInput = document.getElementById('addIncAmount');
   incDesc.addEventListener('input', (e) => {
