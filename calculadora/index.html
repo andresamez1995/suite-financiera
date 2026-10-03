@@ -246,6 +246,21 @@
   .prev-meses{display:grid; grid-template-columns:1fr 1fr; gap:.6rem .8rem; margin-bottom:.9rem;}
   .prev-meses label{font-size:.75rem; font-weight:700; color:var(--ink-soft); display:block; margin-bottom:.15rem;}
   @media(max-width:380px){ .prev-meses{grid-template-columns:1fr;} }
+  /* ---- resumen para el contador ---- */
+  #contadorModal .mg-box{max-width:560px; max-height:88vh; overflow-y:auto;}
+  .ct-sec{font-weight:800; font-size:.9rem; margin:1rem 0 .15rem;}
+  .ct-tabla{width:100%; border-collapse:collapse; font-size:.84rem;}
+  .ct-tabla td{padding:.42rem 0; border-bottom:1px solid var(--line); vertical-align:top;}
+  .ct-tabla td.v{text-align:right; font-weight:700; white-space:nowrap; font-variant-numeric:tabular-nums; padding-left:.8rem;}
+  .ct-nota{display:block; font-size:.72rem; color:var(--ink-soft); font-weight:400; line-height:1.35;}
+  .ct-pie{font-size:.72rem; color:var(--ink-soft); line-height:1.5; margin-top:.9rem;}
+  @media print{
+    html,body{overflow:visible !important; height:auto !important;} body{position:static !important;}
+    #appc,#bnav,#asistente,#modalGestor,#toastCalc,#suiteDlg{display:none !important;}
+    #contadorModal{position:static !important; background:none !important; padding:0 !important; display:block !important;}
+    #contadorModal .mg-box{box-shadow:none !important; border:none !important; max-height:none !important; overflow:visible !important; max-width:none !important; padding:0 !important;}
+    #contadorModal .no-print{display:none !important;}
+  }
   /* ---- salario -> gestor, renta, toast ---- */
   .mg-overlay{position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100; display:flex; align-items:center; justify-content:center; padding:16px;}
   .mg-overlay[hidden]{display:none;}
@@ -673,6 +688,7 @@
       <p class="hint" style="margin-top:-.4rem; margin-bottom:1rem;">
         Estos conceptos bajan la base sobre la que se calcula la retención (art. 387 ET).
       </p>
+      <p class="hint" style="margin:0 0 .7rem;">Si tu empresa <b>no tiene tus documentos</b> (certificado de intereses, de la prepagada…), desmarca «Mi empresa ya me lo aplica»: tu neto de cada mes seguirá igual al de tu desprendible y la deducción queda guardada para tu declaración (pestaña Renta → «Para tu contador»).</p>
       <div class="grid2">
         <div class="field">
           <div class="check-row">
@@ -683,7 +699,8 @@
             <label for="interesesVivienda">Intereses que pagas al mes (COP)</label>
             <input type="text" inputmode="numeric" id="interesesVivienda" value="0">
             <div class="hint">Solo los intereses. Tope: 100 UVT/mes (<span data-cfg="tope100"></span>).</div>
-          <div id="viviendaGestor" style="display:none; margin-top:.5rem;"><button type="button" class="ghost" id="viviendaTraer" style="width:100%; min-height:44px;"></button></div>
+          <div class="check-row" style="margin-top:.55rem;"><input type="checkbox" id="aplicaVivienda" checked><span style="font-size:.82rem;">Mi empresa ya me lo aplica en la retención</span></div>
+        <div id="viviendaGestor" style="display:none; margin-top:.5rem;"><button type="button" class="ghost" id="viviendaTraer" style="width:100%; min-height:44px;"></button></div>
           </div>
         </div>
         <div class="field">
@@ -694,6 +711,7 @@
           <div id="prepagadaFields" style="display:none; margin-top:.5rem;">
             <label for="pagoPrepagada">Cuánto pagas al mes (COP)</label>
             <input type="text" inputmode="numeric" id="pagoPrepagada" value="0">
+        <div class="check-row" style="margin-top:.55rem;"><input type="checkbox" id="aplicaPrepagada" checked><span style="font-size:.82rem;">Mi empresa ya me lo aplica en la retención</span></div>
             <div class="hint">Tope legal: 16 UVT/mes (<span data-cfg="tope16"></span>).</div>
           </div>
         </div>
@@ -702,6 +720,7 @@
             <input type="checkbox" id="tieneDependientes">
             <span style="font-size:.85rem; font-weight:600;">Tengo dependientes económicos</span>
           </div>
+        <div id="aplicaDependientesRow" class="check-row" style="display:none; margin-top:.55rem;"><input type="checkbox" id="aplicaDependientes" checked><span style="font-size:.82rem;">Mi empresa ya me lo aplica en la retención</span></div>
           <div class="hint" style="margin-top:.4rem;">Deducción del 10% del ingreso, tope 32 UVT/mes (<span data-cfg="tope32"></span>).</div>
         </div>
       </div>
@@ -745,6 +764,7 @@
     <h2>¿Debo declarar renta el próximo año?</h2>
     <div id="rentaBox"></div>
     <div id="criteriosBox"></div>
+    <div id="contadorBox"></div>
     <div id="previosBox"></div>
   </section>
 
@@ -933,7 +953,7 @@ function sanitizeAjustes(obj){
   return out;
 }
 const CFG_STR = ['aporteVol','aporteVolTipo','procRetencion','retencionPct','vacSaldoIni','vacCompensadas','modo','salarioBase','jornadaPactada','almuerzo','valorContrato','retefuenteTipo','retefuenteCustomValor','nivelARL','ccfRateSelect','ccfCustomValor','interesesVivienda','pagoPrepagada'];
-const CFG_BOOL = ['salarioIntegral','sabadoHabil','pensionado','pagaCajaEmpresa','pagoMesVencido','pagaARL','pagaCCF','tieneVivienda','tienePrepagada','tieneDependientes','auxPref'];
+const CFG_BOOL = ['aplicaVivienda','aplicaPrepagada','aplicaDependientes','salarioIntegral','sabadoHabil','pensionado','pagaCajaEmpresa','pagoMesVencido','pagaARL','pagaCCF','tieneVivienda','tienePrepagada','tieneDependientes','auxPref'];
 function sanitizeConfig(obj){
   const out = {}; if(!isObj(obj)) return out;
   CFG_STR.forEach(k=>{ if(typeof obj[k]==='string' || typeof obj[k]==='number') out[k] = cleanText(obj[k],24); });
@@ -1002,6 +1022,7 @@ function aplicarConfig(){
   $('tieneVivienda').checked = !!c.tieneVivienda; $('interesesVivienda').value = c.interesesVivienda || '0';
   $('tienePrepagada').checked = !!c.tienePrepagada; $('pagoPrepagada').value = c.pagoPrepagada || '0';
   $('tieneDependientes').checked = !!c.tieneDependientes;
+  $('aplicaVivienda').checked = c.aplicaVivienda!==false; $('aplicaPrepagada').checked = c.aplicaPrepagada!==false; $('aplicaDependientes').checked = c.aplicaDependientes!==false;
   $('valorContrato').value = c.valorContrato || fmtNumPlain(SMLMV);
   Object.keys(SEL_DEFAULTS).forEach(id=>{ $(id).value = c[id] || SEL_DEFAULTS[id]; if(!$(id).value) $(id).value = SEL_DEFAULTS[id]; });
   $('retefuenteCustomValor').value = c.retefuenteCustomValor || '0';
@@ -1020,7 +1041,7 @@ function saveConfig(){
     salarioBase:$('salarioBase').value, jornadaPactada:$('jornadaPactada').value, almuerzo:$('almuerzo').value, fechaIngreso:$('fechaIngreso').value,
     pensionado, pagaCajaEmpresa:$('pagaCajaEmpresa').checked, pagoMesVencido:$('pagoMesVencido').checked, auxPref,
     tieneVivienda:$('tieneVivienda').checked, interesesVivienda:$('interesesVivienda').value,
-    tienePrepagada:$('tienePrepagada').checked, pagoPrepagada:$('pagoPrepagada').value, tieneDependientes:$('tieneDependientes').checked,
+    tienePrepagada:$('tienePrepagada').checked, pagoPrepagada:$('pagoPrepagada').value, tieneDependientes:$('tieneDependientes').checked, aplicaVivienda:$('aplicaVivienda').checked, aplicaPrepagada:$('aplicaPrepagada').checked, aplicaDependientes:$('aplicaDependientes').checked,
     valorContrato:$('valorContrato').value, retefuenteTipo:$('retefuenteTipo').value, retefuenteCustomValor:$('retefuenteCustomValor').value,
     pagaARL:$('pagaARL').checked, nivelARL:$('nivelARL').value, pagaCCF:$('pagaCCF').checked,
     ccfRateSelect:$('ccfRateSelect').value, ccfCustomValor:$('ccfCustomValor').value,
@@ -1147,7 +1168,7 @@ function leerEntradas(){
     salarioBase:getMoney('salarioBase'), jornada:parseFloat($('jornadaPactada').value)||8, almuerzo:parseFloat($('almuerzo').value)||0,
     pagoMesVencido:$('pagoMesVencido').checked, fechaIngreso:$('fechaIngreso').value, pagaCaja:$('pagaCajaEmpresa').checked, pensionado,
     tieneVivienda:$('tieneVivienda').checked, interesesVivienda:getMoney('interesesVivienda'),
-    tienePrepagada:$('tienePrepagada').checked, pagoPrepagada:getMoney('pagoPrepagada'), tieneDependientes:$('tieneDependientes').checked,
+    tienePrepagada:$('tienePrepagada').checked, pagoPrepagada:getMoney('pagoPrepagada'), tieneDependientes:$('tieneDependientes').checked, aplicaVivienda:$('aplicaVivienda').checked, aplicaPrepagada:$('aplicaPrepagada').checked, aplicaDependientes:$('aplicaDependientes').checked,
     integral: $('salarioIntegral').checked && getMoney('salarioBase') >= 13*SMLMV,
     volTipo:$('aporteVolTipo').value, vol:leerVol(), proc2:$('procRetencion').value==='2', retPct:numDec('retencionPct')
   };
@@ -1198,9 +1219,9 @@ function calcRetencion(ibcSinAux, dias){
   // porque la tabla del art. 383 va por tramos mensuales (así sale en el desprendible). Salud, pensión y FSP se descuentan sobre lo realmente devengado.
   const f = d<30 ? 30/d : 1;
   const ibcEq = ibcSinAux*f, ssEq = ss*f, sub1 = Math.max(0, ibcEq-ssEq);
-  const vivienda = E.tieneVivienda ? Math.min(E.interesesVivienda, TOPE_VIVIENDA_UVT*UVT) : 0;
-  const prepagada = E.tienePrepagada ? Math.min(E.pagoPrepagada, TOPE_PREPAGADA_UVT*UVT) : 0;
-  const dependientes = E.tieneDependientes ? Math.min(0.10*ibcEq, TOPE_DEPENDIENTES_UVT*UVT) : 0;
+  const vivienda = (E.tieneVivienda && E.aplicaVivienda!==false) ? Math.min(E.interesesVivienda, TOPE_VIVIENDA_UVT*UVT) : 0;
+  const prepagada = (E.tienePrepagada && E.aplicaPrepagada!==false) ? Math.min(E.pagoPrepagada, TOPE_PREPAGADA_UVT*UVT) : 0;
+  const dependientes = (E.tieneDependientes && E.aplicaDependientes!==false) ? Math.min(0.10*ibcEq, TOPE_DEPENDIENTES_UVT*UVT) : 0;
   const ded387 = vivienda+prepagada+dependientes;
   const volEq = E.vol>0 ? Math.min(E.volTipo==='pct' ? (E.vol/100)*ibcEq : E.vol, 0.30*ibcEq, (3800/12)*UVT) : 0;   // renta exenta: máx. 30% del ingreso y 3.800 UVT al año
   const sub2 = Math.max(0, sub1-ded387-volEq);
@@ -1789,13 +1810,79 @@ function comparar(){
   }
   out.innerHTML = `<div style="margin:.4rem 0;">${h}</div>${hints.map(x=>`<div class="info-banner" style="margin-top:.5rem;">${x}</div>`).join('')}${btn}`;
 }
+// ---------- Resumen para tu contador ----------
+function retConFlags(ibc, dias, over){ const orig = ENT; ENT = Object.assign({}, orig, over); try{ return calcRetencion(ibc, dias); } finally { ENT = orig; } }
+function datosContador(){
+  const E = ENT || (ENT = leerEntradas()), g = leerGestor(), T = {dev:0, pres:0, salud:0, pension:0, fsp:0, vol:0, ret:0, retTodas:0, meses:0};
+  for(let m=0;m<12;m++){
+    const r = calcMes(m); if(!(r.dias>0)) continue;
+    const d = calcRetencion(r.ibcSinAux, r.dias), dT = retConFlags(r.ibcSinAux, r.dias, {aplicaVivienda:true, aplicaPrepagada:true, aplicaDependientes:true});
+    T.dev += r.ibcTotal; T.pres += primaDeMes(m).devengadoPrestacional; T.salud += d.salud; T.pension += d.pension; T.fsp += d.fsp; T.vol += d.vol||0; T.ret += d.retefuente; T.retTodas += dT.retefuente; T.meses++;
+  }
+  let prev = 0; mesesPrevios().forEach(m=>{ const v = valorPrevio(m); if(v!==undefined) prev += brutoPrevio(v); }); prev += previos.liquidacion||0;
+  const vg = (g && g.vivienda) ? Object.keys(g.vivienda).filter(k=>k.startsWith(ANIO+'-')).reduce((t,k)=>t+g.vivienda[k],0) : 0;
+  const vivManual = E.tieneVivienda ? T.meses*Math.min(E.interesesVivienda, TOPE_VIVIENDA_UVT*UVT) : 0;
+  const viv = vg>0 ? Math.min(vg, TOPE_VIVIENDA_UVT*UVT*12) : vivManual, vivFuente = vg>0 ? 'intereses pagados según tu gestor de gastos' : (E.tieneVivienda ? 'el valor mensual que pusiste en Contrato' : '');
+  const pre = E.tienePrepagada ? T.meses*Math.min(E.pagoPrepagada, TOPE_PREPAGADA_UVT*UVT) : 0;
+  const dep = E.tieneDependientes ? Math.min(0.10*(T.dev+prev), TOPE_DEPENDIENTES_UVT*UVT*12) : 0;
+  const ded = [
+    {id:'vivienda', nombre:'Intereses de vivienda (leasing o crédito hipotecario)', valor:viv, aplica:E.aplicaVivienda!==false, nota:vivFuente || 'no lo marcaste'},
+    {id:'prepagada', nombre:'Medicina prepagada', valor:pre, aplica:E.aplicaPrepagada!==false, nota:E.tienePrepagada ? 'el valor mensual que pusiste, con tope de 16 UVT al mes' : 'no lo marcaste'},
+    {id:'dependientes', nombre:'Dependientes económicos', valor:dep, aplica:E.aplicaDependientes!==false, nota:E.tieneDependientes ? '10% del ingreso, con tope de 32 UVT al mes' : 'no lo marcaste'}
+  ];
+  const noAplicadas = ded.filter(x=>x.valor>0 && !x.aplica);
+  return { anio:ANIO, T, prev, ded, noAplicadas, prestEst:T.pres*(2/12+0.12/12), extraRet:Math.max(0, T.ret-T.retTodas) };
+}
+function filasContador(d){
+  const T = d.T, R = Math.round, f = [];
+  f.push(['Ingresos de '+d.anio, 'Devengado en esta empresa (salario, recargos, extras, comisiones y auxilio)', R(T.dev), T.meses+' mes(es)']);
+  if(T.pres>0) f.push(['Ingresos de '+d.anio, 'Prima, cesantías e intereses (estimado)', R(d.prestEst), 'tu certificado de ingresos y retenciones trae el valor real']);
+  if(d.prev>0) f.push(['Ingresos de '+d.anio, 'Empleos anteriores (lo que registraste)', R(d.prev), previos.tipo==='neto' ? 'bruto estimado desde lo que llegó al banco' : 'valor bruto']);
+  f.push(['Aportes y retención', 'Salud (aporte del trabajador)', R(T.salud), '']);
+  if(T.pension>0) f.push(['Aportes y retención', 'Pensión (aporte del trabajador)', R(T.pension), '']);
+  if(T.fsp>0) f.push(['Aportes y retención', 'Fondo de Solidaridad Pensional', R(T.fsp), '']);
+  if(T.vol>0) f.push(['Aportes y retención', 'Aportes voluntarios (AFC o pensión voluntaria)', R(T.vol), '']);
+  f.push(['Aportes y retención', 'Retención en la fuente practicada (según la app)', R(T.ret), 'compárala con tu certificado de ingresos y retenciones']);
+  d.ded.filter(x=>x.valor>0).forEach(x=>f.push(['Deducciones para tu declaración', x.nombre, R(x.valor), x.nota+' · tu empresa: '+(x.aplica ? 'ya la aplica' : 'NO la aplica')]));
+  if(d.noAplicadas.length) f.push(['Lo que tu empresa no aplicó', 'Retención de más por esas deducciones (aproximada)', R(d.extraRet), 'orden de magnitud mes a mes; tu devolución real sale de la declaración']);
+  return f;
+}
+function csvContador(d){
+  const q = v=>'"'+String(v).replace(/"/g,'""')+'"';
+  return '\ufeff'+['Sección;Concepto;Valor (COP);Nota'].concat(filasContador(d).map(r=>[q(r[0]),q(r[1]),r[2],q(r[3])].join(';'))).join('\r\n');
+}
+function abrirContador(){
+  const d = datosContador(), filas = filasContador(d); let el = $('contadorModal');
+  if(!el){ el = document.createElement('div'); el.id = 'contadorModal'; el.className = 'mg-overlay'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-label','Resumen para tu contador'); document.body.appendChild(el); }
+  const grupos = []; filas.forEach(r=>{ let g = grupos.find(x=>x.n===r[0]); if(!g){ g = {n:r[0], f:[]}; grupos.push(g); } g.f.push(r); });
+  el.innerHTML = `<div class="mg-box"><h3 style="margin:0 0 .2rem;">Resumen para tu contador · ${d.anio}</h3><p class="hint" style="margin:0 0 .4rem;">Calculado con lo que registraste en la app. Úsalo como borrador para la conversación, no como certificado.</p>
+    ${grupos.map(g=>`<div class="ct-sec">${esc(g.n)}</div><table class="ct-tabla">${g.f.map(r=>`<tr><td>${esc(r[1])}${r[3] ? `<span class="ct-nota">${esc(r[3])}</span>` : ''}</td><td class="v">${fmtCOP(r[2])}</td></tr>`).join('')}</table>`).join('')}
+    <p class="ct-pie">Estimación de referencia. No reemplaza tu certificado de ingresos y retenciones, ni la asesoría de un contador. Los intereses de vivienda, la prepagada y los dependientes tienen topes y requisitos (certificados) que tu contador debe verificar.</p>
+    <div class="row-actions no-print" style="margin-top:.8rem; gap:.5rem; flex-wrap:wrap;"><button class="primary" type="button" id="ctImprimir">Imprimir o guardar PDF</button><button class="ghost" type="button" id="ctCsv">Descargar para Excel (CSV)</button><button class="ghost" type="button" id="ctCerrar">Cerrar</button></div></div>`;
+  el.hidden = false;
+  $('ctCerrar').onclick = ()=>{ el.hidden = true; };
+  $('ctImprimir').onclick = ()=>{ try{ window.print(); }catch(e){} };
+  $('ctCsv').onclick = ()=>{ const url = URL.createObjectURL(new Blob([csvContador(d)], {type:'text/csv;charset=utf-8'})), a = document.createElement('a'); a.href = url; a.download = 'resumen-contador-'+d.anio+'.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 4000); };
+  el.onclick = e=>{ if(e.target===el) el.hidden = true; };
+  el.querySelector('.mg-box').scrollTop = 0; $('ctCerrar').focus({preventScroll:true});
+}
+function renderContadorBox(){
+  const el = $('contadorBox'); if(!el) return; let d; try{ d = datosContador(); }catch(e){ el.innerHTML = ''; return; }
+  const aviso = d.noAplicadas.length ? `<div style="margin:.5rem 0; padding:.6rem .8rem; border-radius:10px; background:var(--surface); border:1px solid var(--line); font-size:.82rem; line-height:1.5;">Tu empresa <b>no te aplica</b>: ${d.noAplicadas.map(x=>esc(x.nombre.split(' (')[0].toLowerCase())).join(', ')}. En la declaración sí cuentan${d.extraRet>0 ? `: con esas deducciones habrías retenido unos <b>${fmtCOP(Math.round(d.extraRet/1000)*1000)}</b> menos en el año (aproximado)` : ''}.</div>` : '';
+  el.innerHTML = `<div class="panel-soft" style="margin-top:1rem;"><h3 style="margin:0 0 .3rem; font-size:1.02rem;">Para tu contador</h3>
+    <p class="hint" style="margin:0 0 .4rem;">Ingresos, aportes, retención y las deducciones que te corresponden, en una hoja para llevar o imprimir.</p>${aviso}
+    <div class="row-actions" style="margin-top:.5rem;"><button class="primary" type="button" id="btnContador">Ver el resumen para mi contador</button></div></div>`;
+  $('btnContador').onclick = abrirContador;
+}
+function initContador(){ ['aplicaVivienda','aplicaPrepagada','aplicaDependientes'].forEach(id=>$(id).addEventListener('change', ()=>{ syncCamposVisibles(); saveConfig(); renderAll(); })); $('tieneDependientes').addEventListener('change', syncCamposVisibles); }
+
 const NETO_A_BRUTO = 0.92;   // neto ≈ 92% del bruto (salud y pensión 8%)
 function mesesPrevios(){ const out = []; for(let m=0; m<12; m++) if(diasEsperadosMes(m)<=0) out.push(m); return out; }
 function brutoPrevio(v){ return previos.tipo==='bruto' ? v : v/NETO_A_BRUTO; }
 
 function renderRenta(){
   const el = $('rentaBox'); if(!el) return;
-  construirPrevios(false);
+  construirPrevios(false); renderContadorBox();
   const umbral = 1400*UVT, k = ENT.integral ? 1 : 1 + 2/12 + (0.12/12);   // en esta empresa: salario + prima + cesantías + intereses proporcionales
   const req = [];
   for(let m=0; m<12; m++){
@@ -2194,7 +2281,7 @@ function syncCamposVisibles(){
   $('modoSimple').setAttribute('aria-pressed', String(modo==='simple')); $('modoAvanzado').setAttribute('aria-pressed', String(modo!=='simple'));
   $('modoHint').textContent = modo==='simple' ? 'Solo lo esencial. Pásate a Avanzado para turnos con recargos, comisiones, deducciones y más.' : 'Todas las opciones: calendario con recargos, comisiones, deducciones, renta y liquidación.';
   const vis = (id,on)=>{ $(id).style.display = on ? 'block' : 'none'; };
-  vis('viviendaFields', $('tieneVivienda').checked); vis('prepagadaFields', $('tienePrepagada').checked);
+  vis('viviendaFields', $('tieneVivienda').checked); vis('prepagadaFields', $('tienePrepagada').checked); vis('aplicaDependientesRow', $('tieneDependientes').checked);
   vis('arlFields', $('pagaARL').checked); vis('ccfFields', $('pagaCCF').checked);
   vis('retefuenteCustomContainer', $('retefuenteTipo').value==='custom'); vis('ccfCustomContainer', $('ccfRateSelect').value==='custom');
 }
@@ -2287,6 +2374,9 @@ function hintsAAyuda(raiz){
   });
 }
 
+// El gestor publica su resumen (compras, tarjetas, consignaciones, bienes): al cambiar, se vuelve a pintar
+window.addEventListener('storage', e=>{ if(e.key==='suite_resumen_gestor') renderAll(); });
+
 // ---------- Datos que llegan de otro dispositivo (los avisa el index al sincronizar) ----------
 window.addEventListener('message', e=>{ if(e.origin === location.origin && e.data && e.data.suite === 'datos-actualizados') setTimeout(()=>location.reload(), 200); });
 
@@ -2296,7 +2386,7 @@ cargarPresets();
 cargarDatosAnio();
 appConfig = sanitizeConfig(lsGet('co_config', {}));
 aplicarConfig();
-initPrevios();
+initPrevios(); initContador();
 initColapsables();
 hintsAAyuda('#sec-contrato'); hintsAAyuda('#sec-deducciones'); hintsAAyuda('#viewContratista');
 wire();

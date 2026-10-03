@@ -4,7 +4,7 @@
    - Sin internet (o red muy lenta): sirve lo último que guardó, así que la app abre igual.
    - Cuando cambia este archivo (sube VERSION), el navegador instala el SW nuevo en segundo plano
      y la app muestra el aviso "Hay una versión nueva · Actualizar". */
-const VERSION = 'v20';
+const VERSION = 'v22';
 const CACHE = 'suite-cache-' + VERSION;
 const PRECACHE = ['./', './index.html', './calculadora/index.html', './gastos/index.html', './manifest.json', './icon.png', './suite-tema.css', './suite-tema.js', './suite-iconos.js', './suite-nav.js', './suite-config.js', './suite-sync.js', './suite-sync-core.js', './suite-ui.js', './privacidad.html', './privacidad.html',
   './fonts/inter-latin-wght-normal.woff2', './fonts/space-grotesk-latin-wght-normal.woff2',

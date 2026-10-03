@@ -8,7 +8,9 @@
 - **Intereses de vivienda** desde el módulo de deudas hacia las deducciones.
 - Ventanas propias en lugar de los avisos del navegador; accesibilidad revisada (0 problemas WCAG A/AA en las pantallas principales).
 - Aviso cuando el espacio del dispositivo pasa del 70%.
-- **Sigue fuera:** incapacidades y licencias, compras a cuotas con tarjeta, 4×1000 y dólares.
+- **Tarjetas de crédito:** muestran el cupo **disponible**; las compras se registran como gasto (con su categoría) y pueden ir **a cuotas**; «Pagar tarjeta» es una transferencia (no es gasto) con pago total, de este extracto u otro valor; «Ver cuotas» muestra lo que viene.
+- **Para tu contador:** en cada deducción (vivienda, prepagada, dependientes) el interruptor «Mi empresa ya me lo aplica». Si no la aplica, tu neto sigue igual al desprendible y la deducción queda para tu declaración. En Renta, el **resumen para tu contador** (imprimir/PDF o CSV).
+- **Sigue fuera:** incapacidades y licencias, 4×1000 y dólares.
 
 **Para actualizar:** sube **todo el contenido** de la carpeta a GitHub (esta vez `suite-config.js` ya trae tu ID de cliente, así que no se pierde nada).
 

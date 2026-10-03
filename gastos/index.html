@@ -211,6 +211,7 @@ details[open] > summary .chev{transform:rotate(90deg);}
 .deb-proy-r{display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:4px 0; font-size:13.5px;} .deb-proy-r b{font-family:var(--font-display); font-variant-numeric:tabular-nums;}
 .deb-proy-tot{border-top:1px dashed var(--border); margin-top:4px; padding-top:8px; font-weight:700;}
 .deb-consejo{border-left:4px solid var(--accent);}
+.tj-disp{display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin:10px 0 2px;} .tj-disp span{font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em;} .tj-disp b{font-family:var(--font-display); font-size:24px; font-variant-numeric:tabular-nums;}
 .wiz-op{display:block; width:100%; text-align:left; background:var(--surface-2); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:10px; color:var(--text); font-family:inherit; cursor:pointer;}
 .wiz-op b{display:block; font-size:15px; margin-bottom:3px;} .wiz-op span{font-size:12.5px; color:var(--text-dim);}
 .wiz-dots{display:flex; gap:6px; margin-bottom:6px;} .wiz-dots i{flex:1; height:4px; border-radius:2px; background:var(--border);} .wiz-dots i.on{background:var(--accent);}
@@ -384,6 +385,8 @@ function sanitizeState(raw, strict){
     ...(['efectivo','banco','tarjeta','ahorro'].includes(a.type) ? {type:a.type} : {}),
     ...(HEX_RE.test(a.color) ? {color:a.color} : {}),
     ...(numOr0(a.cupo)>0 ? {cupo:fixNum(a.cupo)} : {}),
+    ...(numOr0(a.tasaM)>0 && numOr0(a.tasaM)<=0.15 ? {tasaM:numOr0(a.tasaM)} : {}),
+    ...(Number.isInteger(Number(a.diaCorte)) && Number(a.diaCorte)>=1 && Number(a.diaCorte)<=31 ? {diaCorte:Number(a.diaCorte)} : {}),
     ...(numOr0(a.meta)>0 ? {meta:fixNum(a.meta)} : {}),
     ...(numOr0(a.pctMes)>0 && numOr0(a.pctMes)<=100 ? {pctMes:numOr0(a.pctMes)} : {})
   }));
@@ -416,7 +419,8 @@ function sanitizeState(raw, strict){
     if(!DATE_RE.test(e.date) || !(numOr0(e.amount)>0)) return null;
     return { id: ue(e.id), date: e.date, time: cleanText(e.time,12), timestamp: numOr0(e.timestamp), amount: fixNum(e.amount),
       desc: cleanText(e.desc,120), catId: cleanId(e.catId), subId: cleanId(e.subId),
-      nivel: NIVELES.includes(e.nivel)?e.nivel:'quiero', accountId: cleanId(e.accountId), applied: e.applied===false?false:true };
+      nivel: NIVELES.includes(e.nivel)?e.nivel:'quiero', accountId: cleanId(e.accountId), applied: e.applied===false?false:true,
+    ...(Number.isInteger(Number(e.cuotas)) && Number(e.cuotas)>1 && Number(e.cuotas)<=120 ? {cuotas:Number(e.cuotas)} : {}) };
   }).filter(Boolean);
   S.incomes = (Array.isArray(raw.incomes)?raw.incomes:[]).filter(isObj).map(i=>{
     if(!DATE_RE.test(i.date) || !(numOr0(i.amount)>0)) return null;
@@ -1174,13 +1178,13 @@ function viewMovimientos(){
           <input type="search" id="movSearch" placeholder="🔍 Buscar descripción, categoría o monto..." value="${esc(movSearchQuery)}" style="padding:8px 12px; font-size:13.5px;">
         </div>
         <div style="flex:1; min-width:140px;">
-          <select id="movCatFilter" style="padding:8px 12px; font-size:13.5px;">
+          <select id="movCatFilter" aria-label="Filtrar por categoría" style="padding:8px 12px; font-size:13.5px;">
             <option value="todas">Todas las categorías</option>
             ${categoriesOptions}
           </select>
         </div>
         <div style="flex:1; min-width:140px;">
-          <select id="movAccFilter" style="padding:8px 12px; font-size:13.5px;">
+          <select id="movAccFilter" aria-label="Filtrar por cuenta" style="padding:8px 12px; font-size:13.5px;">
             <option value="todas">Todas las cuentas</option>
             ${STATE.accounts.map(a=>`<option value="${esc(a.id)}" ${movFilterAcc===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}
           </select>
@@ -1212,7 +1216,7 @@ function viewMovimientos(){
             <div class="ic-bubble" style="background:color-mix(in srgb, ${c?catColor(c.id):'var(--text-faint)'} 20%, transparent);">${esc(c?c.icon:'•')}</div>
             <div class="info">
               <div class="title">${esc(e.desc || (s?s.name:'Gasto'))}</div>
-              <div class="meta">${esc(c?c.name:'')} › ${esc(s?s.name:'')}${timeDisplay}</div>
+              <div class="meta">${esc(c?c.name:'')} › ${esc(s?s.name:'')}${timeDisplay}${e.cuotas>1 ? ' · '+e.cuotas+' cuotas' : ''}${esTarjeta(accById(e.accountId)) ? ' · con tarjeta' : ''}</div>
             </div>
             <div class="amount neg">−${fmtCOP(e.amount)}</div>
           </div>`;
@@ -1527,6 +1531,100 @@ function renderAhorroMes(key){
   </div>`;
 }
 
+/* ================= TARJETAS DE CRÉDITO: compras a cuotas y pagos ================= */
+// Comprar con la tarjeta = un GASTO normal (con su categoría real) que sube la deuda. Pagar la tarjeta = una TRANSFERENCIA desde tu banco: baja la deuda y no es gasto.
+const CUOTAS_OPC = [1,2,3,4,6,9,12,18,24,36,48,60];
+function cuotasOpts(sel){
+  sel = sel || 1; const l = CUOTAS_OPC.includes(sel) ? CUOTAS_OPC : CUOTAS_OPC.concat([sel]).sort((a,b)=>a-b);
+  return l.map(n=>`<option value="${n}" ${n===sel?'selected':''}>${n===1 ? '1 (de contado)' : n+' cuotas'}</option>`).join('');
+}
+function idxMes(date){ return parseInt(date.slice(0,4),10)*12 + parseInt(date.slice(5,7),10) - 1; }
+function cuotaValorTarjeta(a, e){
+  const n = e.cuotas || 1, P = e.amount, i = (a && a.tasaM) || 0;
+  if(n<=1) return fixNum(P);
+  return Math.round(i>0 ? P*i/(1-Math.pow(1+i,-n)) : P/n);   // cuotas en pesos enteros
+}
+function primerMesCuota(a, e){ let m = idxMes(e.date); if(a && a.diaCorte && parseInt(e.date.slice(8,10),10) > a.diaCorte) m++; return m; }   // compras después del corte entran al extracto siguiente
+function comprasTarjeta(a){ return STATE.expenses.filter(e=>e.accountId===a.id && isRealized(e)); }
+function cuotasDelMes(a, key){
+  const k = idxMes(key+'-01'), out = [];
+  comprasTarjeta(a).forEach(e=>{ const n = e.cuotas||1, m0 = primerMesCuota(a,e); if(k>=m0 && k<m0+n) out.push({e, k:k-m0+1, n, valor:cuotaValorTarjeta(a,e)}); });
+  return out;
+}
+function cuotasPendientes(a, key){
+  const k = idxMes(key+'-01'), out = [];
+  comprasTarjeta(a).forEach(e=>{ const n = e.cuotas||1; if(n<=1) return; const m0 = primerMesCuota(a,e), faltan = m0+n-1-k; if(faltan>0) out.push({e, faltan:Math.min(faltan,n), n, valor:cuotaValorTarjeta(a,e)}); });
+  return out;
+}
+function resumenTarjeta(a){
+  const key = STATE.viewingMonth, deuda = Math.max(0, -(a.balance||0)), cupo = a.cupo||0;
+  const mes = cuotasDelMes(a,key), pend = cuotasPendientes(a,key);
+  return { deuda, cupo, disp: cupo>0 ? Math.max(0, cupo-deuda) : null, uso: cupo>0 ? Math.min(1, deuda/cupo) : 0,
+    esteMes: fixNum(mes.reduce((t,c)=>t+c.valor,0)), nMes: mes.length, pend, porFacturar: fixNum(pend.reduce((t,c)=>t+c.valor*c.faltan,0)) };
+}
+function actualizarCuotasUI(){
+  [['addExpAcc','addExpCuotasBox','addExpCuotas','addExpCuotasInfo','addExpAmount'],['expAccount','expCuotasBox','expCuotas','expCuotasInfo','expAmount']].forEach(([ia,ib,ic2,ii,im])=>{
+    const sa = document.getElementById(ia), box = document.getElementById(ib); if(!sa || !box) return;
+    const a = accById(sa.value), esT = esTarjeta(a); box.style.display = esT ? 'block' : 'none'; if(!esT) return;
+    const n = parseInt(document.getElementById(ic2).value,10)||1, monto = parseMoneyInput(document.getElementById(im))||0, info = document.getElementById(ii);
+    if(n<=1){ info.textContent = 'Se paga completo en tu extracto. Sube tu deuda y baja tu cupo disponible.'; return; }
+    if(!(monto>0)){ info.textContent = 'Escribe el monto para ver cuánto sería cada cuota.'; return; }
+    info.textContent = `Se registra completo hoy. Cada cuota ≈ ${fmtCOP(cuotaValorTarjeta(a,{amount:monto,cuotas:n}))}${a.tasaM>0 ? ' (con el interés que pusiste en la tarjeta)' : ' (sin interés: si tu banco cobra, pon la tasa en «Editar» de la tarjeta)'}.`;
+  });
+}
+document.addEventListener('change', e=>{ if(['addExpAcc','addExpCuotas','expAccount','expCuotas'].includes(e.target.id)) actualizarCuotasUI(); });
+document.addEventListener('input', e=>{ if(['addExpAmount','expAmount'].includes(e.target.id)) actualizarCuotasUI(); });
+
+function abrirTarjetaDetalle(id){
+  const a = accById(id); if(!a || !esTarjeta(a)) return;
+  const key = STATE.viewingMonth, mesTxt = monthLabel(key), r = resumenTarjeta(a), mes = cuotasDelMes(a,key);
+  const filas = mes.length ? mes.map(c=>`<div class="deb-row"><span style="flex:1">${esc(c.e.desc || 'Compra')}<br><span class="sub-label" style="margin:0;">${esc(c.e.date.slice(5))} · ${c.n>1 ? 'cuota '+c.k+' de '+c.n : 'de contado'}</span></span><b>${fmtCOP(c.valor)}</b></div>`).join('') : '<div class="sub-label" style="padding:6px 0;">No hay compras en este extracto.</div>';
+  const prox = []; for(let i=1;i<=6;i++){ const k = monthShift(key,i), v = fixNum(cuotasDelMes(a,k).reduce((t,c)=>t+c.valor,0)); if(v>0) prox.push(`<div class="deb-row"><span style="flex:1">${esc(monthLabel(k))}</span><b>≈ ${fmtCOP(v)}</b></div>`); }
+  const hayCuotas = comprasTarjeta(a).some(e=>(e.cuotas||1)>1);
+  openModal(`<div class="modal-head"><h3>${esc(a.name)}</h3><button class="close-x" onclick="closeModal()" aria-label="Cerrar">${ic('x',22)}</button></div>
+    <div class="deb-grid"><div><span>Debes</span><b>${fmtCOP(r.deuda)}</b></div><div><span>${r.cupo>0 ? 'Disponible' : 'Cupo'}</span><b>${r.cupo>0 ? fmtCOP(r.disp) : '—'}</b></div>
+    <div><span>En el extracto de ${esc(mesTxt.split(' ')[0])}</span><b>≈ ${fmtCOP(r.esteMes)}</b></div><div><span>Pendiente en cuotas</span><b>${fmtCOP(r.porFacturar)}</b></div></div>
+    <div class="sub-label" style="margin:14px 0 4px;"><b>Compras de este extracto</b></div><div class="deb-pagos">${filas}</div>
+    ${prox.length ? `<div class="sub-label" style="margin:14px 0 4px;"><b>Lo que viene</b> (de lo que ya compraste)</div><div class="deb-pagos">${prox.join('')}</div>` : ''}
+    ${hayCuotas && !(a.tasaM>0) ? '<div class="sub-label" style="margin-top:10px; line-height:1.5;">Las cuotas se muestran sin interés. Si tu banco cobra intereses en las compras diferidas, pon la tasa mensual en «Editar» y se estiman.</div>' : ''}
+    <div class="sub-label" style="margin-top:10px; line-height:1.5;"><b>Comprar</b> es un gasto con su categoría. <b>Pagar la tarjeta</b> es una transferencia desde tu banco: baja la deuda y no cuenta como gasto.</div>
+    <div style="display:flex; gap:10px; margin-top:16px;"><button class="btn btn-secondary" style="flex:1" onclick="closeModal(); pagarTarjeta('${esc(a.id)}')">Pagar tarjeta</button><button class="btn btn-primary" style="flex:1" onclick="closeModal()">Listo</button></div>`, {center:true});
+}
+
+function abrirPagoTarjeta(id){
+  const a = accById(id); if(!a || !esTarjeta(a)) return;
+  const r = resumenTarjeta(a), origen = STATE.accounts.filter(x=>!esTarjeta(x));
+  if(!origen.length){ alert('Primero crea una cuenta de banco o de efectivo desde donde pagar.'); return; }
+  const mesTxt = monthLabel(STATE.viewingMonth).split(' ')[0], def = r.esteMes>0 ? 'mes' : 'total';
+  openModal(`<div class="modal-head"><h3>Pagar ${esc(a.name)}</h3><button class="close-x" onclick="closeModal()" aria-label="Cerrar">${ic('x',22)}</button></div>
+    <div class="sub-label" style="margin:0 0 10px; line-height:1.5;">Debes <b>${fmtCOP(r.deuda)}</b>. Pagar la tarjeta <b>no es un gasto</b>: las compras ya contaron cuando las hiciste. Esto solo baja tu deuda y el saldo de la cuenta que elijas.</div>
+    <label for="ptCuenta">Pagar desde</label><select id="ptCuenta">${origen.map(x=>`<option value="${esc(x.id)}">${accLbl(x)} (${fmtCOP(x.balance)})</option>`).join('')}</select>
+    <div class="sub-label" style="margin:12px 0 2px;">¿Cuánto pagas?</div>
+    <label class="wiz-radio"><input type="radio" name="ptOp" value="total" ${def==='total'?'checked':''}><span>Pago total · <b>${fmtCOP(r.deuda)}</b></span></label>
+    <label class="wiz-radio"><input type="radio" name="ptOp" value="mes" ${def==='mes'?'checked':''}><span>Lo de este extracto (${esc(mesTxt)}) · <b>≈ ${fmtCOP(r.esteMes)}</b></span></label>
+    <label class="wiz-radio"><input type="radio" name="ptOp" value="otro"><span>Otro valor</span></label>
+    <input type="text" id="ptMonto" class="money-input" inputmode="numeric" placeholder="Monto (COP)" aria-label="Monto a pagar">
+    <label for="ptFecha">Fecha del pago</label><input type="date" id="ptFecha" value="${today()}" max="${today()}">
+    <div id="ptErr" class="wiz-err" style="display:none"></div>
+    <div style="display:flex; gap:10px; margin-top:16px;"><button class="btn btn-secondary" style="flex:1" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" style="flex:2" id="ptGuardar">Registrar pago</button></div>`, {center:true});
+  const monto = document.getElementById('ptMonto');
+  const aplicar = ()=>{ const op = (document.querySelector('input[name=ptOp]:checked')||{}).value;
+    if(op==='total') monto.value = formatMoneyInputValue(r.deuda); else if(op==='mes') monto.value = formatMoneyInputValue(r.esteMes); else { monto.value = ''; monto.focus(); } };
+  document.querySelectorAll('input[name=ptOp]').forEach(x=>x.onchange = aplicar); aplicar();
+  document.getElementById('ptGuardar').onclick = ()=>{
+    const from = accById(document.getElementById('ptCuenta').value), m = parseMoneyInput(monto), fecha = document.getElementById('ptFecha').value || today(), err = t=>{ const e = document.getElementById('ptErr'); e.textContent = t; e.style.display = 'block'; };
+    if(!from) return err('Elige la cuenta desde la que pagas.');
+    if(!(m>0)) return err('Escribe cuánto pagas.');
+    if(!DATE_RE.test(fecha) || fecha>today()) return err('La fecha del pago no puede ser futura.');
+    if(m>r.deuda+0.5 && !confirmaYa(`Vas a pagar ${fmtCOP(m)} y la deuda es ${fmtCOP(r.deuda)}: quedaría saldo a favor en la tarjeta. ¿Continuar?`)) return;
+    if(m>(from.balance||0) && !confirmaYa(`El pago (${fmtCOP(m)}) supera el saldo de "${from.name}" (${fmtCOP(from.balance)}). Esa cuenta quedará en negativo. ¿Continuar?`)) return;
+    adjBal(from, -m); adjBal(a, +m);
+    STATE.transfers.push({id:uid(), date:fecha, timestamp:Date.now(), fromId:from.id, toId:a.id, amount:m});
+    saveState(); closeModal(); render(); toast(`Pago de ${fmtCOP(m)} registrado. Tu deuda en ${a.name} bajó.`);
+  };
+}
+
+
 // ---------- vistas ----------
 function viewCuentas(){
   const tab = !!STATE.ui.deudasTab;
@@ -1567,12 +1665,16 @@ function viewDeudas(){
       <div class="deb-sub">${esc(sub)}</div>
       <div class="deb-chips"><span>Capital pagado ${fmtCompact(st.capital)}</span><span>Intereses ${fmtCompact(st.interes)}</span>${st.seguros>0?`<span>Seguros ${fmtCompact(st.seguros)}</span>`:''}${st.abonos>0?`<span>Abonos ${fmtCompact(st.abonos)}</span>`:''}</div></button>`;
   }).join('');
+  const mesTj = monthLabel(STATE.viewingMonth).split(' ')[0];
   const tarj = R.tarjetas.map(a=>{
-    const deuda = Math.max(0,-(a.balance||0)), cupo = a.cupo||0, uso = cupo>0 ? Math.min(1, deuda/cupo) : 0;
-    return `<div class="deb-card" style="--c:${esc(accColor(a))};">
-      <div class="deb-top"><span class="deb-ic" style="background:color-mix(in srgb, ${esc(accColor(a))} 25%, transparent);">${ic('card',20)}</span><span class="deb-name">${esc(a.name)}</span><span class="deb-saldo">${fmtCOP(deuda)}</span></div>
-      ${cupo>0 ? `<div class="deb-bar ${uso>0.8?'alto':''}"><div style="width:${(uso*100).toFixed(1)}%;"></div></div><div class="deb-sub">Usas ${Math.round(uso*100)}% de tu cupo de ${fmtCOP(cupo)} · disponible ${fmtCOP(Math.max(0,cupo-deuda))}</div>` : `<div class="deb-sub">Sin cupo registrado</div>`}
-      <div class="deb-chips"><button type="button" class="deb-act" data-dact="pay-card" data-id="${esc(a.id)}">Pagar tarjeta</button><button type="button" class="deb-act" data-dact="edit-card" data-id="${esc(a.id)}">Editar</button></div></div>`;
+    const r = resumenTarjeta(a), col = accColor(a);
+    return `<div class="deb-card" style="--c:${esc(col)};">
+      <div class="deb-top"><span class="deb-ic" style="background:color-mix(in srgb, ${esc(col)} 25%, transparent);">${ic('card',20)}</span><span class="deb-name">${esc(a.name)}</span></div>
+      ${r.cupo>0
+        ? `<div class="tj-disp"><span>Disponible</span><b>${fmtCOP(r.disp)}</b></div><div class="deb-bar ${r.uso>0.8?'alto':''}"><div style="width:${(r.uso*100).toFixed(1)}%;"></div></div><div class="deb-sub">Debes ${fmtCOP(r.deuda)} de un cupo de ${fmtCOP(r.cupo)} (${Math.round(r.uso*100)}% usado)</div>`
+        : `<div class="tj-disp"><span>Debes</span><b>${fmtCOP(r.deuda)}</b></div><div class="deb-sub">Pon el cupo en «Editar» para ver cuánto te queda disponible.</div>`}
+      ${(r.esteMes>0 || r.pend.length) ? `<div class="deb-sub" style="margin-top:6px;">En tu extracto de ${esc(mesTj)} ≈ <b>${fmtCOP(r.esteMes)}</b>${r.pend.length ? ` · te quedan ${fmtCOP(r.porFacturar)} en cuotas (${r.pend.length} compra${r.pend.length>1?'s':''})` : ''}</div>` : ''}
+      <div class="deb-chips"><button type="button" class="deb-act" data-dact="pay-card" data-id="${esc(a.id)}">Pagar tarjeta</button><button type="button" class="deb-act" data-dact="tarjeta-cuotas" data-id="${esc(a.id)}">Ver cuotas</button><button type="button" class="deb-act" data-dact="edit-card" data-id="${esc(a.id)}">Editar</button></div></div>`;
   }).join('');
   return hero + consejoAbono(R) + (cards ? `<div class="acc-head"><h3 style="margin:0">Créditos</h3></div>${cards}` : '') + (tarj ? `<div class="acc-head" style="margin-top:14px;"><h3 style="margin:0">Tarjetas</h3></div>${tarj}` : '') +
     `<button class="btn btn-secondary btn-block" data-dact="add-debt" style="margin:12px 0 6px;">${ic('plus',16)} Agregar deuda o tarjeta</button>
@@ -1843,7 +1945,7 @@ function deudaBorrarOk(id){
     saveState(); render();
   }});
 }
-function pagarTarjeta(id){ openAddModal('transfer'); const t = document.getElementById('addTrTo'); if(t) t.value = id; }
+function pagarTarjeta(id){ abrirPagoTarjeta(id); }
 
 document.addEventListener('click', e=>{
   const b = e.target.closest && e.target.closest('[data-dact]'); if(!b) return;
@@ -1853,6 +1955,7 @@ document.addEventListener('click', e=>{
   else if(a==='open-debt') abrirDeudaDetalle(id);
   else if(a==='open-debt-sim') abrirDeudaDetalle(id, true);
   else if(a==='pay-card') pagarTarjeta(id);
+  else if(a==='tarjeta-cuotas') abrirTarjetaDetalle(id);
   else if(a==='edit-card') openAccountModal(id);
   else if(a==='add-bien') abrirBien();
   else if(a==='edit-bien') abrirBien(id);
@@ -1886,7 +1989,7 @@ function viewCuentasLista(){
   <button class="btn btn-secondary btn-block" data-action="transfer" style="margin:6px 0 14px;">${ic('swap',16)} Transferir entre cuentas</button>
   ${renderBienes()}
   ${moves.length ? `<div class="card"><h3 style="margin:0 0 6px;">Movimientos entre cuentas</h3>${movesShown.map(m=> m.kind==='t' ? `
-    <div class="list-item move-row" data-action="edit-transfer" data-id="${m.id}"><div class="ic-bubble">${ic('swap',20)}</div><div class="info"><div class="title">${esc(accName(m.fromId))} → ${esc(accName(m.toId))}</div><div class="meta">Transferencia · ${m.date}</div></div><div class="amount">${fmtCOP(m.amount)}</div></div>` : `
+    <div class="list-item move-row" data-action="edit-transfer" data-id="${m.id}"><div class="ic-bubble">${ic('swap',20)}</div><div class="info"><div class="title">${esc(accName(m.fromId))} → ${esc(accName(m.toId))}</div><div class="meta">${esTarjeta(accById(m.toId)) ? 'Pago de tarjeta (no es gasto)' : 'Transferencia'} · ${m.date}</div></div><div class="amount">${fmtCOP(m.amount)}</div></div>` : `
     <div class="list-item"><div class="ic-bubble">${ic('scale',20)}</div><div class="info"><div class="title">${esc(accName(m.accountId))}</div><div class="meta">Ajuste de saldo · ${m.date}</div></div><div class="amount ${m.amount<0?'neg':'pos'}">${m.amount<0?'−':'+'}${fmtCOP(Math.abs(m.amount))}</div></div>`).join('')}${moves.length>10?`<button class="btn-ghost" data-action="toggle-moves" style="width:100%; margin-top:6px;">${showAllMoves?'Ver menos':'Ver todos ('+moves.length+')'}</button>`:''}</div>` : ''}
   `;
 }
@@ -2057,6 +2160,7 @@ function openAddModal(defaultTab = 'gasto') {
       <div id="addExpNivel" class="pill" style="font-size:13px; padding:6px 12px; margin-top:2px">Necesito</div>
       
       <label>Cuenta de origen</label><select id="addExpAcc">${STATE.accounts.map(a=>`<option value="${esc(a.id)}">${accLbl(a)}</option>`).join('')}</select>
+ <div id="addExpCuotasBox" style="display:none; margin-top:6px;"><label for="addExpCuotas">¿A cuántas cuotas?</label><select id="addExpCuotas">${cuotasOpts(1)}</select><div class="sub-label" id="addExpCuotasInfo" style="margin-top:4px; line-height:1.5;"></div></div>
       <label>Fecha</label><input type="date" id="addExpDate" value="${today()}">
       
       <div id="addExpDebtHint" class="alert-box" style="display:none; margin-top:12px; font-size:12.5px; line-height:1.5; display:none;"></div>
@@ -2169,7 +2273,7 @@ function openAddModal(defaultTab = 'gasto') {
   catSel.onchange = ()=>{ fillSubs(catSel.value); };
   subSel.onchange = ()=>{ updateNivelBadge(); };
 
-  setTimeout(actualizarHintDeuda, 0);
+  setTimeout(actualizarHintDeuda, 0); setTimeout(actualizarCuotasUI, 0);
   document.getElementById('saveExpBtn').onclick = ()=>{
     const amount = parseMoneyInput(document.getElementById('addExpAmount'));
     if(!amount || amount<=0){ alert('Ingresa un monto válido para el gasto'); return; }
@@ -2191,6 +2295,7 @@ function openAddModal(defaultTab = 'gasto') {
       accountId: document.getElementById('addExpAcc').value,
     };
     
+    { const cb = document.getElementById('addExpCuotasBox'); if(cb && cb.style.display!=='none'){ const n = parseInt(document.getElementById('addExpCuotas').value,10); if(n>1) data.cuotas = n; } }
     data.applied = isRealized(data);
     if(data.applied) adjBal(accById(data.accountId), -data.amount);
     STATE.expenses.push(data);
@@ -2256,6 +2361,7 @@ function openEditExpenseModal(id){
     <div id="nivelDisplay" class="pill" style="font-size:13px; padding:6px 12px; margin-top:2px">Necesito</div>
     
     <label>Cuenta de origen</label><select id="expAccount">${accOpts(editing.accountId)}</select>
+ <div id="expCuotasBox" style="display:none; margin-top:6px;"><label for="expCuotas">¿A cuántas cuotas?</label><select id="expCuotas">${cuotasOpts(editing.cuotas)}</select><div class="sub-label" id="expCuotasInfo" style="margin-top:4px; line-height:1.5;"></div></div>
     <label>Fecha</label><input type="date" id="expDate" value="${editing.date}">
     
     <div style="margin-top:18px"><button class="btn btn-primary btn-block" id="saveExpBtn">Guardar Cambios</button></div>
@@ -2290,6 +2396,7 @@ function openEditExpenseModal(id){
 
   document.getElementById('delExpBtn').onclick = ()=> removeExpense(editing.id);
 
+  setTimeout(actualizarCuotasUI, 0);
   document.getElementById('saveExpBtn').onclick = ()=>{
     const amount = parseMoneyInput(document.getElementById('expAmount'));
     if(!amount || amount<=0){ alert('Ingresa un monto válido'); return; }
@@ -2302,6 +2409,7 @@ function openEditExpenseModal(id){
     editing.subId = subSel.value;
     editing.nivel = nivelDisplay.dataset.value || 'necesito';
     editing.accountId = document.getElementById('expAccount').value;
+    { const cb = document.getElementById('expCuotasBox'); const n = (cb && cb.style.display!=='none') ? parseInt(document.getElementById('expCuotas').value,10) : 1; if(n>1) editing.cuotas = n; else delete editing.cuotas; }
     editing.date = document.getElementById('expDate').value || today();
     
     editing.applied = isRealized(editing);
@@ -2567,7 +2675,10 @@ function openAccountModal(id){
     <label>Color de la tarjeta</label>${swatchesHTML('accColor', editing && editing.color ? editing.color : siguienteColor(STATE.accounts))}
     <label>Tipo</label><select id="accType"><option value="banco">Banco / digital</option><option value="efectivo">Efectivo</option><option value="ahorro">Ahorro (dinero que no quiero tocar)</option><option value="tarjeta">Tarjeta de crédito</option></select>
     <label id="accBalLbl">Saldo actual (COP)${editing?' <span style="font-weight:400;">— si lo cambias se registra un ajuste</span>':''}</label><input type="text" id="accBalance" class="money-input" value="${editing?formatMoneyInputValue(bal0):''}">
-    <div id="accExTj" style="display:none"><label>Cupo total (COP)</label><input type="text" id="accCupo" class="money-input" value="${editing&&editing.cupo?formatMoneyInputValue(editing.cupo):''}"></div>
+    <div id="accExTj" style="display:none"><label for="accCupo">Cupo total (COP)</label><input type="text" id="accCupo" class="money-input" value="${editing&&editing.cupo?formatMoneyInputValue(editing.cupo):''}">
+      <label for="accTasa">Interés mensual de las compras a cuotas (%) — opcional</label><input type="text" inputmode="decimal" id="accTasa" placeholder="Ej: 2,1" value="${editing&&editing.tasaM?String((editing.tasaM*100).toFixed(3)).replace(/0+$/,'').replace(/\.$/,'').replace('.',','):''}">
+      <label for="accCorte">Día de corte del extracto — opcional</label><input type="text" inputmode="numeric" id="accCorte" placeholder="Ej: 15" value="${editing&&editing.diaCorte?editing.diaCorte:''}">
+      <div class="sub-label" style="margin-top:6px; line-height:1.5;">Con estos datos la app estima cuánto vas a pagar cada mes por tus compras a cuotas. Si no los sabes, déjalos vacíos.</div></div>
     <div id="accExAh" style="display:none"><label>Meta de ahorro (COP) — opcional</label><input type="text" id="accMeta" class="money-input" value="${editing&&editing.meta?formatMoneyInputValue(editing.meta):''}">
       <label>Quiero ahorrar este % de mis ingresos cada mes — opcional</label><input type="text" inputmode="decimal" id="accPct" placeholder="Ej: 10" value="${editing&&editing.pctMes?String(editing.pctMes).replace('.',','):''}">
       <div class="sub-label" style="margin-top:6px;">Para ahorrar, pasa dinero a esta cuenta con una <b>transferencia</b>: así no cuenta como gasto.</div></div>
@@ -2582,9 +2693,9 @@ function openAccountModal(id){
     const name = document.getElementById('accName').value.trim(); if(!name) return;
     const type = selT.value; let balance = parseMoneyInput(document.getElementById('accBalance'));
     if(type==='tarjeta') balance = -Math.abs(balance);
-    const extra = {cupo: type==='tarjeta' ? parseMoneyInput(document.getElementById('accCupo'))||0 : 0, meta: type==='ahorro' ? parseMoneyInput(document.getElementById('accMeta'))||0 : 0,
+    const extra = {tasaM: type==='tarjeta' ? Math.max(0, Math.min(15, parseFloat(String(document.getElementById('accTasa').value).replace(',','.'))||0))/100 : 0, diaCorte: type==='tarjeta' ? Math.max(0, Math.min(31, parseInt(document.getElementById('accCorte').value,10)||0)) : 0, cupo: type==='tarjeta' ? parseMoneyInput(document.getElementById('accCupo'))||0 : 0, meta: type==='ahorro' ? parseMoneyInput(document.getElementById('accMeta'))||0 : 0,
       pctMes: type==='ahorro' ? Math.max(0, Math.min(100, parseFloat(String(document.getElementById('accPct').value).replace(',','.'))||0)) : 0};
-    const aplica = o=>{ ['cupo','meta','pctMes'].forEach(k=>{ if(extra[k]>0) o[k] = extra[k]; else delete o[k]; }); };
+    const aplica = o=>{ ['cupo','meta','pctMes','tasaM','diaCorte'].forEach(k=>{ if(extra[k]>0) o[k] = extra[k]; else delete o[k]; }); };
     if(editing){
       const delta = balance - (editing.balance||0);
       if(delta!==0) STATE.adjustments.push({id:uid(), date:today(), timestamp:Date.now(), accountId:editing.id, amount:delta});
@@ -2721,7 +2832,7 @@ window.addEventListener('message', e=>{
   try{ e.source.postMessage(res, location.origin); }catch(err){}
 });
 /* ---------- Datos que llegan de otro dispositivo (los avisa el index al sincronizar) ---------- */
-function adoptarDatosExternos(){ IDX = null; _today = null; loadState(); render(); }
+function adoptarDatosExternos(){ IDX = null; _today = null; loadState(); render(); try{ publicarResumenSuite(); }catch(e){} }
 window.addEventListener('message', e=>{
   if(e.origin !== location.origin || !e.data || e.data.suite !== 'datos-actualizados') return;
   if(document.getElementById('modalOverlay') && !document.getElementById('obSave')){ window.__adoptarPendiente = true; return; }   // con un formulario abierto, se espera (la bienvenida de primer uso no cuenta)
@@ -2729,6 +2840,7 @@ window.addEventListener('message', e=>{
 });
 { const _cerrarOriginal = closeModal; closeModal = function(){ _cerrarOriginal.apply(this, arguments); if(window.__adoptarPendiente){ window.__adoptarPendiente = false; adoptarDatosExternos(); } }; }
 window.__suiteListo = true;
+setTimeout(function(){ try{ publicarResumenSuite(); }catch(e){} }, 700);   // la calculadora lee este resumen: se publica al abrir, no solo al guardar
 
 if(recoveredCorrupt) toast('Se detectó un dato dañado. Guardé una copia; puedes descargarla en ⚙ Ajustes.', {ms:12000});
 document.addEventListener('visibilitychange', ()=>{
