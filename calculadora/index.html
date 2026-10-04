@@ -246,6 +246,11 @@
   .prev-meses{display:grid; grid-template-columns:1fr 1fr; gap:.6rem .8rem; margin-bottom:.9rem;}
   .prev-meses label{font-size:.75rem; font-weight:700; color:var(--ink-soft); display:block; margin-bottom:.15rem;}
   @media(max-width:380px){ .prev-meses{grid-template-columns:1fr;} }
+    /* ---- renta simple + aproximados ---- */
+  details.ren-det{margin-top:.8rem;} details.ren-det > summary{cursor:pointer; font-weight:700; font-size:.88rem; padding:.55rem 0; outline:none; color:var(--ink-soft);}
+  #criteriosBox details > summary{cursor:pointer; font-weight:800; font-size:1.0rem; outline:none; list-style-position:inside;}
+  .chip.aprox{display:inline-block; margin-left:.4rem; padding:.05rem .45rem; border-radius:99px; font-size:.64rem; font-weight:700; background:var(--surface); border:1px solid var(--line); color:var(--ink-soft); vertical-align:middle;}
+  .doc-fila{display:flex; gap:.6rem; align-items:flex-start; padding:.55rem 0; border-bottom:1px solid var(--line);} .doc-fila input{width:22px; height:22px; margin-top:.1rem; flex:0 0 auto;} .doc-fila b{font-size:.86rem;} .doc-fila small{display:block; font-size:.74rem; color:var(--ink-soft); line-height:1.4;}
   /* ---- resumen para el contador ---- */
   #contadorModal .mg-box{max-width:560px; max-height:88vh; overflow-y:auto;}
   .ct-sec{font-weight:800; font-size:.9rem; margin:1rem 0 .15rem;}
@@ -700,6 +705,9 @@
             <input type="text" inputmode="numeric" id="interesesVivienda" value="0">
             <div class="hint">Solo los intereses. Tope: 100 UVT/mes (<span data-cfg="tope100"></span>).</div>
           <div class="check-row" style="margin-top:.55rem;"><input type="checkbox" id="aplicaVivienda" checked><span style="font-size:.82rem;">Mi empresa ya me lo aplica en la retención</span></div>
+        <label for="viviendaDesde" style="margin-top:.55rem;">¿Desde qué mes pagas estos intereses?</label><select id="viviendaDesde"><option value="">Desde el inicio del año</option><option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
+        <label for="viviendaAntes" style="margin-top:.5rem;">Intereses que pagaste este año antes de registrar la deuda (opcional)</label><input type="text" inputmode="numeric" id="viviendaAntes" value="0">
+        <div class="hint">Están en tu extracto («Intereses corrientes») o en el certificado anual del banco. Se suman a los que ya registró el gestor.</div>
         <div id="viviendaGestor" style="display:none; margin-top:.5rem;"><button type="button" class="ghost" id="viviendaTraer" style="width:100%; min-height:44px;"></button></div>
           </div>
         </div>
@@ -712,6 +720,7 @@
             <label for="pagoPrepagada">Cuánto pagas al mes (COP)</label>
             <input type="text" inputmode="numeric" id="pagoPrepagada" value="0">
         <div class="check-row" style="margin-top:.55rem;"><input type="checkbox" id="aplicaPrepagada" checked><span style="font-size:.82rem;">Mi empresa ya me lo aplica en la retención</span></div>
+        <label for="prepagadaDesde" style="margin-top:.55rem;">¿Desde qué mes la pagas?</label><select id="prepagadaDesde"><option value="">Desde el inicio del año</option><option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
             <div class="hint">Tope legal: 16 UVT/mes (<span data-cfg="tope16"></span>).</div>
           </div>
         </div>
@@ -765,6 +774,7 @@
     <div id="rentaBox"></div>
     <div id="criteriosBox"></div>
     <div id="contadorBox"></div>
+    <div id="docsBox"></div>
     <div id="previosBox"></div>
   </section>
 
@@ -908,7 +918,9 @@ let ENT = null, _mesCache = {};
 const colapsadas = lsGet('co_colapsadas', {});
 const K = n => `co${ANIO}_${n}`;
 const EN_SUITE = (function(){ try{ return window.parent !== window; }catch(e){ return true; } })();
-let previos = {tipo:'neto', meses:{}, liquidacion:0};   // ingresos de empleos anteriores (solo para la declaración de renta)
+let previos = {tipo:'neto', meses:{}, liquidacion:0, totalCert:0};
+let antesGestor = {compras:0, tarjeta:0, consignaciones:0, completo:false};
+let docsMarcados = {};   // ingresos de empleos anteriores (solo para la declaración de renta)
 let ingresoGestor = {};   // mes -> id del ingreso "Salario" que ya enviaste al gestor (evita duplicados)
 
 // ---- sanitizadores (datos propios y backups importados) ----
@@ -952,7 +964,7 @@ function sanitizeAjustes(obj){
     out[k] = { esperado:numOr(a.esperado,0), real:numOr(a.real,0), diferencia:numOr(a.diferencia,0) }; });
   return out;
 }
-const CFG_STR = ['aporteVol','aporteVolTipo','procRetencion','retencionPct','vacSaldoIni','vacCompensadas','modo','salarioBase','jornadaPactada','almuerzo','valorContrato','retefuenteTipo','retefuenteCustomValor','nivelARL','ccfRateSelect','ccfCustomValor','interesesVivienda','pagoPrepagada'];
+const CFG_STR = ['aporteVol','aporteVolTipo','procRetencion','retencionPct','vacSaldoIni','vacCompensadas','modo','salarioBase','jornadaPactada','almuerzo','valorContrato','retefuenteTipo','retefuenteCustomValor','nivelARL','ccfRateSelect','ccfCustomValor','interesesVivienda','pagoPrepagada','viviendaDesde','viviendaAntes','prepagadaDesde'];
 const CFG_BOOL = ['aplicaVivienda','aplicaPrepagada','aplicaDependientes','salarioIntegral','sabadoHabil','pensionado','pagaCajaEmpresa','pagoMesVencido','pagaARL','pagaCCF','tieneVivienda','tienePrepagada','tieneDependientes','auxPref'];
 function sanitizeConfig(obj){
   const out = {}; if(!isObj(obj)) return out;
@@ -978,6 +990,7 @@ function cargarDatosAnio(){
   const ig = lsGet(K('ingreso_gestor'),{}); ingresoGestor = {};
   if(isObj(ig)) Object.keys(ig).forEach(k=>{ if(MONTH_RE.test(k) && typeof ig[k]==='string' && /^[\w.\-:]{1,40}$/.test(ig[k])) ingresoGestor[k] = ig[k]; });
   previos = sanitizePrevios(lsGet(K('empleos_previos'),{}));
+  antesGestor = sanitizeAntes(lsGet(K('antes_gestor'),{})); docsMarcados = sanitizeDocs(lsGet(K('docs'),{}));
 }
 // Los meses anteriores a tu ingreso que ya habías "verificado con el banco" pasan a ser datos de tu empleo anterior
 function migrarPreIngreso(){
@@ -998,13 +1011,14 @@ function saveComisiones(){ lsSet(K('comisiones_por_mes'), comisionesPorMes); }
 function saveInteresesEnero(){ lsSet(K('intereses_enero'), String(interesesEneroVal)); }
 function saveAjustesBanco(){ lsSet(K('ajustes_banco'), ajustesBanco); }
 function savePrevios(){ lsSet(K('empleos_previos'), previos); }
-function sanitizePrevios(o){
-  const out = {tipo:'neto', meses:{}, liquidacion:0}; if(!isObj(o)) return out;
+function sanitizePrevios(o){ const out = {tipo:'neto', meses:{}, liquidacion:0, totalCert:0}; if(!isObj(o)) return out;
   if(o.tipo==='bruto') out.tipo = 'bruto';
   if(isObj(o.meses)) Object.keys(o.meses).forEach(k=>{ const v = Number(o.meses[k]); if(MONTH_RE.test(k) && Number.isFinite(v) && v>=0 && v<=1e11) out.meses[k] = Math.round(v); });
-  const l = Number(o.liquidacion); if(Number.isFinite(l) && l>0 && l<=1e11) out.liquidacion = Math.round(l);
-  return out;
-}
+  const l = Number(o.liquidacion); if(Number.isFinite(l) && l>0 && l<=1e11) out.liquidacion = Math.round(l); const tc = Number(o.totalCert); if(Number.isFinite(tc) && tc>0 && tc<=1e12) out.totalCert = Math.round(tc); return out; }
+function sanitizeAntes(o){ const out = {compras:0, tarjeta:0, consignaciones:0, completo:false}; if(!isObj(o)) return out; ['compras','tarjeta','consignaciones'].forEach(k=>{ const v = Number(o[k]); if(Number.isFinite(v) && v>0 && v<=1e12) out[k] = Math.round(v); }); out.completo = o.completo===true; return out; }
+function sanitizeDocs(o){ const out = {}; if(isObj(o)) Object.keys(o).forEach(k=>{ if(/^[a-z_]{1,30}$/.test(k) && o[k]===true) out[k] = true; }); return out; }
+function saveAntes(){ lsSet(K('antes_gestor'), antesGestor); }
+function saveDocs(){ lsSet(K('docs'), docsMarcados); }
 function saveIngresoGestor(){ lsSet(K('ingreso_gestor'), ingresoGestor); }
 
 // ---------- Configuración de pantalla <-> almacenamiento ----------
@@ -1020,7 +1034,7 @@ function aplicarConfig(){
   $('pagoMesVencido').checked = !!c.pagoMesVencido;
   auxPref = c.auxPref!==false;
   $('tieneVivienda').checked = !!c.tieneVivienda; $('interesesVivienda').value = c.interesesVivienda || '0';
-  $('tienePrepagada').checked = !!c.tienePrepagada; $('pagoPrepagada').value = c.pagoPrepagada || '0';
+  $('tienePrepagada').checked = !!c.tienePrepagada; $('pagoPrepagada').value = c.pagoPrepagada || '0'; $('viviendaDesde').value = c.viviendaDesde || ''; $('viviendaAntes').value = c.viviendaAntes || '0'; $('prepagadaDesde').value = c.prepagadaDesde || '';
   $('tieneDependientes').checked = !!c.tieneDependientes;
   $('aplicaVivienda').checked = c.aplicaVivienda!==false; $('aplicaPrepagada').checked = c.aplicaPrepagada!==false; $('aplicaDependientes').checked = c.aplicaDependientes!==false;
   $('valorContrato').value = c.valorContrato || fmtNumPlain(SMLMV);
@@ -1040,7 +1054,7 @@ function saveConfig(){
   appConfig = {
     salarioBase:$('salarioBase').value, jornadaPactada:$('jornadaPactada').value, almuerzo:$('almuerzo').value, fechaIngreso:$('fechaIngreso').value,
     pensionado, pagaCajaEmpresa:$('pagaCajaEmpresa').checked, pagoMesVencido:$('pagoMesVencido').checked, auxPref,
-    tieneVivienda:$('tieneVivienda').checked, interesesVivienda:$('interesesVivienda').value,
+    tieneVivienda:$('tieneVivienda').checked, interesesVivienda:$('interesesVivienda').value, viviendaDesde:$('viviendaDesde').value, viviendaAntes:$('viviendaAntes').value, prepagadaDesde:$('prepagadaDesde').value,
     tienePrepagada:$('tienePrepagada').checked, pagoPrepagada:$('pagoPrepagada').value, tieneDependientes:$('tieneDependientes').checked, aplicaVivienda:$('aplicaVivienda').checked, aplicaPrepagada:$('aplicaPrepagada').checked, aplicaDependientes:$('aplicaDependientes').checked,
     valorContrato:$('valorContrato').value, retefuenteTipo:$('retefuenteTipo').value, retefuenteCustomValor:$('retefuenteCustomValor').value,
     pagaARL:$('pagaARL').checked, nivelARL:$('nivelARL').value, pagaCCF:$('pagaCCF').checked,
@@ -1167,7 +1181,7 @@ function leerEntradas(){
   return {
     salarioBase:getMoney('salarioBase'), jornada:parseFloat($('jornadaPactada').value)||8, almuerzo:parseFloat($('almuerzo').value)||0,
     pagoMesVencido:$('pagoMesVencido').checked, fechaIngreso:$('fechaIngreso').value, pagaCaja:$('pagaCajaEmpresa').checked, pensionado,
-    tieneVivienda:$('tieneVivienda').checked, interesesVivienda:getMoney('interesesVivienda'),
+    tieneVivienda:$('tieneVivienda').checked, interesesVivienda:getMoney('interesesVivienda'), viviendaDesde:parseInt($('viviendaDesde').value,10)||1, viviendaAntes:getMoney('viviendaAntes'), prepagadaDesde:parseInt($('prepagadaDesde').value,10)||1,
     tienePrepagada:$('tienePrepagada').checked, pagoPrepagada:getMoney('pagoPrepagada'), tieneDependientes:$('tieneDependientes').checked, aplicaVivienda:$('aplicaVivienda').checked, aplicaPrepagada:$('aplicaPrepagada').checked, aplicaDependientes:$('aplicaDependientes').checked,
     integral: $('salarioIntegral').checked && getMoney('salarioBase') >= 13*SMLMV,
     volTipo:$('aporteVolTipo').value, vol:leerVol(), proc2:$('procRetencion').value==='2', retPct:numDec('retencionPct')
@@ -1206,8 +1220,8 @@ function calcMes(m){
   return (_mesCache[m] = r);
 }
 function computeMesPrestacional(m){ const r = calcMes(m); return {dias:r.dias, devengadoPrestacional:r.ibcTotal}; }
-function calcRetencion(ibcSinAux, dias){
-  const E = ENT, d = dias===undefined ? 30 : dias;
+function calcRetencion(ibcSinAux, dias, mes){
+  const E = ENT, d = dias===undefined ? 30 : dias, mi = mes===undefined ? 99 : mes;   // mes (0-11): las deducciones cuentan desde el mes en que empezaste a pagarlas
   // Base de aportes: 70% del salario si es integral; nunca más de 25 SMLMV (IBC máximo)
   const baseAp = Math.min(E.integral ? 0.70*ibcSinAux : ibcSinAux, 25*SMLMV*(d/30));
   const salud = baseAp*SALUD_PCT, pension = E.pensionado ? 0 : baseAp*PENSION_PCT, fspPct = E.pensionado ? 0 : fspRate(baseAp), fsp = baseAp*fspPct;   // pensionado por vejez: no cotiza pensión ni FSP (la salud sí)
@@ -1219,8 +1233,8 @@ function calcRetencion(ibcSinAux, dias){
   // porque la tabla del art. 383 va por tramos mensuales (así sale en el desprendible). Salud, pensión y FSP se descuentan sobre lo realmente devengado.
   const f = d<30 ? 30/d : 1;
   const ibcEq = ibcSinAux*f, ssEq = ss*f, sub1 = Math.max(0, ibcEq-ssEq);
-  const vivienda = (E.tieneVivienda && E.aplicaVivienda!==false) ? Math.min(E.interesesVivienda, TOPE_VIVIENDA_UVT*UVT) : 0;
-  const prepagada = (E.tienePrepagada && E.aplicaPrepagada!==false) ? Math.min(E.pagoPrepagada, TOPE_PREPAGADA_UVT*UVT) : 0;
+  const vivienda = (E.tieneVivienda && E.aplicaVivienda!==false && mi+1 >= (E.viviendaDesde||1)) ? Math.min(E.interesesVivienda, TOPE_VIVIENDA_UVT*UVT) : 0;
+  const prepagada = (E.tienePrepagada && E.aplicaPrepagada!==false && mi+1 >= (E.prepagadaDesde||1)) ? Math.min(E.pagoPrepagada, TOPE_PREPAGADA_UVT*UVT) : 0;
   const dependientes = (E.tieneDependientes && E.aplicaDependientes!==false) ? Math.min(0.10*ibcEq, TOPE_DEPENDIENTES_UVT*UVT) : 0;
   const ded387 = vivienda+prepagada+dependientes;
   const volEq = E.vol>0 ? Math.min(E.volTipo==='pct' ? (E.vol/100)*ibcEq : E.vol, 0.30*ibcEq, (3800/12)*UVT) : 0;   // renta exenta: máx. 30% del ingreso y 3.800 UVT al año
@@ -1553,7 +1567,7 @@ function renderSummaryEmpleado(){
   const E = ENT, r = calcMes(currentMonth);
   if(r.dias<=0){ renderMesPrevio(); return; }          // mes anterior a tu ingreso: no hay cálculo, solo el dato de tu empleo anterior
   $('verifBanco').style.display = ''; $('previoAviso').style.display = 'none'; $('summaryTable').closest('details').style.display = '';
-  const d = calcRetencion(r.ibcSinAux, r.dias);
+  const d = calcRetencion(r.ibcSinAux, r.dias, currentMonth);
   retencionActual = d.retefuente;
   const chk = $('auxTransporte'), lbl = $('auxTransporteLabel');
   if(r.auxElegible){
@@ -1734,28 +1748,47 @@ async function ofrecerIngresoGestor(real){
 // ---------- Datos del gestor (los publica el gestor en el mismo navegador) ----------
 function leerGestor(){ try{ return JSON.parse(localStorage.getItem('suite_resumen_gestor')||'null'); }catch(e){ return null; } }
 function criteriosGestor(umbral, confirmado, faltan){
-  const g = leerGestor(), a = g && g.anios && g.anios[String(ANIO)], hoy = new Date();
+  const g = leerGestor(), a = g && g.anios && g.anios[String(ANIO)], hoy = new Date(), A0 = antesGestor;
   const esperados = ANIO<hoy.getFullYear() ? 12 : (ANIO>hoy.getFullYear() ? 0 : hoy.getMonth()+1);
   const tope = 1400*UVT, tPat = 4500*UVT, pat = g && g.patrimonio ? (g.patrimonio.cuentas||0)+(g.patrimonio.bienes||0) : 0;
-  const est = (v,t,sin)=> sin ? 'sin_datos' : (v>=t ? 'supera' : 'no');
+  const hay = !!a || (A0.compras+A0.tarjeta+A0.consignaciones)>0, meses = a ? a.meses : 0;
+  const cubre = hay && esperados>0 && (A0.completo || meses>=esperados);   // ¿el año completo está cubierto (por el gestor o por lo que escribiste)?
+  const est = (v,t)=> v>=t ? 'supera' : (!hay ? 'sin_datos' : (cubre ? 'no' : 'parcial'));
+  const desde = a && a.desde && a.desde<'9999' ? a.desde : '';
+  const nota = (txt, extra)=> txt + (desde ? ` · el gestor tiene datos desde ${desde}` : '') + (extra>0 ? ` · incluye ${fmtCOP(extra)} que escribiste` : '');
+  const vC = (a?a.compras:0)+A0.compras, vT = (a?a.tarjeta:0)+A0.tarjeta, vK = (a?a.consignaciones:0)+A0.consignaciones;
   const items = [
     {id:'ingresos', nombre:'Ingresos brutos', valor:confirmado, tope, estado: confirmado>=umbral ? 'supera' : (faltan.length ? 'parcial' : 'no'), nota:'lo que calcula la app, con empleos anteriores'},
-    {id:'compras', nombre:'Compras y consumos', valor:a?a.compras:0, tope, estado:est(a?a.compras:0,tope,!a), nota:'tus gastos del año, sin pagos de deudas'},
-    {id:'tarjeta', nombre:'Consumos con tarjeta de crédito', valor:a?a.tarjeta:0, tope, estado:est(a?a.tarjeta:0,tope,!a), nota:'gastos pagados con tus tarjetas'},
-    {id:'consig', nombre:'Consignaciones y depósitos', valor:a?a.consignaciones:0, tope, estado:est(a?a.consignaciones:0,tope,!a), nota:'ingresos registrados en tus cuentas'},
-    {id:'patrimonio', nombre:'Patrimonio bruto', valor:pat, tope:tPat, estado:est(pat,tPat,!g || pat===0), nota:'saldos de cuentas de hoy + tus bienes'}
+    {id:'compras', nombre:'Compras y consumos', valor:vC, tope, estado:est(vC,tope), nota:nota('tus gastos del año, sin pagos de deudas', A0.compras)},
+    {id:'tarjeta', nombre:'Consumos con tarjeta de crédito', valor:vT, tope, estado:est(vT,tope), nota:nota('gastos pagados con tus tarjetas', A0.tarjeta)},
+    {id:'consig', nombre:'Consignaciones y depósitos', valor:vK, tope, estado:est(vK,tope), nota:nota('ingresos registrados en tus cuentas', A0.consignaciones)},
+    {id:'patrimonio', nombre:'Patrimonio bruto', valor:pat, tope:tPat, estado: pat>=tPat ? 'supera' : (pat===0 ? 'sin_datos' : 'parcial'), nota:'saldos de cuentas de hoy + tus bienes (lo que cuenta es el saldo al 31 de diciembre)'}
   ];
-  const meses = a ? a.meses : 0;
-  return {items, hayGestor:!!a, meses, esperados, completo: !!a && esperados>0 && meses>=esperados};
+  return {items, hayGestor:!!a, meses, esperados, desde, completo: cubre};
 }
 function renderCriterios(crit){
   const el = $('criteriosBox'); if(!el) return;
-  const chip = e => e==='supera' ? '<span class="chip warn">Supera el tope</span>' : e==='no' ? '<span class="chip ok">Bajo el tope</span>' : e==='parcial' ? '<span class="chip">Con lo documentado</span>' : '<span class="chip">Sin datos</span>';
-  el.innerHTML = `<div class="panel-soft" style="margin-top:1rem;"><h3 style="margin:0 0 .3rem; font-size:1.02rem;">Los 5 criterios de la DIAN</h3>
-    <p class="hint" style="margin:0 0 .8rem;">Basta con superar <b>uno</b> para tener que declarar. ${crit.hayGestor ? `Compras, tarjetas y consignaciones salen de tu gestor (hay movimientos en ${crit.meses} de ${crit.esperados} meses).` : 'Para medir los otros 4 usa el gestor de gastos: ahí se registran tus compras, tarjetas, consignaciones y bienes.'} El patrimonio suma los saldos de tus cuentas de hoy y los bienes que agregues en el gestor → Cuentas → Mis bienes.</p>
-    ${crit.items.map(c=>{ const p = Math.min(100, Math.round(c.valor/c.tope*100)); return `<div style="margin-bottom:.8rem;"><div style="display:flex; justify-content:space-between; gap:.5rem; font-size:.85rem; font-weight:700;"><span>${esc(c.nombre)}</span>${chip(c.estado)}</div>
-      <div class="fl-bar" role="img" aria-label="${esc(c.nombre)}: ${p}% del tope" style="height:10px; margin:.35rem 0 .25rem;"><span style="flex:${p||0.5} 1 0; background:${c.estado==='supera'?'var(--danger)':'var(--accent)'};"></span><span style="flex:${100-p} 1 0; background:transparent;"></span></div>
-      <div style="display:flex; justify-content:space-between; gap:.5rem; font-size:.74rem; color:var(--ink-soft);"><span>${fmtCOP(Math.round(c.valor))}<br><small>${esc(c.nota)}</small></span><span style="text-align:right;">tope<br>${fmtCOP(Math.round(c.tope))}</span></div></div>`; }).join('')}</div>`;
+  const chip = e => e==='supera' ? '<span class="chip warn">Supera el tope</span>' : e==='no' ? '<span class="chip ok">Bajo el tope</span>' : e==='parcial' ? '<span class="chip">Hasta ahora, bajo el tope</span>' : '<span class="chip">Sin datos</span>';
+  const nSup = crit.items.filter(c=>c.estado==='supera').length;
+  const bars = crit.items.map(c=>{ const p = Math.min(100, Math.round(c.valor/c.tope*100)); return `<div style="margin-bottom:.8rem;"><div style="display:flex; justify-content:space-between; gap:.5rem; font-size:.85rem; font-weight:700;"><span>${esc(c.nombre)}</span>${chip(c.estado)}</div>
+    <div class="fl-bar" role="img" aria-label="${esc(c.nombre)}: ${p}% del tope" style="height:10px; margin:.35rem 0 .25rem;"><span style="flex:${p||0.5} 1 0; background:${c.estado==='supera'?'var(--danger)':'var(--accent)'};"></span><span style="flex:${100-p} 1 0; background:transparent;"></span></div>
+    <div style="display:flex; justify-content:space-between; gap:.5rem; font-size:.74rem; color:var(--ink-soft);"><span>${fmtCOP(Math.round(c.valor))}<br><small>${esc(c.nota)}</small></span><span style="text-align:right;">tope<br>${fmtCOP(Math.round(c.tope))}</span></div></div>`; }).join('');
+  const hint = `Basta con superar <b>uno</b> para tener que declarar${nSup ? ': si ya superaste alguno, los demás no cambian el resultado' : ''}. ${crit.hayGestor ? `Compras, tarjetas y consignaciones salen de tu gestor (hay movimientos en ${crit.meses} de ${crit.esperados} meses${crit.desde ? ', desde '+crit.desde : ''}).` : 'Para medir compras, tarjetas y consignaciones usa el gestor de gastos: ahí se registran (o escribe abajo los totales de lo anterior).'} El patrimonio suma los saldos de tus cuentas y los bienes que agregues en el gestor → Cuentas → Mis bienes.`;
+  if(!$('critDet')){
+    const f = v => v ? v.toLocaleString('es-CO') : '';
+    el.innerHTML = `<details id="critDet" class="panel-soft" style="margin-top:1rem;"><summary id="critSum"></summary><div style="margin-top:.7rem;">
+      <p class="hint" id="critHint" style="margin:0 0 .8rem;"></p><div id="critBars"></div>
+      <div style="font-weight:800; font-size:.9rem; margin:.9rem 0 .2rem;">Lo que pasó antes de empezar a registrar</div>
+      <p class="hint" style="margin:0 0 .6rem;">Si empezaste a usar la app a mitad de año, escribe los totales del año hasta ese día (tu banco los da en el certificado anual o en los extractos; una cifra aproximada sirve). Se suman a lo que registró el gestor.</p>
+      <div class="field"><label for="antesCompras">Compras y consumos (COP)</label><input type="text" inputmode="numeric" id="antesCompras" placeholder="0" value="${f(antesGestor.compras)}"></div>
+      <div class="field"><label for="antesTarjeta">Consumos con tarjeta de crédito (COP)</label><input type="text" inputmode="numeric" id="antesTarjeta" placeholder="0" value="${f(antesGestor.tarjeta)}"></div>
+      <div class="field"><label for="antesConsig">Consignaciones y depósitos (COP)</label><input type="text" inputmode="numeric" id="antesConsig" placeholder="0" value="${f(antesGestor.consignaciones)}"></div>
+      <div class="check-row" style="margin-top:.4rem;"><input type="checkbox" id="antesCompleto" ${antesGestor.completo?'checked':''}><span style="font-size:.84rem;">Con esto, lo anterior a mi registro queda completo (puedo concluir que «no declaro» si no supero ningún tope)</span></div></div></details>`;
+    el.addEventListener('input', e=>{ const t = e.target, mp = {antesCompras:'compras', antesTarjeta:'tarjeta', antesConsig:'consignaciones'}[t.id]; if(!mp) return; const raw = t.value.replace(/\D/g,'').replace(/^0+(?=\d)/,''); t.value = raw==='' ? '' : (parseInt(raw,10)||0).toLocaleString('es-CO'); antesGestor[mp] = raw==='' ? 0 : parseInt(raw,10); saveAntes(); renderRenta(); renderContadorBox(); });
+    el.addEventListener('change', e=>{ if(e.target.id==='antesCompleto'){ antesGestor.completo = e.target.checked; saveAntes(); renderRenta(); } });
+  }
+  $('critSum').textContent = `Los 5 criterios de la DIAN${nSup ? ' · superas '+nSup : ''}`;
+  $('critHint').innerHTML = hint; $('critBars').innerHTML = bars;
 }
 // ---------- Intereses de vivienda desde el gestor ----------
 function renderViviendaGestor(){
@@ -1795,7 +1828,7 @@ function comparar(){
   const out = $('asRes'); if(!neto){ out.innerHTML = '<div class="info-banner">Escribe el neto que te pagaron.</div>'; return; }
   ENT = leerEntradas(); _mesCache = {};
   const r = calcMes(m); if(r.dias<=0){ out.innerHTML = '<div class="info-banner">Ese mes es anterior a tu fecha de ingreso: elige otro.</div>'; return; }
-  const d = calcRetencion(r.ibcSinAux, r.dias), app = Math.round(r.ibcTotal - d.ss - d.retefuente - d.vol), dif = neto - app;
+  const d = calcRetencion(r.ibcSinAux, r.dias, m), app = Math.round(r.ibcTotal - d.ss - d.retefuente - d.vol), dif = neto - app;
   const fila = (t,v,c)=>`<div class="liq-row ${c||''}"><span>${t}</span><b>${v}</b></div>`;
   let h = fila('La calculadora dice', fmtCOP(app)) + fila('Tu desprendible dice', fmtCOP(neto)) + fila('Diferencia', (dif>=0?'+':'−')+fmtCOP(Math.abs(dif)), 'liq-tot'), hints = [], btn = '';
   if(Math.abs(dif)<=2000) hints.push('✅ Coincide. La calculadora está calibrada con tu empresa.');
@@ -1811,52 +1844,84 @@ function comparar(){
   out.innerHTML = `<div style="margin:.4rem 0;">${h}</div>${hints.map(x=>`<div class="info-banner" style="margin-top:.5rem;">${x}</div>`).join('')}${btn}`;
 }
 // ---------- Resumen para tu contador ----------
-function retConFlags(ibc, dias, over){ const orig = ENT; ENT = Object.assign({}, orig, over); try{ return calcRetencion(ibc, dias); } finally { ENT = orig; } }
+function hastaIdx(){ const h = new Date(); return ANIO<h.getFullYear() ? 11 : (ANIO>h.getFullYear() ? -1 : h.getMonth()); }   // último mes que ya pasó (o el actual)
+function listaDocumentos(){
+  const E = ENT || (ENT = leerEntradas()), g = leerGestor(), L = [], pt = g && g.patrimonio ? g.patrimonio : {};
+  const vg = (g && g.vivienda) ? Object.keys(g.vivienda).filter(k=>k.startsWith(ANIO+'-')).reduce((t,k)=>t+g.vivienda[k],0) : 0;
+  L.push({id:'cert_ingresos', t:`Certificado de ingresos y retenciones de ${ANIO} de cada empresa donde trabajaste`, d:`La empresa actual lo entrega a comienzos de ${ANIO+1}; pídelo también a las anteriores.`});
+  if(E.tieneVivienda || vg>0 || E.viviendaAntes>0){
+    L.push({id:'cert_vivienda', t:'Certificado anual de intereses de tu leasing o crédito de vivienda', d:'Lo emite el banco al comenzar el año.'});
+    L.push({id:'doc_vivienda', t:'Contrato de leasing o escritura del inmueble', d:'Para acreditar que el crédito es de vivienda y está a tu nombre. Tu contador confirma si aplica a leasing.'});
+  }
+  if(E.tienePrepagada) L.push({id:'cert_prepagada', t:'Certificado anual de pagos de tu medicina prepagada', d:'Con lo que pagaste tú, no lo que pagó la empresa.'});
+  if(E.tieneDependientes) L.push({id:'doc_dependientes', t:'Documentos de cada dependiente', d:'Que acrediten el parentesco y que dependen económicamente de ti.'});
+  if(E.vol>0) L.push({id:'cert_voluntarios', t:'Certificado de tus aportes voluntarios (AFC o pensión voluntaria)', d:'Del fondo donde los haces.'});
+  if((pt.cuentas||0)+(pt.bienes||0)>0) L.push({id:'cert_saldos', t:'Certificados de saldos al 31 de diciembre', d:'De tus cuentas, inversiones y tarjetas.'});
+  if((pt.bienes||0)>0) L.push({id:'doc_bienes', t:'Escrituras o tarjeta de propiedad de tus bienes', d:''});
+  if((pt.deudas||0)>0) L.push({id:'cert_deudas', t:'Certificados de deuda al 31 de diciembre', d:'De tus créditos y tarjetas.'});
+  return L;
+}
+function renderDocsBox(){
+  const el = $('docsBox'); if(!el) return; const L = listaDocumentos();
+  el.innerHTML = `<div class="panel-soft" style="margin-top:1rem;"><h3 style="margin:0 0 .3rem; font-size:1.02rem;">Documentos que vas a necesitar</h3><p class="hint" style="margin:0 0 .3rem;">Según lo que marcaste. Ve tachando a medida que los consigas. Tu contador confirma cuáles aplican en tu caso.</p>
+    ${L.map(x=>`<label class="doc-fila"><input type="checkbox" data-doc="${esc(x.id)}" ${docsMarcados[x.id]?'checked':''}><span><b>${esc(x.t)}</b>${x.d ? `<small>${esc(x.d)}</small>` : ''}</span></label>`).join('')}</div>`;
+}
 function datosContador(){
-  const E = ENT || (ENT = leerEntradas()), g = leerGestor(), T = {dev:0, pres:0, salud:0, pension:0, fsp:0, vol:0, ret:0, retTodas:0, meses:0};
+  const E = ENT || (ENT = leerEntradas()), g = leerGestor(), hasta = hastaIdx(), T = {dev:0, pres:0, salud:0, pension:0, fsp:0, vol:0, ret:0, meses:0}, P = {dev:0};
+  const dViv = Math.max(1, E.viviendaDesde||1), dPre = Math.max(1, E.prepagadaDesde||1);
+  let mesesPre = 0, mesesPreProy = 0, mesesViv = 0;
   for(let m=0;m<12;m++){
     const r = calcMes(m); if(!(r.dias>0)) continue;
-    const d = calcRetencion(r.ibcSinAux, r.dias), dT = retConFlags(r.ibcSinAux, r.dias, {aplicaVivienda:true, aplicaPrepagada:true, aplicaDependientes:true});
-    T.dev += r.ibcTotal; T.pres += primaDeMes(m).devengadoPrestacional; T.salud += d.salud; T.pension += d.pension; T.fsp += d.fsp; T.vol += d.vol||0; T.ret += d.retefuente; T.retTodas += dT.retefuente; T.meses++;
+    if(m<=hasta){
+      const d = calcRetencion(r.ibcSinAux, r.dias, m);
+      T.dev += r.ibcTotal; T.pres += primaDeMes(m).devengadoPrestacional; T.salud += d.salud; T.pension += d.pension; T.fsp += d.fsp; T.vol += d.vol||0; T.ret += d.retefuente; T.meses++;
+      if(m+1>=dPre) mesesPre++; if(m+1>=dViv) mesesViv++;
+    } else { P.dev += r.ibcTotal; if(m+1>=dPre) mesesPreProy++; }
   }
-  let prev = 0; mesesPrevios().forEach(m=>{ const v = valorPrevio(m); if(v!==undefined) prev += brutoPrevio(v); }); prev += previos.liquidacion||0;
-  const vg = (g && g.vivienda) ? Object.keys(g.vivienda).filter(k=>k.startsWith(ANIO+'-')).reduce((t,k)=>t+g.vivienda[k],0) : 0;
-  const vivManual = E.tieneVivienda ? T.meses*Math.min(E.interesesVivienda, TOPE_VIVIENDA_UVT*UVT) : 0;
-  const viv = vg>0 ? Math.min(vg, TOPE_VIVIENDA_UVT*UVT*12) : vivManual, vivFuente = vg>0 ? 'intereses pagados según tu gestor de gastos' : (E.tieneVivienda ? 'el valor mensual que pusiste en Contrato' : '');
-  const pre = E.tienePrepagada ? T.meses*Math.min(E.pagoPrepagada, TOPE_PREPAGADA_UVT*UVT) : 0;
+  const usaCert = (previos.totalCert||0)>0; let prev = usaCert ? previos.totalCert : (previos.liquidacion||0);
+  if(!usaCert) mesesPrevios().forEach(m=>{ const v = valorPrevio(m); if(v!==undefined) prev += brutoPrevio(v); });
+  const vg = (g && g.vivienda) ? Object.keys(g.vivienda).filter(k=>k.startsWith(ANIO+'-') && parseInt(k.slice(5,7),10)-1<=hasta).reduce((t,k)=>t+g.vivienda[k],0) : 0;
+  const antes = E.viviendaAntes||0, tope100 = TOPE_VIVIENDA_UVT*UVT; let viv, vivNota, vivAprox;
+  if(vg>0 || antes>0){ viv = Math.min(vg+antes, tope100*12); vivNota = [vg>0 ? 'registrados en tu gestor: '+fmtCOP(Math.round(vg)) : '', antes>0 ? 'anteriores a la app: '+fmtCOP(antes) : ''].filter(Boolean).join(' · '); vivAprox = false; }
+  else if(E.tieneVivienda){ viv = mesesViv*Math.min(E.interesesVivienda, tope100); vivNota = mesesViv+' mes(es) desde '+MESES[dViv-1].toLowerCase()+' × el valor mensual que pusiste'; vivAprox = true; }
+  else { viv = 0; vivNota = 'no lo marcaste'; vivAprox = false; }
+  const tpre = Math.min(E.pagoPrepagada, TOPE_PREPAGADA_UVT*UVT), pre = E.tienePrepagada ? mesesPre*tpre : 0, preProy = E.tienePrepagada ? mesesPreProy*tpre : 0;
   const dep = E.tieneDependientes ? Math.min(0.10*(T.dev+prev), TOPE_DEPENDIENTES_UVT*UVT*12) : 0;
   const ded = [
-    {id:'vivienda', nombre:'Intereses de vivienda (leasing o crédito hipotecario)', valor:viv, aplica:E.aplicaVivienda!==false, nota:vivFuente || 'no lo marcaste'},
-    {id:'prepagada', nombre:'Medicina prepagada', valor:pre, aplica:E.aplicaPrepagada!==false, nota:E.tienePrepagada ? 'el valor mensual que pusiste, con tope de 16 UVT al mes' : 'no lo marcaste'},
-    {id:'dependientes', nombre:'Dependientes económicos', valor:dep, aplica:E.aplicaDependientes!==false, nota:E.tieneDependientes ? '10% del ingreso, con tope de 32 UVT al mes' : 'no lo marcaste'}
+    {id:'vivienda', nombre:'Intereses de vivienda (leasing o crédito hipotecario)', valor:viv, aplica:E.aplicaVivienda!==false, nota:vivNota, aprox:vivAprox},
+    {id:'prepagada', nombre:'Medicina prepagada', valor:pre, aplica:E.aplicaPrepagada!==false, nota:E.tienePrepagada ? mesesPre+' mes(es) desde '+MESES[dPre-1].toLowerCase()+' × lo que pagas al mes (tope 16 UVT)' : 'no lo marcaste', aprox:true},
+    {id:'dependientes', nombre:'Dependientes económicos', valor:dep, aplica:E.aplicaDependientes!==false, nota:E.tieneDependientes ? '10% de tus ingresos, con tope de 32 UVT al mes' : 'no lo marcaste', aprox:true}
   ];
-  const noAplicadas = ded.filter(x=>x.valor>0 && !x.aplica);
-  return { anio:ANIO, T, prev, ded, noAplicadas, prestEst:T.pres*(2/12+0.12/12), extraRet:Math.max(0, T.ret-T.retTodas) };
+  return { anio:ANIO, hasta, T, P, prev, usaCert, ded, noAplicadas:ded.filter(x=>x.valor>0 && !x.aplica), preProy, prestEst:T.pres*(2/12+0.12/12), docs:listaDocumentos() };
 }
 function filasContador(d){
-  const T = d.T, R = Math.round, f = [];
-  f.push(['Ingresos de '+d.anio, 'Devengado en esta empresa (salario, recargos, extras, comisiones y auxilio)', R(T.dev), T.meses+' mes(es)']);
-  if(T.pres>0) f.push(['Ingresos de '+d.anio, 'Prima, cesantías e intereses (estimado)', R(d.prestEst), 'tu certificado de ingresos y retenciones trae el valor real']);
-  if(d.prev>0) f.push(['Ingresos de '+d.anio, 'Empleos anteriores (lo que registraste)', R(d.prev), previos.tipo==='neto' ? 'bruto estimado desde lo que llegó al banco' : 'valor bruto']);
-  f.push(['Aportes y retención', 'Salud (aporte del trabajador)', R(T.salud), '']);
-  if(T.pension>0) f.push(['Aportes y retención', 'Pensión (aporte del trabajador)', R(T.pension), '']);
-  if(T.fsp>0) f.push(['Aportes y retención', 'Fondo de Solidaridad Pensional', R(T.fsp), '']);
-  if(T.vol>0) f.push(['Aportes y retención', 'Aportes voluntarios (AFC o pensión voluntaria)', R(T.vol), '']);
-  f.push(['Aportes y retención', 'Retención en la fuente practicada (según la app)', R(T.ret), 'compárala con tu certificado de ingresos y retenciones']);
-  d.ded.filter(x=>x.valor>0).forEach(x=>f.push(['Deducciones para tu declaración', x.nombre, R(x.valor), x.nota+' · tu empresa: '+(x.aplica ? 'ya la aplica' : 'NO la aplica')]));
-  if(d.noAplicadas.length) f.push(['Lo que tu empresa no aplicó', 'Retención de más por esas deducciones (aproximada)', R(d.extraRet), 'orden de magnitud mes a mes; tu devolución real sale de la declaración']);
+  const T = d.T, R = Math.round, f = [], parcial = d.hasta>=0 && d.hasta<11, s1 = 'Ingresos de '+d.anio+(parcial ? ' (hasta '+MESES[d.hasta].toLowerCase()+')' : '');
+  f.push([s1, 'Devengado en esta empresa (salario, recargos, extras, comisiones y auxilio)', R(T.dev), T.meses+' mes(es)', false]);
+  if(T.pres>0) f.push([s1, 'Prima, cesantías e intereses (estimado)', R(d.prestEst), 'tu certificado de ingresos y retenciones trae el valor real', true]);
+  if(d.prev>0) f.push([s1, 'Empleos anteriores', R(d.prev), d.usaCert ? 'total del certificado que escribiste' : 'según lo que registraste'+(previos.tipo==='neto' ? ' (bruto estimado desde lo que llegó al banco)' : '')+': reemplázalo con el certificado de cada empresa', !d.usaCert]);
+  const s2 = 'Aportes y retención'+(parcial ? ' (hasta '+MESES[d.hasta].toLowerCase()+')' : '');
+  f.push([s2, 'Salud (aporte del trabajador)', R(T.salud), '', false]);
+  if(T.pension>0) f.push([s2, 'Pensión (aporte del trabajador)', R(T.pension), '', false]);
+  if(T.fsp>0) f.push([s2, 'Fondo de Solidaridad Pensional', R(T.fsp), '', false]);
+  if(T.vol>0) f.push([s2, 'Aportes voluntarios (AFC o pensión voluntaria)', R(T.vol), '', false]);
+  f.push([s2, 'Retención en la fuente practicada (según la app)', R(T.ret), 'compárala con tu certificado de ingresos y retenciones', true]);
+  d.ded.filter(x=>x.valor>0).forEach(x=>f.push(['Deducciones para tu declaración (hasta hoy)', x.nombre, R(x.valor), x.nota+' · tu empresa: '+(x.aplica ? 'ya la aplica' : 'NO la aplica'), x.aprox]));
+  if(parcial){ f.push(['Si sigues hasta diciembre (aproximado)', 'Ingresos devengados en esta empresa', R(T.dev+d.P.dev), 'con tu sueldo actual', true]); if(d.ded[1].valor>0) f.push(['Si sigues hasta diciembre (aproximado)', 'Medicina prepagada', R(d.ded[1].valor+d.preProy), '', true]); }
+  d.noAplicadas.forEach(x=>f.push(['Lo que tu empresa no te aplica', x.nombre, R(x.valor), 'En la declaración sí cuenta: lleva estos certificados a tu contador.', false]));
+  d.docs.forEach(x=>f.push(['Documentos que vas a necesitar', (docsMarcados[x.id] ? '☑ ' : '☐ ')+x.t, '', x.d, false]));
   return f;
 }
 function csvContador(d){
   const q = v=>'"'+String(v).replace(/"/g,'""')+'"';
-  return '\ufeff'+['Sección;Concepto;Valor (COP);Nota'].concat(filasContador(d).map(r=>[q(r[0]),q(r[1]),r[2],q(r[3])].join(';'))).join('\r\n');
+  return '\ufeff'+['Sección;Concepto;Valor (COP);Tipo;Nota'].concat(filasContador(d).map(r=>[q(r[0]),q(r[1]),r[2],q(r[2]==='' ? '' : (r[4] ? 'aproximado' : 'registrado')),q(r[3])].join(';'))).join('\r\n');
 }
 function abrirContador(){
   const d = datosContador(), filas = filasContador(d); let el = $('contadorModal');
   if(!el){ el = document.createElement('div'); el.id = 'contadorModal'; el.className = 'mg-overlay'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-label','Resumen para tu contador'); document.body.appendChild(el); }
   const grupos = []; filas.forEach(r=>{ let g = grupos.find(x=>x.n===r[0]); if(!g){ g = {n:r[0], f:[]}; grupos.push(g); } g.f.push(r); });
-  el.innerHTML = `<div class="mg-box"><h3 style="margin:0 0 .2rem;">Resumen para tu contador · ${d.anio}</h3><p class="hint" style="margin:0 0 .4rem;">Calculado con lo que registraste en la app. Úsalo como borrador para la conversación, no como certificado.</p>
-    ${grupos.map(g=>`<div class="ct-sec">${esc(g.n)}</div><table class="ct-tabla">${g.f.map(r=>`<tr><td>${esc(r[1])}${r[3] ? `<span class="ct-nota">${esc(r[3])}</span>` : ''}</td><td class="v">${fmtCOP(r[2])}</td></tr>`).join('')}</table>`).join('')}
+  const corte = d.hasta>=0 && d.hasta<11 ? `Datos hasta ${MESES[d.hasta].toLowerCase()} de ${d.anio}. ` : '';
+  el.innerHTML = `<div class="mg-box"><h3 style="margin:0 0 .2rem;">Resumen para tu contador · ${d.anio}</h3><p class="hint" style="margin:0 0 .4rem;">${corte}Calculado con lo que registraste en la app; lo marcado «aprox.» es una estimación. Úsalo como borrador para la conversación, no como certificado.</p>
+    ${grupos.map(g=>`<div class="ct-sec">${esc(g.n)}</div><table class="ct-tabla">${g.f.map(r=>`<tr><td>${esc(r[1])}${r[4] ? '<span class="chip aprox">aprox.</span>' : ''}${r[3] ? `<span class="ct-nota">${esc(r[3])}</span>` : ''}</td><td class="v">${r[2]==='' ? '' : fmtCOP(r[2])}</td></tr>`).join('')}</table>`).join('')}
     <p class="ct-pie">Estimación de referencia. No reemplaza tu certificado de ingresos y retenciones, ni la asesoría de un contador. Los intereses de vivienda, la prepagada y los dependientes tienen topes y requisitos (certificados) que tu contador debe verificar.</p>
     <div class="row-actions no-print" style="margin-top:.8rem; gap:.5rem; flex-wrap:wrap;"><button class="primary" type="button" id="ctImprimir">Imprimir o guardar PDF</button><button class="ghost" type="button" id="ctCsv">Descargar para Excel (CSV)</button><button class="ghost" type="button" id="ctCerrar">Cerrar</button></div></div>`;
   el.hidden = false;
@@ -1868,13 +1933,17 @@ function abrirContador(){
 }
 function renderContadorBox(){
   const el = $('contadorBox'); if(!el) return; let d; try{ d = datosContador(); }catch(e){ el.innerHTML = ''; return; }
-  const aviso = d.noAplicadas.length ? `<div style="margin:.5rem 0; padding:.6rem .8rem; border-radius:10px; background:var(--surface); border:1px solid var(--line); font-size:.82rem; line-height:1.5;">Tu empresa <b>no te aplica</b>: ${d.noAplicadas.map(x=>esc(x.nombre.split(' (')[0].toLowerCase())).join(', ')}. En la declaración sí cuentan${d.extraRet>0 ? `: con esas deducciones habrías retenido unos <b>${fmtCOP(Math.round(d.extraRet/1000)*1000)}</b> menos en el año (aproximado)` : ''}.</div>` : '';
+  const aviso = d.noAplicadas.length ? `<div style="margin:.5rem 0; padding:.6rem .8rem; border-radius:10px; background:var(--surface); border:1px solid var(--line); font-size:.82rem; line-height:1.5;">Tu empresa <b>no te aplica</b>: ${d.noAplicadas.map(x=>esc(x.nombre.split(' (')[0].toLowerCase())).join(', ')}. En la declaración sí cuentan: lleva esos certificados a tu contador (abajo, la lista de documentos).</div>` : '';
   el.innerHTML = `<div class="panel-soft" style="margin-top:1rem;"><h3 style="margin:0 0 .3rem; font-size:1.02rem;">Para tu contador</h3>
     <p class="hint" style="margin:0 0 .4rem;">Ingresos, aportes, retención y las deducciones que te corresponden, en una hoja para llevar o imprimir.</p>${aviso}
     <div class="row-actions" style="margin-top:.5rem;"><button class="primary" type="button" id="btnContador">Ver el resumen para mi contador</button></div></div>`;
   $('btnContador').onclick = abrirContador;
 }
-function initContador(){ ['aplicaVivienda','aplicaPrepagada','aplicaDependientes'].forEach(id=>$(id).addEventListener('change', ()=>{ syncCamposVisibles(); saveConfig(); renderAll(); })); $('tieneDependientes').addEventListener('change', syncCamposVisibles); }
+function initContador(){
+  ['aplicaVivienda','aplicaPrepagada','aplicaDependientes','viviendaDesde','prepagadaDesde'].forEach(id=>$(id).addEventListener('change', ()=>{ syncCamposVisibles(); saveConfig(); renderAll(); }));
+  $('tieneDependientes').addEventListener('change', syncCamposVisibles);
+  $('docsBox').addEventListener('change', e=>{ const id = e.target.dataset && e.target.dataset.doc; if(!id) return; if(e.target.checked) docsMarcados[id] = true; else delete docsMarcados[id]; saveDocs(); });
+}
 
 const NETO_A_BRUTO = 0.92;   // neto ≈ 92% del bruto (salud y pensión 8%)
 function mesesPrevios(){ const out = []; for(let m=0; m<12; m++) if(diasEsperadosMes(m)<=0) out.push(m); return out; }
@@ -1882,19 +1951,20 @@ function brutoPrevio(v){ return previos.tipo==='bruto' ? v : v/NETO_A_BRUTO; }
 
 function renderRenta(){
   const el = $('rentaBox'); if(!el) return;
-  construirPrevios(false); renderContadorBox();
+  construirPrevios(false); renderContadorBox(); renderDocsBox();
   const umbral = 1400*UVT, k = ENT.integral ? 1 : 1 + 2/12 + (0.12/12);   // en esta empresa: salario + prima + cesantías + intereses proporcionales
   const req = [];
+  const usaCert = (previos.totalCert||0)>0;
   for(let m=0; m<12; m++){
     const key = `${ANIO}-${pad(m+1)}`, aj = ajustesBanco[key], guard = historialPrima[key];
     if(diasEsperadosMes(m)>0){
       req.push({m, key, bruto: primaDeMes(m).devengadoPrestacional*k, previo:false, doc: !!(aj||guard)});
     } else {
       const v = valorPrevio(m);
-      req.push({m, key, bruto: v===undefined ? 0 : brutoPrevio(v), previo:true, doc: v!==undefined});
+      req.push({m, key, bruto: (usaCert || v===undefined) ? 0 : brutoPrevio(v), previo:true, doc: usaCert || v!==undefined});
     }
   }
-  const liq = previos.liquidacion||0;
+  const liq = usaCert ? previos.totalCert : (previos.liquidacion||0);   // con el certificado de las empresas anteriores se usa ese total
   const docs = req.filter(x=>x.doc), faltan = req.filter(x=>!x.doc);
   const deAntes = req.filter(x=>x.previo).reduce((t,x)=>t+x.bruto,0) + liq;
   const confirmado = docs.reduce((t,x)=>t+x.bruto,0) + liq, proyeccion = req.reduce((t,x)=>t+x.bruto,0) + liq;
@@ -1920,7 +1990,8 @@ function renderRenta(){
   const chips = req.map(x=>`<span class="chip ${x.doc?'ok':''}">${nom(x)} ${x.doc?'✓':'…'}${x.previo&&x.doc?'*':''}</span>`).join('');
   const irForm = (cls==='falta' && faltanPrevios) ? `<div><button class="primary" type="button" style="margin-top:.7rem;" onclick="$('previosBox').scrollIntoView({behavior:'smooth', block:'start'})">Completar mi empleo anterior ↓</button></div>` : '';
   el.innerHTML = `<div class="renta-banner ${cls}"><strong class="t">${esc(titulo)}</strong><span style="font-size:.85rem;">${esc(texto)}</span>${irForm}</div>
-    <div class="renta-meses">${chips}</div>
+    <details class="ren-det"><summary>Ver el detalle del cálculo</summary>
+ <div class="renta-meses">${chips}</div>
     <p class="hint">En esta empresa, un mes cuenta como documentado cuando lo verificas con el banco (pestaña Resumen) o lo guardas en el historial (pestaña Prestaciones). ✓ = documentado · … = solo estimado${deAntes>0||req.some(x=>x.previo&&x.doc)?' · * = de tu empleo anterior (lo que escribiste)':''}.</p>
     <table class="summary" style="margin-top:.6rem;">
       <tr><td>Tope para declarar (1.400 UVT de ${ANIO}${C.provisional?', provisional':''})</td><td class="val">${fmtCOP(umbral)}</td></tr>
@@ -1933,7 +2004,7 @@ function renderRenta(){
         <p style="margin-top:0;">Para saber si debes declarar, la DIAN suma <em>todo</em> lo que ganaste en el año (ingresos brutos), de todas tus empresas. En los meses de esta empresa la app suma el devengado (salario, recargos, extras, comisiones y auxilio) más la prima, las cesantías y los intereses que le corresponden. El año ${ANIO} se declara en ${ANIO+1}.</p>
         <p>Para los meses de un empleo anterior solo usa lo que tú escribes. Si escribes lo que te llegaba al banco (neto), estima el bruto dividiéndolo por 0,92 (salud y pensión descontadas). No se calcula prima ni cesantías de esos meses: esa empresa te las pagó al liquidarte; si quieres sumarlas, escríbelas en «Liquidación final».</p>
         <p style="margin-bottom:0;">Solo cuenta lo que registraste aquí (si recibes mesada pensional, no está incluida y también es un ingreso del año). También te obliga a declarar tener un patrimonio bruto de 4.500 UVT o más, o consumos con tarjeta, compras o consignaciones por 1.400 UVT o más en el año. Esto es una guía de referencia: confírmalo con tu contador.</p>
-      </div></details>`;
+      </div></details></details>`;
   renderCriterios(crit);
 }
 
@@ -1964,6 +2035,7 @@ function construirPrevios(forzar){
     <div class="field"><label for="prevLiq">Liquidación final de esa empresa (opcional)</label>
       <input type="text" inputmode="numeric" id="prevLiq" placeholder="0" value="${fmtInp(previos.liquidacion||'')}">
       <div class="hint">Lo que te pagaron al salir: prima, cesantías, vacaciones, indemnización. También cuenta como ingreso del año.</div></div>
+      <div class="field"><label for="prevCert">¿Ya tienes el certificado de ingresos y retenciones de esas empresas? Total bruto del año (opcional)</label><input type="text" inputmode="numeric" id="prevCert" placeholder="0" value="${fmtInp(previos.totalCert||'')}"><div class="hint">Si lo escribes, <b>reemplaza</b> lo mensual y la liquidación de arriba: es el dato exacto.</div></div>
     <div class="row-actions" style="margin-top:.4rem;"><button class="small-del" type="button" id="prevBorrar">Borrar lo que escribí</button></div>
   </div>`;
 }
@@ -1973,16 +2045,16 @@ function initPrevios(){
   box.addEventListener('input', e=>{
     const t = e.target;
     if(t.classList.contains('prev-mes')){ const v = money(t); if(v===null) delete previos.meses[t.dataset.k]; else previos.meses[t.dataset.k] = v; savePrevios(); renderRenta(); renderMonthTabs(); }
-    else if(t.id==='prevLiq'){ const v = money(t); previos.liquidacion = v||0; savePrevios(); renderRenta(); }
+    else if(t.id==='prevLiq'){ const v = money(t); previos.liquidacion = v||0; savePrevios(); renderRenta(); } else if(t.id==='prevCert'){ const v = money(t); previos.totalCert = v||0; savePrevios(); renderRenta(); renderContadorBox(); }
     else if(t.id==='prevFijo'){ money(t); }
   });
-  box.addEventListener('focusin', e=>{ const t = e.target; if(t.classList && (t.classList.contains('prev-mes') || t.id==='prevLiq' || t.id==='prevFijo')) setTimeout(()=>{ try{ t.select(); }catch(x){} }, 0); });   // al tocar un campo se selecciona todo: lo que escribas reemplaza el valor
+  box.addEventListener('focusin', e=>{ const t = e.target; if(t.classList && (t.classList.contains('prev-mes') || t.id==='prevLiq' || t.id==='prevCert' || t.id==='prevFijo')) setTimeout(()=>{ try{ t.select(); }catch(x){} }, 0); });   // al tocar un campo se selecciona todo: lo que escribas reemplaza el valor
   box.addEventListener('change', e=>{ if(e.target.name==='prevTipo'){ previos.tipo = e.target.value==='bruto' ? 'bruto' : 'neto'; savePrevios(); renderRenta(); } });
   box.addEventListener('click', e=>{
     const id = e.target.id; if(!id) return;
     if(id==='prevCero'){ mesesPrevios().forEach(m=>{ previos.meses[`${ANIO}-${pad(m+1)}`] = 0; }); savePrevios(); construirPrevios(true); renderRenta(); renderMonthTabs(); }
     else if(id==='prevAplicar'){ const v = money($('prevFijo')); if(v===null){ alert('Escribe primero cuánto te llegaba al mes.'); return; } mesesPrevios().forEach(m=>{ previos.meses[`${ANIO}-${pad(m+1)}`] = v; }); savePrevios(); construirPrevios(true); renderRenta(); renderMonthTabs(); }
-    else if(id==='prevBorrar'){ if(!confirmaYa('Se borrará lo que escribiste de tu empleo anterior. ¿Continuar?')) return; previos = {tipo:previos.tipo, meses:{}, liquidacion:0}; savePrevios(); construirPrevios(true); renderRenta(); renderMonthTabs(); }
+    else if(id==='prevBorrar'){ if(!confirmaYa('Se borrará lo que escribiste de tu empleo anterior. ¿Continuar?')) return; previos = {tipo:previos.tipo, meses:{}, liquidacion:0, totalCert:0}; savePrevios(); construirPrevios(true); renderRenta(); renderMonthTabs(); }
   });
 }
 
@@ -2302,7 +2374,7 @@ function _renderAllNow(){
 //  Eventos
 // ============================================================
 function wire(){
-  ['salarioBase','interesesVivienda','pagoPrepagada','valorContrato','retefuenteCustomValor'].forEach(id=>attachMoneyFormatting(id));
+  ['salarioBase','interesesVivienda','viviendaAntes','pagoPrepagada','valorContrato','retefuenteCustomValor'].forEach(id=>attachMoneyFormatting(id));
   attachMoneyFormatting('interesesCesantiasEnero', ()=>{ interesesEneroVal = getMoney('interesesCesantiasEnero'); saveInteresesEnero(); renderAll(); });
   ['jornadaPactada','almuerzo','ccfCustomValor'].forEach(id=>$(id).addEventListener('input', ()=>{ saveConfig(); renderAll(); }));
   ['fechaIngreso','tieneVivienda','tienePrepagada','tieneDependientes','pagaCajaEmpresa','pagoMesVencido','retefuenteTipo','pagaARL','nivelARL','pagaCCF','ccfRateSelect']

@@ -10,6 +10,10 @@
 - Aviso cuando el espacio del dispositivo pasa del 70%.
 - **Tarjetas de crédito:** muestran el cupo **disponible**; las compras se registran como gasto (con su categoría) y pueden ir **a cuotas**; «Pagar tarjeta» es una transferencia (no es gasto) con pago total, de este extracto u otro valor; «Ver cuotas» muestra lo que viene.
 - **Para tu contador:** en cada deducción (vivienda, prepagada, dependientes) el interruptor «Mi empresa ya me lo aplica». Si no la aplica, tu neto sigue igual al desprendible y la deducción queda para tu declaración. En Renta, el **resumen para tu contador** (imprimir/PDF o CSV).
+- **Renta más clara:** arriba solo el veredicto con su causa; el detalle y los 5 criterios quedan plegados. Con pocos meses de datos dice «hasta ahora, bajo el tope» (no «bajo el tope»); concluye «no declaras» solo si el año está cubierto.
+- **Si empiezas a registrar tarde:** en «Lo que pasó antes de empezar a registrar» escribes los totales del año anterior a tu registro (compras, tarjetas, consignaciones). Para empleos anteriores, si ya tienes el certificado, escribes su total y reemplaza lo mensual.
+- **Deducciones con fecha:** prepagada y leasing tienen «¿desde qué mes?»; el leasing admite «intereses pagados antes de registrar la deuda». El resumen para el contador llega **hasta hoy**, marca lo aproximado y separa lo proyectado a diciembre. Se quitó la cifra de «retención de más».
+- **Documentos que vas a necesitar:** lista según lo que marcaste (certificados de ingresos, intereses del leasing y contrato, prepagada, dependientes, saldos y deudas al 31-dic), con casillas para ir tachando; sale también en el resumen para imprimir o CSV.
 - **Sigue fuera:** incapacidades y licencias, 4×1000 y dólares.
 
 **Para actualizar:** sube **todo el contenido** de la carpeta a GitHub (esta vez `suite-config.js` ya trae tu ID de cliente, así que no se pierde nada).
