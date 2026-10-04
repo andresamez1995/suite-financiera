@@ -797,7 +797,7 @@ function viewResumen(){
     alertMsg = `Has gastado el <b>${pctDisplay}</b> de tu dinero disponible. Tu flujo es normal, pero vigila tus próximos movimientos para asegurar que tus ingresos cubran tus gastos.`;
   } else if(pctSpentNum <= 90) {
     alertColor = 'var(--warning)'; alertIcon = '🟠';
-    alertMsg = `¡Ten cuidado! Has gastado el <b>${pctDisplay}</b> de tu dinero total. Estás consumiendo tus fondos rápidamente. Frena los gastos 'Quiero'.`;
+    alertMsg = `¡Ten cuidado! Has gastado el <b>${pctDisplay}</b> de tu dinero total. Estás consumiendo tus fondos rápidamente. Frena los gastos'.`;
   } else {
     alertColor = 'var(--danger)'; alertIcon = '🔴';
     alertMsg = `¡Peligro! Has gastado el <b>${pctDisplay}</b> de tu capacidad. Estás gastando muy por encima de tu límite y tus cuentas están a punto de quedar en cero. Evita cualquier gasto no esencial inmediatamente.`;
