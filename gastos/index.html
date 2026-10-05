@@ -207,11 +207,11 @@ details[open] > summary .chev{transform:rotate(90deg);}
 .deb-pagos{border:1px solid var(--border); border-radius:12px; padding:4px 10px;}
 .deb-row{display:flex; gap:10px; align-items:center; padding:7px 0; font-size:12.5px; border-bottom:1px solid var(--border); font-variant-numeric:tabular-nums;} .deb-row:last-child{border-bottom:none;}
 .deb-proy{margin-top:14px; padding-top:12px; border-top:1px solid var(--border);}
-.deb-proy-t{font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--text-dim); margin-bottom:6px; display:flex; align-items:center; gap:6px;}
+.deb-proy-t{font-size:13px; font-weight:700; color:var(--text-dim); margin-bottom:6px; display:flex; align-items:center; gap:6px;}
 .deb-proy-r{display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:4px 0; font-size:13.5px;} .deb-proy-r b{font-family:var(--font-display); font-variant-numeric:tabular-nums;}
 .deb-proy-tot{border-top:1px dashed var(--border); margin-top:4px; padding-top:8px; font-weight:700;}
 .deb-consejo{border-left:4px solid var(--accent);}
-.tj-disp{display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin:10px 0 2px;} .tj-disp span{font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em;} .tj-disp b{font-family:var(--font-display); font-size:24px; font-variant-numeric:tabular-nums;}
+.tj-disp{display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin:10px 0 2px;} .tj-disp span{font-size:13px; color:var(--text-dim);} .tj-disp b{font-family:var(--font-display); font-size:24px; font-variant-numeric:tabular-nums;}
 .wiz-op{display:block; width:100%; text-align:left; background:var(--surface-2); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:10px; color:var(--text); font-family:inherit; cursor:pointer;}
 .wiz-op b{display:block; font-size:15px; margin-bottom:3px;} .wiz-op span{font-size:12.5px; color:var(--text-dim);}
 .wiz-dots{display:flex; gap:6px; margin-bottom:6px;} .wiz-dots i{flex:1; height:4px; border-radius:2px; background:var(--border);} .wiz-dots i.on{background:var(--accent);}
@@ -270,6 +270,13 @@ details[open] > summary .sec-peek{display:none;}
 .fe-fila, .opc-fila{display:flex; gap:10px; align-items:flex-start; margin:12px 0 0; font-size:13.5px; font-weight:600; color:var(--text); cursor:pointer;}
 .fe-fila input, .opc-fila input{width:20px; height:20px; min-height:0; margin:1px 0 0; flex:0 0 auto; accent-color:var(--accent);}
 .opc-fila small{display:block; font-weight:400; font-size:12px; color:var(--text-dim); line-height:1.45; margin-top:2px;}
+
+/* ---- registro de transferencias, pagos y ajustes ---- */
+.mov-tr .tr-exp{font-size:11.5px; color:var(--text-faint); line-height:1.4; margin-top:2px; white-space:normal;}
+.tr-tag{font-size:10.5px; font-weight:600; color:var(--text-dim); background:var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:1px 7px; margin-left:4px; white-space:nowrap;}
+.tr-explica{font-size:12.5px; color:var(--text-dim); line-height:1.45; margin-top:10px; padding:9px 11px; border-radius:10px; background:var(--surface-2); border:1px solid var(--border);}
+.tr-tag.ok{color:var(--positive); border-color:color-mix(in srgb,var(--positive) 40%,transparent);}
+.tr-tag.pend{color:var(--necesito); border-color:color-mix(in srgb,var(--necesito) 45%,transparent);}
 </style>
 </head>
 <body>
@@ -454,7 +461,8 @@ function sanitizeState(raw, strict){
   }).filter(Boolean);
   S.transfers = (Array.isArray(raw.transfers)?raw.transfers:[]).filter(isObj).map(t=>{
     if(!DATE_RE.test(t.date) || !(numOr0(t.amount)>0)) return null;
-    return { id: ut(t.id), date: t.date, timestamp: numOr0(t.timestamp), fromId: cleanId(t.fromId), toId: cleanId(t.toId), amount: fixNum(t.amount) };
+    const desc = cleanText(t.desc, 80);
+    return { id: ut(t.id), date: t.date, timestamp: numOr0(t.timestamp), fromId: cleanId(t.fromId), toId: cleanId(t.toId), amount: fixNum(t.amount), ...(desc ? {desc} : {}) };
   }).filter(Boolean);
   S.adjustments = (Array.isArray(raw.adjustments)?raw.adjustments:[]).filter(isObj).map(a=>{
     if(!DATE_RE.test(a.date) || !numOr0(a.amount)) return null;
@@ -609,15 +617,75 @@ function migrarSaldoInicial(){
 }
 // Índice por mes (se reconstruye solo cuando cambian los datos)
 function idx(){
-  if(IDX) return IDX;
-  IDX = {exp:{}, inc:{}};
+  const hoy = today();
+  if(IDX && IDX.hoy===hoy) return IDX;
+  IDX = {exp:{}, inc:{}, ef:{}, hoy};
   STATE.expenses.forEach(e=>{ (IDX.exp[e.date.slice(0,7)] ||= []).push(e); });
   STATE.incomes.forEach(i=>{ (IDX.inc[i.date.slice(0,7)] ||= []).push(i); });
+  IDX.conf = calcConfirmaciones(hoy);
+  gastosEfectivos(IDX.conf).forEach(e=>{ (IDX.ef[e.date.slice(0,7)] ||= []).push(e); });
   return IDX;
 }
-function expensesOfMonth(key){ return idx().exp[key] || []; }
+// ---------- Compras con tarjeta de crédito: pendientes hasta que pagas la tarjeta ----------
+// Comprar con la tarjeta no toca tus cuentas: la compra queda registrada (con su categoría) como PENDIENTE.
+// Cuando sale plata de tus cuentas para pagar la tarjeta, ese pago CONFIRMA las compras pendientes, de la más vieja a la más nueva,
+// y cada una cuenta como gasto en su categoría en el mes del pago. Así el mercado de $200.000 cuenta una sola vez.
+// Lo que el pago cubre de deuda sin compra (avances, deuda de antes de registrar la tarjeta) no es gasto.
+const fechaCortaG = iso => new Date(iso+'T00:00').toLocaleDateString('es-CO',{day:'numeric', month:'short'});
+function calcConfirmaciones(hoy){
+  const porCompra = {}, porPago = {}, esDeuda = x => x.tipo==='compra' || x.tipo==='deuda';
+  STATE.accounts.filter(esTarjeta).forEach(tj=>{
+    const ev = [], ts = o => o.timestamp || 0;
+    if((tj.inicial||0) < 0) ev.push({d:'0000-00-00', ts:0, tipo:'deuda', monto:-tj.inicial});
+    STATE.expenses.forEach(e=>{ if(e.accountId===tj.id && e.date<=hoy) ev.push({d:e.date, ts:ts(e), tipo:'compra', monto:e.amount, e}); });
+    STATE.transfers.forEach(t=>{
+      if(t.date>hoy) return;
+      if(t.fromId===tj.id) ev.push({d:t.date, ts:ts(t), tipo:'deuda', monto:t.amount});                                       // avance o traslado
+      if(t.toId===tj.id) ev.push({d:t.date, ts:ts(t), tipo: esTarjeta(accById(t.fromId)) ? 'abono' : 'pago', monto:t.amount, t});
+    });
+    STATE.incomes.forEach(i=>{ if(i.accountId===tj.id && i.date<=hoy) ev.push({d:i.date, ts:ts(i), tipo:'abono', monto:i.amount}); });        // devoluciones
+    STATE.adjustments.forEach(j=>{ if(j.accountId===tj.id && j.date<=hoy) ev.push({d:j.date, ts:ts(j), tipo: j.amount<0 ? 'deuda' : 'abono', monto:Math.abs(j.amount)}); });
+    ev.sort((a,b)=> a.d!==b.d ? a.d.localeCompare(b.d) : (esDeuda(a)?0:1)-(esDeuda(b)?0:1) || a.ts-b.ts);   // el mismo día: primero la deuda, luego el pago
+    const cola = []; let favor = 0, favorPago = null, favorEsPago = false;   // pagaste de más: cubre compras siguientes apenas ocurren
+    ev.forEach(x=>{
+      if(esDeuda(x)){
+        const it = {pend:x.monto, e:x.e||null};
+        if(it.e) porCompra[it.e.id] = {conf:[], pend:it.pend};
+        if(favor>0.005){ const u = Math.min(favor, it.pend); favor -= u; it.pend -= u;
+          if(it.e){ if(favorEsPago) porCompra[it.e.id].conf.push({fecha:x.d, monto:u, pago:favorPago}); porCompra[it.e.id].pend = it.pend; } }
+        if(it.pend>0.005) cola.push(it);
+        return;
+      }
+      let resto = x.monto; const cubre = [];
+      while(resto>0.005 && cola.length){
+        const it = cola[0], u = Math.min(resto, it.pend); it.pend -= u; resto -= u;
+        if(it.e){ porCompra[it.e.id].pend = it.pend; if(x.tipo==='pago'){ porCompra[it.e.id].conf.push({fecha:x.d, monto:u, pago:x.t.id}); cubre.push({e:it.e, monto:u}); } }
+        else if(x.tipo==='pago') cubre.push({e:null, monto:u});
+        if(it.pend<=0.005) cola.shift();
+      }
+      if(x.tipo==='pago') porPago[x.t.id] = cubre;
+      if(resto>0.005){ favor += resto; favorPago = x.t ? x.t.id : null; favorEsPago = x.tipo==='pago'; }
+    });
+  });
+  return {porCompra, porPago};
+}
+// Lo que cuenta como gasto: lo pagado con tus cuentas en su fecha y, de las compras con tarjeta, lo ya pagado en la fecha del pago
+function gastosEfectivos(c){
+  const out = [];
+  STATE.expenses.forEach(e=>{
+    const a = accById(e.accountId);
+    if(!(a && esTarjeta(a))){ out.push(e); return; }
+    const pc = c.porCompra[e.id]; if(!pc) return;
+    pc.conf.forEach((k,n)=> out.push(Object.assign({}, e, {id:e.id+'#'+n, date:k.fecha, amount:fixNum(k.monto), _compra:e.id, _fechaCompra:e.date})));
+  });
+  return out;
+}
+const estadoCompra = e => { const pc = idx().conf.porCompra[e.id]; if(!pc) return null; const pagado = fixNum(e.amount - pc.pend); return {pend:fixNum(pc.pend), pagado, conf:pc.conf}; };
+const confirmadoPorPago = t => idx().conf.porPago[t.id] || [];
+function expensesOfMonth(key){ return idx().exp[key] || []; }        // los registros tal como los anotaste (para listarlos y editarlos)
+function gastosDelMes(key){ return idx().ef[key] || []; }            // lo que cuenta como gasto en ese mes
 function incomesOfMonth(key){ return idx().inc[key] || []; }
-function realizedExpensesOfMonth(key){ return expensesOfMonth(key).filter(isRealized); }
+function realizedExpensesOfMonth(key){ return gastosDelMes(key).filter(isRealized); }
 function realizedIncomesOfMonth(key){ return incomesOfMonth(key).filter(isRealized); }
 function totalExpenses(key){ return fixNum(realizedExpensesOfMonth(key).reduce((s,e)=>s+e.amount,0)); }
 function totalAccountsBalance(){ return fixNum(STATE.accounts.filter(a=>a.type!=='tarjeta').reduce((s,a)=>s+(a.balance||0),0)); }
@@ -803,7 +871,7 @@ function viewResumen(){
   if(key < today().slice(0,7) && !monthHasData(key)) return `<div class="card"><div class="empty-state">Sin información registrada en ${monthLabel(key)}</div></div>`;
   const gasto = totalExpenses(key);
   const saldoCuentasTotal = totalAccountsBalance();
-  const ingresosMes = receivedIncome(key);
+  const ingresosMes = ingresosYAvances(key);   // los avances de tarjeta cuentan como plata que entró
   
   const saldoInicial = closingBalance(prevMonthKey(key));
   const curKey = today().slice(0,7), esActual = key===curKey, esFuturo = key>curKey;
@@ -820,7 +888,7 @@ function viewResumen(){
   let alertColor, alertIcon, alertMsg;
   if(pctSpentNum <= 40) {
     alertColor = 'var(--positive)'; alertIcon = '🟢';
-    alertMsg = `Has gastado el <b>${pctDisplay}</b> de tu dinero disponible. Tu flujo de caja es muy saludable y mantienes un excelente colchón financiero.`;
+    alertMsg = `Has gastado el <b>${pctDisplay}</b> de tu dinero disponible. ${fraseColchon(key)}`;
   } else if(pctSpentNum <= 70) {
     alertColor = 'var(--necesito)'; alertIcon = '🟡';
     alertMsg = `Has gastado el <b>${pctDisplay}</b> de tu dinero disponible. Tu flujo es normal, pero vigila tus próximos movimientos para asegurar que tus ingresos cubran tus gastos.`;
@@ -854,12 +922,7 @@ function viewResumen(){
     <div class="bar-track" style="background:color-mix(in srgb, var(--positive) 35%, transparent);"><div class="bar-fill" style="width:${Math.min(pctSpentNum,100)}%; background:var(--danger)"></div></div>
     <details class="fold" data-sec="fold-cuentas"><summary>Ver cuentas y flujo de caja <span class="chev">${ic('chev-right',14)}</span></summary>
       <div style="margin-top:14px;">${renderAccountsForMonth(key, esActual, esFuturo)}</div>
-      <div style="font-size:13px; margin-top:14px; padding-top:12px; border-top:1px solid var(--border);">
-        <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span style="color:var(--text-dim)">Tenías (saldo inicial)</span><span>${fmtCOP(saldoInicial)}</span></div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span style="color:var(--text-dim)">Te ingresó este mes</span><span style="color:var(--positive)">+${fmtCOP(ingresosMes)}</span></div>
-        <div style="display:flex; justify-content:space-between; font-weight:600; border-top:1px solid var(--border); padding-top:6px; margin-bottom:6px;"><span>Total disponible</span><span>${fmtCOP(totalDisponible)}</span></div>
-        <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-dim)">Tus gastos</span><span style="color:var(--danger)">−${fmtCOP(gasto)}</span></div>
-      </div>
+      ${panelFlujo(key, saldoInicial, saldoMes, esActual)}
     </details>
   </div>
 
@@ -882,7 +945,7 @@ function renderTrend(key){
   const data = [];
   for(let i=n-1;i>=0;i--){
     const k = monthShift(key,-i), has = monthHasData(k);
-    const inc = receivedIncome(k), exp = totalExpenses(k);
+    const inc = ingresosYAvances(k), exp = totalExpenses(k);
     const ini = has ? Math.max(0, closingBalance(monthShift(k,-1))) : 0;     // lo que tenías al empezar el mes
     data.push({k, has, inc, exp, ini, disp: fixNum(ini+inc)});
   }
@@ -970,7 +1033,7 @@ function lineasSVG(series, dias, opts){
 }
 function gastoAcumulado(key){
   const [y,m] = key.split('-').map(Number), dias = new Date(y,m,0).getDate(), por = new Array(dias+1).fill(0), hoy = today();
-  expensesOfMonth(key).forEach(e=>{ if(e.date<=hoy) por[parseInt(e.date.slice(8,10),10)] += e.amount; });
+  gastosDelMes(key).forEach(e=>{ if(e.date<=hoy) por[parseInt(e.date.slice(8,10),10)] += e.amount; });
   const out = []; let t = 0; for(let d=1; d<=dias; d++){ t += por[d]; out.push(fixNum(t)); } return out;
 }
 function renderRitmo(key){
@@ -1007,7 +1070,10 @@ function renderSaldoMes(key){
   if(!STATE.accounts.some(a=>!esTarjeta(a))) return '';
   const hoyK = today().slice(0,7), esActual = key===hoyK, esFuturo = key>hoyK, {inicio, dias} = saldoDiario(key);
   const dia = esActual ? parseInt(today().slice(8,10),10) : dias.length, ahora = dias[dia-1];
-  const real = dias.map((v,i)=> (esFuturo || i<dia) ? v : NaN), proy = esActual ? dias.map((v,i)=> i>=dia-1 ? v : NaN) : null;
+  const hoy = today(), validas = new Set(STATE.accounts.filter(a=>!esTarjeta(a)).map(a=>a.id)), enMes = d => d.slice(0,7)===key && d>hoy;
+  const hayFuturos = esActual && (STATE.incomes.some(i=>validas.has(i.accountId) && enMes(i.date)) || STATE.expenses.some(e=>validas.has(e.accountId) && enMes(e.date))
+    || STATE.transfers.some(t=>(validas.has(t.fromId) || validas.has(t.toId)) && enMes(t.date)));
+  const real = dias.map((v,i)=> (esFuturo || i<dia) ? v : NaN), proy = hayFuturos ? dias.map((v,i)=> i>=dia-1 ? v : NaN) : null;
   const series = [{v:real, color:'var(--debo)', ancho:2.4}]; if(proy && dia<dias.length) series.push({v:proy, color:'var(--debo)', ancho:1.6, guion:true});
   const dif = inicio ? (ahora-inicio)/Math.abs(inicio) : 0, p = Math.round(Math.abs(dif)*100);
   const chip = inicio ? `<span class="chip-var ${dif<0?'baja':'sube'}">${dif<0?'−':'+'}${p}% vs. inicio del mes</span>` : '';
@@ -1021,20 +1087,35 @@ function renderCupo(){
   const tj = STATE.accounts.filter(a=>esTarjeta(a) && a.cupo>0); if(!tj.length) return '';
   const deuda = fixNum(tj.reduce((t,a)=>t+Math.max(0,-(a.balance||0)),0)), cupo = fixNum(tj.reduce((t,a)=>t+a.cupo,0)), real = cupo>0 ? deuda/cupo : 0, uso = Math.min(1, real);
   const col = real<=0.3 ? 'var(--accent)' : real<=0.7 ? 'var(--necesito)' : 'var(--danger)', C = 2*Math.PI*38;
-  const dona = `<svg viewBox="0 0 100 100" width="110" height="110" role="img" aria-label="Usas el ${Math.round(real*100)}% de tu cupo"><circle cx="50" cy="50" r="38" fill="none" stroke="var(--surface-2)" stroke-width="12"/><circle cx="50" cy="50" r="38" fill="none" stroke="${col}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${(C*uso).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 50 50)"/><text x="50" y="55" text-anchor="middle" font-size="17" font-weight="700" fill="var(--text)">${Math.round(real*100)}%</text></svg>`;
+  const dona = `<svg viewBox="0 0 100 100" width="110" height="110" role="img" aria-label="Usas el ${Math.round(real*100)}% de tu cupo"><circle cx="50" cy="50" r="38" fill="none" stroke="var(--surface-2)" stroke-width="12"/>${uso>0 ? `<circle cx="50" cy="50" r="38" fill="none" stroke="${col}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${(C*uso).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 50 50)"/>` : ''}<text x="50" y="55" text-anchor="middle" font-size="17" font-weight="700" fill="var(--text)">${Math.round(real*100)}%</text></svg>`;
   const filas = tj.length>1 ? tj.map(a=>{ const d = Math.max(0,-(a.balance||0)); return `<div class="cupo-fila"><span>${esc(a.name)}</span><span>${fmtCOP(d)} de ${fmtCompact(a.cupo).replace(/^COP\s*/,'$')} · ${Math.round(d/a.cupo*100)}%</span></div>`; }).join('') : '';
   return seccion('bq-cupo', BLOQUES_NOMBRE.cupo, Math.round(real*100)+' %',
     `<div class="cupo-box">${dona}<div><div class="sub-label" style="margin:0;">Debes</div><div class="big-num" style="font-size:20px;">${fmtCOP(deuda)}</div><div class="sub-label" style="margin:6px 0 0;">Cupo total</div><div style="font-weight:700;">${fmtCOP(cupo)}</div></div></div>${filas}
      <div class="sub-label" style="margin:10px 0 0; line-height:1.5;">${real>1 ? 'Lo que registraste pasa el cupo: revisa el cupo de la tarjeta o si falta registrar un pago. ' : ''}Usar una parte pequeña del cupo (por ejemplo, menos del 30 %) suele favorecer tu historial crediticio.</div>`, true);
 }
 // Colchón: cuántos meses de gasto cubre lo que tienes hoy (sin contar lo que debes en tarjetas)
-function renderColchon(){
+function calcColchon(){
   const hoyK = today().slice(0,7), meses = [];
   for(let i=1; i<=6 && meses.length<3; i++){ const k = monthShift(hoyK,-i); if(monthHasData(k)) meses.push(k); }
-  if(!meses.length) return seccion('bq-colchon', BLOQUES_NOMBRE.colchon, '', `<div class="empty-state sin-icono">Cuando tengas al menos un mes completo de gastos registrados te digo cuántos meses te alcanza lo que tienes.</div>`, true);
-  const prom = fixNum(meses.reduce((t,k)=>t+totalExpenses(k),0)/meses.length); if(!(prom>0)) return '';
+  if(!meses.length) return null;
+  const prom = fixNum(meses.reduce((t,k)=>t+totalExpenses(k),0)/meses.length); if(!(prom>0)) return null;
   const deudaTj = fixNum(STATE.accounts.filter(esTarjeta).reduce((t,a)=>t+Math.max(0,-(a.balance||0)),0)), disponible = fixNum(positiveAccountsBalance() - deudaTj);
-  const n = Math.max(0, disponible/prom), nTxt = (n>=10 ? Math.round(n) : Math.round(n*10)/10).toLocaleString('es-CO');
+  const n = Math.max(0, disponible/prom);
+  return {meses, prom, deudaTj, disponible, n, nTxt:(n>=10 ? Math.round(n) : Math.round(n*10)/10).toLocaleString('es-CO')};
+}
+// La alerta verde habla del mes; el colchón lo dice el bloque «Tu colchón» (antes la alerta prometía un «excelente colchón» con 0,4 meses)
+function fraseColchon(key){
+  if(key!==today().slice(0,7)) return 'Tu flujo de caja de ese mes fue saludable.';
+  const c = calcColchon();
+  if(!c) return 'Tu flujo de caja del mes va saludable.';
+  if(c.n<1) return `Tu flujo del mes va bien, pero tu colchón alcanza para menos de un mes de gastos (${c.nTxt}): cualquier imprevisto te descuadra.`;
+  if(c.n<3) return `Tu flujo del mes va bien. Tu colchón cubre ${c.nTxt} meses de gastos: lo usual es apuntar a 3 o más.`;
+  return `Tu flujo del mes va bien y tienes un buen colchón: ${c.nTxt} meses de gastos.`;
+}
+function renderColchon(){
+  const c = calcColchon();
+  if(!c) return seccion('bq-colchon', BLOQUES_NOMBRE.colchon, '', `<div class="empty-state sin-icono">Cuando tengas al menos un mes completo de gastos registrados te digo cuántos meses te alcanza lo que tienes.</div>`, true);
+  const {meses, prom, deudaTj, disponible, n, nTxt} = c;
   const [color, consejo] = n<1 ? ['var(--danger)', 'Menos de un mes: cualquier imprevisto te descuadra. Lo usual es apuntar a tener entre 3 y 6 meses de gastos guardados.']
     : n<3 ? ['var(--necesito)', 'Vas armándolo. Lo usual es apuntar a tener entre 3 y 6 meses de gastos guardados.']
     : n<6 ? ['var(--accent)', 'Buen colchón: aguantas varios meses sin ingresos.'] : ['var(--accent)', 'Colchón amplio: más de 6 meses de gastos cubiertos.'];
@@ -1047,7 +1128,7 @@ function renderColchon(){
 // Gastos hormiga: los pequeños de «Quiero» que se repiten y suman sin que uno lo note
 const HORMIGA_TOPE = 30000;
 function nivelDe(e){ const s = findSub(e.catId, e.subId); return s ? s.nivel : (e.nivel || 'quiero'); }
-function hormigaDe(key){ return expensesOfMonth(key).filter(e=>isRealized(e) && e.amount<=HORMIGA_TOPE && nivelDe(e)==='quiero' && !esPagoDeudaGasto(e)); }
+function hormigaDe(key){ return gastosDelMes(key).filter(e=>isRealized(e) && e.amount<=HORMIGA_TOPE && nivelDe(e)==='quiero' && !esPagoDeudaGasto(e)); }
 function renderHormiga(key){
   const hoyK = today().slice(0,7); if(key>hoyK) return '';
   const lista = hormigaDe(key), total = fixNum(lista.reduce((t,e)=>t+e.amount,0));
@@ -1146,6 +1227,12 @@ function renderTopIncomes(key, totalIncome){
   }).join('');
 }
 
+// El mes en curso se compara con el anterior SOLO hasta el mismo día (si no, a comienzo de mes todo sale ▼95 %)
+function gastosPrevComparables(key){
+  const lista = realizedExpensesOfMonth(prevMonthKey(key));
+  if(key!==today().slice(0,7)) return lista;
+  const dia = today().slice(8,10); return lista.filter(e=>e.date.slice(8,10)<=dia);
+}
 function renderMainCategoriesAndDonut(key, total){
   const byCat = expensesByCategory(key);
   const entries = Object.entries(byCat).filter(([_,v])=>v>0).sort((a,b)=>b[1]-a[1]);
@@ -1162,7 +1249,7 @@ function renderMainCategoriesAndDonut(key, total){
     <div class="donut-container">
       <div class="donut" style="${conicStyle}">
         <div class="donut-hole">
-          <div style="font-size:11px;color:var(--text-faint); margin-bottom:4px;">TOTAL</div>
+          <div style="font-size:11px;color:var(--text-faint); margin-bottom:4px;">Total</div>
           <div style="font-size:13px;font-weight:700">${fmtBig(total)}</div>
         </div>
       </div>
@@ -1180,14 +1267,15 @@ function renderMainCategoriesAndDonut(key, total){
       </div>
     </div>
     <hr style="border:none; border-top:1px solid var(--border); margin:24px 0 16px;">
-    <div style="font-size:12px; color:var(--text-faint); letter-spacing:1px; text-transform:uppercase; margin-bottom:16px;">DESGLOSE POR SUBCATEGORÍAS</div>
+    <div style="font-size:13px; font-weight:600; color:var(--text-dim); margin-bottom:4px;">Desglose por subcategoría</div>
+    <div class="sub-label" style="margin:0 0 14px;">▲▼ frente a ${esc(mesCorto(prevMonthKey(key)))}${key===today().slice(0,7) ? ' hasta el día '+parseInt(today().slice(8,10),10) : ' completo'}</div>
   `;
 
   html += entries.map(([name, val], i)=>{
     const pctRelative = (val / maxVal) * 100;
     const color = catColorByName(name);
     const catObj = STATE.categories.find(c=>c.name===name);
-    const prevVal = catObj ? realizedExpensesOfMonth(prevMonthKey(key)).filter(e=>e.catId===catObj.id).reduce((a,e)=>a+e.amount,0) : 0;
+    const prevVal = catObj ? gastosPrevComparables(key).filter(e=>e.catId===catObj.id).reduce((a,e)=>a+e.amount,0) : 0;
     const cmpHtml = prevVal>0 ? (()=>{ const d=Math.round((val-prevVal)/prevVal*100); return d===0?'':`<span style="font-size:11px; font-weight:600; color:${d>0?'var(--danger)':'var(--positive)'};">${d>0?'▲':'▼'} ${Math.abs(d)}%</span>`; })() : '';
     
     const subsList = catObj ? catObj.subcats.map(s => {
@@ -1273,110 +1361,180 @@ let movFilterNivel = 'todos';
 let movSearchQuery = '';
 let movFilterCat = 'todas';
 
+// ---------- Transferencias: qué fue cada una ----------
+// pago: de tu cuenta a una tarjeta (baja la deuda) · avance: del cupo de una tarjeta a tu cuenta (entra plata y sube la deuda)
+// mover: entre tus cuentas (solo cambia dónde está la plata)
+function tipoTransfer(t){
+  const f = accById(t.fromId), d = accById(t.toId), fT = !!(f && esTarjeta(f)), dT = !!(d && esTarjeta(d));
+  return !fT && dT ? 'pago' : fT && !dT ? 'avance' : 'mover';
+}
+const TIPO_TR = {
+  pago:   {titulo:'Pago de tarjeta',   ico:'card', corta:(f,d)=>`Paga tu deuda en ${d} y confirma tus compras como gasto`, explica:(f,d)=>`Sale de ${f} y paga tu deuda en ${d}. Las compras pendientes que cubre se confirman como gasto, cada una en su categoría.`},
+  avance: {titulo:'Avance de tarjeta', ico:'card', corta:(f,d)=>`Entra plata a ${d} y sube tu deuda en ${f}`, explica:(f,d)=>`Del cupo de ${f} a ${d}: entra plata a tu cuenta (cuenta como ingreso del mes) y sube tu deuda en ${f}.`},
+  mover:  {titulo:'Entre tus cuentas', ico:'swap', corta:()=>'Solo cambia dónde está tu plata', explica:(f,d)=>`De ${f} a ${d}: solo cambia dónde está tu plata; tu total no cambia.`},
+};
+function explicaTransfer(fromId, toId){
+  if(!fromId || !toId || fromId===toId) return 'Elige dos cuentas diferentes.';
+  return TIPO_TR[tipoTransfer({fromId, toId})].explica(accName(fromId), accName(toId));
+}
+function transfersOfMonth(key){ return STATE.transfers.filter(t=>t.date.slice(0,7)===key); }
+const sumaTr = (key, tipo) => fixNum(transfersOfMonth(key).filter(t=>t.date<=today() && tipoTransfer(t)===tipo).reduce((s,t)=>s+t.amount,0));
+const avancesMes = key => sumaTr(key, 'avance'), pagosTarjetaMes = key => sumaTr(key, 'pago'), moverMes = key => sumaTr(key, 'mover');
+// Lo que entró a tus cuentas en el mes: ingresos + avances de tarjetas (el avance es plata disponible aunque sea deuda)
+const ingresosYAvances = key => fixNum(receivedIncome(key) + avancesMes(key));
+// Cómo se movió la plata de tus cuentas (sin tarjetas) en el mes, para cuadrar el saldo paso a paso
+function flujoLiquido(key){
+  const fin = key===today().slice(0,7) ? today() : lastDayOf(key), ini = key+'-01', en = d => d>=ini && d<=fin;
+  const liq = new Set(STATE.accounts.filter(a=>!esTarjeta(a)).map(a=>a.id)), tj = new Set(STATE.accounts.filter(esTarjeta).map(a=>a.id));
+  const r = {ingresos:0, avances:0, gastosCuenta:0, gastosTarjeta:0, pagos:0, ajustes:0};
+  STATE.incomes.forEach(i=>{ if(en(i.date) && liq.has(i.accountId)) r.ingresos += i.amount; });
+  STATE.expenses.forEach(e=>{ if(!en(e.date)) return; if(liq.has(e.accountId)) r.gastosCuenta += e.amount; else if(tj.has(e.accountId)) r.gastosTarjeta += e.amount; });
+  STATE.adjustments.forEach(j=>{ if(en(j.date) && liq.has(j.accountId)) r.ajustes += j.amount; });
+  STATE.transfers.forEach(t=>{ if(!en(t.date)) return; const tp = tipoTransfer(t); if(tp==='avance') r.avances += t.amount; else if(tp==='pago') r.pagos += t.amount; });
+  Object.keys(r).forEach(k=>{ r[k] = fixNum(r[k]); });
+  return r;
+}
+function filaFlujo(lbl, v, color, fuerte){ return `<div style="display:flex; justify-content:space-between; gap:10px; margin-bottom:6px;${fuerte?' font-weight:600; border-top:1px solid var(--border); padding-top:6px;':''}"><span style="color:${fuerte?'var(--text)':'var(--text-dim)'}">${lbl}</span><span style="${color?'color:'+color:''}">${v}</span></div>`; }
+function panelFlujo(key, saldoInicial, saldoFinal, esActual){
+  const f = flujoLiquido(key), disp = fixNum(saldoInicial + f.ingresos + f.avances);
+  const resto = fixNum(saldoFinal - (disp - f.gastosCuenta - f.pagos + f.ajustes));
+  const m = n => fmtCOP(Math.abs(n));
+  return `<div style="font-size:13px; margin-top:14px; padding-top:12px; border-top:1px solid var(--border);">
+    ${filaFlujo('Tenías (saldo inicial)', fmtCOP(saldoInicial))}
+    ${filaFlujo('+ Te ingresó', '+'+m(f.ingresos), 'var(--positive)')}
+    ${f.avances ? filaFlujo('+ Avances de tus tarjetas', '+'+m(f.avances), 'var(--positive)') : ''}
+    ${filaFlujo('Total disponible', fmtCOP(disp), '', true)}
+    ${filaFlujo('− Gastos pagados desde tus cuentas', '−'+m(f.gastosCuenta), 'var(--danger)')}
+    ${f.pagos ? filaFlujo('− Pagos a tus tarjetas', '−'+m(f.pagos), 'var(--danger)') : ''}
+    ${f.ajustes ? filaFlujo('± Ajustes de saldo', (f.ajustes<0?'−':'+')+m(f.ajustes)) : ''}
+    ${Math.abs(resto)>=1 ? filaFlujo('± Otros movimientos', (resto<0?'−':'+')+m(resto)) : ''}
+    ${filaFlujo(esActual ? 'Saldo de hoy' : 'Saldo al cierre', fmtCOP(saldoFinal), '', true)}
+    ${f.gastosTarjeta ? `<div class="sub-label" style="margin:6px 0 0; line-height:1.45;">Este mes compraste ${fmtCOP(f.gastosTarjeta)} con tarjetas de crédito: cada compra cuenta como gasto cuando la pagas.</div>` : ''}
+  </div>`;
+}
+// Ajustes de saldo: también se pueden revisar, corregir o borrar
+function openAjusteModal(id){
+  const j = STATE.adjustments.find(x=>x.id===id); if(!j) return;
+  openModal(`<div class="modal-head"><h3>Ajuste de saldo</h3><button class="close-x" onclick="closeModal()" aria-label="Cerrar">${ic('x',22)}</button></div>
+    <div class="sub-label" style="margin:0 0 10px; line-height:1.5;">Corrección al saldo de <b>${esc(accName(j.accountId))}</b> para que cuadrara con el banco. No es ingreso ni gasto: solo corrige el saldo.</div>
+    <label for="ajSigno">El ajuste</label><select id="ajSigno"><option value="1" ${j.amount>0?'selected':''}>Sumó al saldo</option><option value="-1" ${j.amount<0?'selected':''}>Restó al saldo</option></select>
+    <label for="ajMonto">Valor (COP)</label><input type="text" id="ajMonto" class="money-input" value="${formatMoneyInputValue(Math.abs(j.amount))}">
+    <label for="ajFecha">Fecha</label><input type="date" id="ajFecha" value="${j.date}" max="${today()}">
+    <div style="margin-top:18px"><button class="btn btn-primary btn-block" id="ajGuardar">Guardar cambios</button></div>
+    <button class="btn-danger-link" id="ajBorrar" type="button">Eliminar ajuste</button>`, {center:true});
+  document.getElementById('ajGuardar').onclick = ()=>{
+    const v = parseMoneyInput(document.getElementById('ajMonto')), f = document.getElementById('ajFecha').value || j.date;
+    if(!(v>0)){ alert('Escribe un valor mayor que cero.'); return; }
+    if(!DATE_RE.test(f) || f>today()){ alert('La fecha no puede ser futura.'); return; }
+    j.amount = fixNum(v * parseInt(document.getElementById('ajSigno').value,10)); j.date = f;
+    saveState(); closeModal(); render(); toast('Ajuste actualizado');
+  };
+  document.getElementById('ajBorrar').onclick = ()=>{
+    const i = STATE.adjustments.indexOf(j); STATE.adjustments.splice(i,1); saveState(); closeModal(); render();
+    toast('Ajuste eliminado', {label:'Deshacer', fn:()=>{ STATE.adjustments.push(j); saveState(); render(); }});
+  };
+}
+function filaTransfer(t){
+  const tp = tipoTransfer(t), T = TIPO_TR[tp], hora = t.timestamp ? ' · '+new Date(t.timestamp).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}) : '';
+  let corta = T.corta(accName(t.fromId), accName(t.toId));
+  if(tp==='pago'){   // qué compras confirmó este pago
+    const cb = confirmadoPorPago(t), compras = cb.filter(c=>c.e), otra = fixNum(cb.filter(c=>!c.e).reduce((s,c)=>s+c.monto,0));
+    const nom = e => e.desc || ((findSub(e.catId,e.subId)||{}).name) || 'compra';
+    corta = compras.length ? 'Confirma como gasto: ' + compras.slice(0,3).map(c=>`${nom(c.e)} ${fmtCOP(c.monto)}`).join(' · ') + (compras.length>3 ? ` y ${compras.length-3} más` : '') + (otra ? ` · ${fmtCOP(otra)} de deuda sin compra registrada (no es gasto)` : '')
+      : otra ? `Paga ${fmtCOP(otra)} de deuda sin compras registradas (avances o deuda anterior): no es gasto` : 'No había compras pendientes: queda como saldo a favor en la tarjeta';
+  }
+  const monto = tp==='pago' ? `<div class="amount neg">−${fmtCOP(t.amount)}</div>` : tp==='avance' ? `<div class="amount pos">+${fmtCOP(t.amount)}</div>` : `<div class="amount" style="color:var(--text-dim)">${fmtCOP(t.amount)}</div>`;
+  return `<div class="list-item mov-tr" data-action="edit-transfer" data-id="${esc(t.id)}" style="cursor:pointer;">
+    <div class="ic-bubble" style="background:color-mix(in srgb, var(--text-faint) 18%, transparent);">${ic(T.ico,20)}</div>
+    <div class="info"><div class="title">${esc(t.desc || T.titulo)}${t.desc ? ` <span class="tr-tag">${T.titulo}</span>` : ''}</div>
+      <div class="meta">${esc(accName(t.fromId))} → ${esc(accName(t.toId))}${hora}</div>
+      <div class="meta tr-exp">${esc(corta)}</div></div>
+    ${monto}</div>`;
+}
+function filaAjuste(j){
+  return `<div class="list-item mov-tr" data-action="edit-ajuste" data-id="${esc(j.id)}" style="cursor:pointer;">
+    <div class="ic-bubble" style="background:color-mix(in srgb, var(--text-faint) 18%, transparent);">${ic('scale',20)}</div>
+    <div class="info"><div class="title">Ajuste de saldo</div><div class="meta">${esc(accName(j.accountId))}</div><div class="meta tr-exp">Corrige el saldo · no es ingreso ni gasto</div></div>
+    <div class="amount" style="color:var(--text-dim)">${j.amount<0?'−':'+'}${fmtCOP(Math.abs(j.amount))}</div></div>`;
+}
 function viewMovimientos(){
   const key = STATE.viewingMonth;
-  let list = expensesOfMonth(key).slice();
-
-  if(movFilterNivel !== 'todos'){
-    list = list.filter(e => {
-       const s = findSub(e.catId, e.subId);
-       const currentNivel = s ? s.nivel : e.nivel;
-       return currentNivel === movFilterNivel;
-    });
-  }
-
-  if(movFilterCat !== 'todas'){
-    list = list.filter(e => e.catId === movFilterCat);
-  }
-  if(movFilterAcc !== 'todas'){
-    list = list.filter(e => e.accountId === movFilterAcc);
-  }
-
+  const soloMovs = movFilterNivel==='movs', conGastos = !soloMovs, conMovs = movFilterNivel==='todos' || soloMovs;
+  let list = conGastos ? expensesOfMonth(key).slice() : [];
+  if(conGastos && movFilterNivel !== 'todos') list = list.filter(e => { const s = findSub(e.catId, e.subId); return (s ? s.nivel : e.nivel) === movFilterNivel; });
+  if(movFilterCat !== 'todas') list = list.filter(e => e.catId === movFilterCat);
+  if(movFilterAcc !== 'todas') list = list.filter(e => e.accountId === movFilterAcc);
+  // transferencias, pagos de tarjeta, avances y ajustes: también quedan en el registro (no suman a «Gastos»)
+  let trs = (conMovs && movFilterCat==='todas') ? transfersOfMonth(key) : [], ajs = (conMovs && movFilterCat==='todas') ? STATE.adjustments.filter(j=>j.date.slice(0,7)===key) : [];
+  if(movFilterAcc !== 'todas'){ trs = trs.filter(t=>t.fromId===movFilterAcc || t.toId===movFilterAcc); ajs = ajs.filter(j=>j.accountId===movFilterAcc); }
   const norm = t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-  const terms = norm(movSearchQuery).split(/\s+/).filter(Boolean);
+  const terms = norm(movSearchQuery).split(/\s+/).filter(Boolean), cumple = txt => terms.every(t=>norm(txt).includes(t));
   if(terms.length){
-    list = list.filter(e => {
-      const c = findCat(e.catId), sub = findSub(e.catId, e.subId);
-      const hay = norm([e.desc, sub&&sub.name, c&&c.name, String(e.amount), formatMoneyInputValue(e.amount)].join(' '));
-      return terms.every(t=>hay.includes(t));
-    });
+    list = list.filter(e => { const c = findCat(e.catId), sub = findSub(e.catId, e.subId); return cumple([e.desc, sub&&sub.name, c&&c.name, String(e.amount), formatMoneyInputValue(e.amount)].join(' ')); });
+    trs = trs.filter(t => cumple([t.desc, TIPO_TR[tipoTransfer(t)].titulo, 'transferencia', accName(t.fromId), accName(t.toId), String(t.amount), formatMoneyInputValue(t.amount)].join(' ')));
+    ajs = ajs.filter(j => cumple(['ajuste de saldo', accName(j.accountId), String(Math.abs(j.amount)), formatMoneyInputValue(Math.abs(j.amount))].join(' ')));
   }
-
-  list.sort((a,b)=>{
-    if(a.date !== b.date) return b.date.localeCompare(a.date);
-    return (b.timestamp || 0) - (a.timestamp || 0);
-  });
-  
-  const total = totalExpenses(key);
+  const items = list.map(e=>({k:'e', d:e.date, ts:e.timestamp||0, o:e})).concat(trs.map(t=>({k:'t', d:t.date, ts:t.timestamp||0, o:t})), ajs.map(j=>({k:'j', d:j.date, ts:j.timestamp||0, o:j})));
+  items.sort((a,b)=> a.d!==b.d ? b.d.localeCompare(a.d) : b.ts-a.ts);
+  const total = totalExpenses(key), avances = avancesMes(key), mover = moverMes(key);
+  const pendMes = fixNum(expensesOfMonth(key).filter(e=>isRealized(e) && esTarjeta(accById(e.accountId))).reduce((t,e)=>{ const s = estadoCompra(e); return t + (s ? s.pend : 0); },0));
+  const deTarjetas = fixNum(gastosDelMes(key).filter(e=>e._compra && isRealized(e)).reduce((t,e)=>t+e.amount,0));
+  const notas = [deTarjetas ? `Incluye ${fmtCOP(deTarjetas)} de compras con tarjeta que pagaste este mes.` : '', pendMes ? `${fmtCOP(pendMes)} en compras con tarjeta de este mes siguen pendientes (cuentan cuando pagues la tarjeta).` : ''].filter(Boolean);
+  const extra = [avances ? `avances ${fmtCOP(avances)}` : '', mover ? `entre tus cuentas ${fmtCOP(mover)}` : ''].filter(Boolean);
   const categoriesOptions = STATE.categories.map(c => `<option value="${esc(c.id)}" ${movFilterCat===c.id?'selected':''}>${esc(c.icon)} ${esc(c.name)}</option>`).join('');
-
-  const groupedByDay = {};
-  list.forEach(e => {
-    if(!groupedByDay[e.date]) groupedByDay[e.date] = [];
-    groupedByDay[e.date].push(e);
-  });
-
-  const sortedDays = Object.keys(groupedByDay).sort((a,b) => b.localeCompare(a));
-
+  const porDia = {}; items.forEach(it=>{ (porDia[it.d] = porDia[it.d] || []).push(it); });
+  const dias = Object.keys(porDia).sort((a,b)=>b.localeCompare(a));
   return `
   <div class="card" style="display:flex; flex-direction:column; gap:12px;">
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
       <div>
-        <h3 style="font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--text-faint);">Gastos — ${monthLabel(key)}</h3>
+        <h3 style="font-size:14px; color:var(--text-dim);">Gastos de ${monthLabel(key).toLowerCase()}</h3>
         <div class="big-num" style="margin-top:2px;">${fmtBig(total)}</div>
+        ${notas.map(n=>`<div class="sub-label" style="margin:4px 0 0;">${n}</div>`).join('')}
+        ${extra.length ? `<div class="sub-label" style="margin:4px 0 0;">Además: ${extra.join(' · ')} (no son gastos)</div>` : ''}
       </div>
       <div style="display:flex; gap:6px;">
         <button class="btn btn-secondary" data-action="export-csv" style="padding:7px 12px; font-size:12px;">↓ CSV del mes</button>
       </div>
     </div>
-
     <div style="display:flex; flex-direction:column; gap:8px; border-top:1px solid var(--border); padding-top:12px; margin-top:4px;">
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <div style="flex:2; min-width:180px;">
-          <input type="search" id="movSearch" placeholder="🔍 Buscar descripción, categoría o monto..." value="${esc(movSearchQuery)}" style="padding:8px 12px; font-size:13.5px;">
-        </div>
-        <div style="flex:1; min-width:140px;">
-          <select id="movCatFilter" aria-label="Filtrar por categoría" style="padding:8px 12px; font-size:13.5px;">
-            <option value="todas">Todas las categorías</option>
-            ${categoriesOptions}
-          </select>
-        </div>
-        <div style="flex:1; min-width:140px;">
-          <select id="movAccFilter" aria-label="Filtrar por cuenta" style="padding:8px 12px; font-size:13.5px;">
-            <option value="todas">Todas las cuentas</option>
-            ${STATE.accounts.map(a=>`<option value="${esc(a.id)}" ${movFilterAcc===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}
-          </select>
-        </div>
+        <div style="flex:2; min-width:180px;"><input type="search" id="movSearch" placeholder="🔍 Buscar descripción, categoría, cuenta o monto..." value="${esc(movSearchQuery)}" style="padding:8px 12px; font-size:13.5px;"></div>
+        <div style="flex:1; min-width:140px;"><select id="movCatFilter" aria-label="Filtrar por categoría" style="padding:8px 12px; font-size:13.5px;"><option value="todas">Todas las categorías</option>${categoriesOptions}</select></div>
+        <div style="flex:1; min-width:140px;"><select id="movAccFilter" aria-label="Filtrar por cuenta" style="padding:8px 12px; font-size:13.5px;"><option value="todas">Todas las cuentas</option>${STATE.accounts.map(a=>`<option value="${esc(a.id)}" ${movFilterAcc===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select></div>
       </div>
     </div>
-
-    <div class="tabs" style="margin-bottom:0; margin-top:4px;">
-      ${['todos','debo','necesito','quiero'].map(n=>`<div class="tab ${movFilterNivel===n?'active':''}" data-action="filter-nivel" data-nivel="${n}" style="padding:5px 12px; font-size:12px;">${n==='todos'?'Todos':nivelLabel(n)}</div>`).join('')}
+    <div class="tabs" style="margin-bottom:0; margin-top:4px; flex-wrap:wrap;">
+      ${['todos','debo','necesito','quiero','movs'].map(n=>`<div class="tab ${movFilterNivel===n?'active':''}" data-action="filter-nivel" data-nivel="${n}" style="padding:5px 12px; font-size:12px;">${n==='todos'?'Todos':n==='movs'?'Transferencias':nivelLabel(n)}</div>`).join('')}
     </div>
   </div>
-
-  ${sortedDays.length === 0 ? `
-    <div class="card"><div class="empty-state"><span class="ic">◯</span>No hay gastos registrados con estos filtros<br><button class="btn btn-secondary" data-action="add-expense" style="margin-top:10px;">+ Registrar gasto</button></div></div>
-  ` : sortedDays.map(dayStr => {
-    const dayItems = groupedByDay[dayStr];
-    const dayTotal = dayItems.filter(isRealized).reduce((a,e)=>a+e.amount,0);
+  ${dias.length === 0 ? `
+    <div class="card"><div class="empty-state"><span class="ic">◯</span>${soloMovs ? 'No hay transferencias, pagos de tarjeta ni ajustes este mes' : 'No hay movimientos con estos filtros'}<br><button class="btn btn-secondary" data-action="add-expense" style="margin-top:10px;">+ Registrar gasto</button></div></div>
+  ` : dias.map(dayStr => {
+    // lo que cuenta como gasto ese día: lo pagado con tus cuentas + las compras con tarjeta que confirmó un pago
+    const delDia = porDia[dayStr], dayTotal = delDia.reduce((a,it)=>{
+      if(it.k==='e') return a + (isRealized(it.o) && !esTarjeta(accById(it.o.accountId)) ? it.o.amount : 0);
+      if(it.k==='t' && tipoTransfer(it.o)==='pago') return a + confirmadoPorPago(it.o).filter(c=>c.e).reduce((s,c)=>s+c.monto,0);
+      return a; },0);
     const formattedDate = new Date(dayStr+'T00:00').toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    
     return `
-      <div style="font-size:12px; font-weight:700; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.5px; margin:16px 4px 8px; display:flex; justify-content:space-between;">
+      <div style="font-size:13px; font-weight:700; color:var(--text-dim); margin:16px 4px 8px; display:flex; justify-content:space-between;">
         <span>📅 ${formattedDate}</span><span>${dayTotal>0?'−'+fmtCOP(dayTotal):''}</span>
       </div>
       <div class="card" style="padding: 0 18px;">
-        ${dayItems.map(e=>{
-          const c = findCat(e.catId); const s = findSub(e.catId, e.subId);
-          const timeDisplay = e.time ? ` · ${e.time}` : '';
+        ${delDia.map(it=>{
+          if(it.k==='t') return filaTransfer(it.o);
+          if(it.k==='j') return filaAjuste(it.o);
+          const e = it.o, c = findCat(e.catId), s = findSub(e.catId, e.subId), timeDisplay = e.time ? ` · ${e.time}` : '';
+          const tj = esTarjeta(accById(e.accountId)), est = tj && isRealized(e) ? estadoCompra(e) : null, pendiente = !!(tj && (!est || est.pend>=0.5));
+          const tag = !tj ? '' : !isRealized(e) ? ' · con tarjeta' : est && est.pend<0.5 ? ' · <span class="tr-tag ok">pagada</span>' : est && est.pagado>=0.5 ? ` · <span class="tr-tag">pagada en parte · faltan ${fmtCOP(est.pend)}</span>` : ' · <span class="tr-tag pend">pendiente</span>';
           return `<div class="list-item" data-action="edit-expense" data-id="${esc(e.id)}" style="cursor:pointer;">
             <div class="ic-bubble" style="background:color-mix(in srgb, ${c?catColor(c.id):'var(--text-faint)'} 20%, transparent);">${esc(c?c.icon:'•')}</div>
             <div class="info">
               <div class="title">${esc(e.desc || (s?s.name:'Gasto'))}</div>
-              <div class="meta">${esc(c?c.name:'')} › ${esc(s?s.name:'')}${timeDisplay}${e.cuotas>1 ? ' · '+e.cuotas+' cuotas' : ''}${esTarjeta(accById(e.accountId)) ? ' · con tarjeta' : ''}</div>
+              <div class="meta">${esc(c?c.name:'')} › ${esc(s?s.name:'')} · ${esc(accName(e.accountId))}${timeDisplay}${e.cuotas>1 ? ' · '+e.cuotas+' cuotas' : ''}${tag}</div>
             </div>
-            <div class="amount neg">−${fmtCOP(e.amount)}</div>
+            ${pendiente ? `<div class="amount" style="color:var(--text-dim)">${fmtCOP(e.amount)}</div>` : `<div class="amount neg">−${fmtCOP(e.amount)}</div>`}
           </div>`;
         }).join('')}
       </div>
@@ -1398,7 +1556,8 @@ function incomeRowHtml(i){
 }
 function viewIngresos(){
   const key = STATE.viewingMonth;
-  const total = receivedIncome(key);
+  const avs = transfersOfMonth(key).filter(t=>tipoTransfer(t)==='avance').sort((a,b)=>b.date.localeCompare(a.date)), totAv = avancesMes(key);
+  const total = receivedIncome(key) + totAv;
   const terms = normName(incSearchQuery).split(' ').filter(Boolean);
   let list = incomesOfMonth(key).slice();
   if(terms.length) list = list.filter(i=>{
@@ -1410,7 +1569,9 @@ function viewIngresos(){
   <div class="card" style="text-align:center">
     <h3>Ingresos del mes — ${monthLabel(key)}</h3>
     <div class="big-num" style="color:var(--positive)">+${fmtBig(total)}</div>
+    ${totAv ? `<div class="sub-label" style="margin:4px 0 0;">Incluye ${fmtCOP(totAv)} de avances de tarjeta (plata que entró, pero es deuda)</div>` : ''}
   </div>
+  ${avs.length ? `<div class="card"><h3 style="margin:0 0 6px;">Avances de tarjeta</h3>${avs.map(filaTransfer).join('')}</div>` : ''}
   <div class="card">
     <div class="card-header">
       <h3 style="margin:0">Ingresos por fuente</h3>
@@ -1477,7 +1638,7 @@ const accColor = a => a.color || colorPorIndice(STATE.accounts.indexOf(a));
 function accType(a){ return ['efectivo','banco','tarjeta','ahorro'].includes(a.type) ? a.type : (/efectivo/i.test(a.name) ? 'efectivo' : 'banco'); }
 function flujoCuenta(id, key){
   const ing = realizedIncomesOfMonth(key).filter(i=>i.accountId===id).reduce((t,i)=>t+i.amount,0);
-  const gas = realizedExpensesOfMonth(key).filter(e=>e.accountId===id).reduce((t,e)=>t+e.amount,0);
+  const gas = expensesOfMonth(key).filter(e=>isRealized(e) && e.accountId===id).reduce((t,e)=>t+e.amount,0);
   return {ing: fixNum(ing), gas: fixNum(gas)};
 }
 function aportesCuentaMes(id, key){
@@ -1775,7 +1936,7 @@ function abrirPagoTarjeta(id){
   if(!origen.length){ alert('Primero crea una cuenta de banco o de efectivo desde donde pagar.'); return; }
   const mesTxt = monthLabel(STATE.viewingMonth).split(' ')[0], intMes = Math.round(interesCuotasMes(a, STATE.viewingMonth)), def = r.esteMes>0 ? 'mes' : 'total';
   openModal(`<div class="modal-head"><h3>Pagar ${esc(a.name)}</h3><button class="close-x" onclick="closeModal()" aria-label="Cerrar">${ic('x',22)}</button></div>
-    <div class="sub-label" style="margin:0 0 10px; line-height:1.5;">Debes <b>${fmtCOP(r.deuda)}</b> de compras. Pagar la tarjeta <b>no es un gasto</b>: las compras ya contaron cuando las hiciste. Lo que sí es gasto son los <b>intereses y cargos</b> que te cobra el banco.</div>
+    <div class="sub-label" style="margin:0 0 10px; line-height:1.5;">Debes <b>${fmtCOP(r.deuda)}</b>. Al pagar, tus compras pendientes con esta tarjeta <b>se confirman como gasto</b>, cada una en su categoría y de la más vieja a la más nueva. Los <b>intereses y cargos</b> quedan como gasto aparte.</div>
     <label for="ptCuenta">Pagar desde</label><select id="ptCuenta">${origen.map(x=>`<option value="${esc(x.id)}">${accLbl(x)} (${fmtCOP(x.balance)})</option>`).join('')}</select>
     <div class="sub-label" style="margin:12px 0 2px;">¿Cuánto pagas?</div>
     <label class="wiz-radio"><input type="radio" name="ptOp" value="total" ${def==='total'?'checked':''}><span>Pago total · <b>${fmtCOP(r.deuda + intMes)}</b></span></label>
@@ -1801,7 +1962,7 @@ function abrirPagoTarjeta(id){
     const capital = fixNum(m - cargos);
     if(capital>r.deuda+0.5 && !(await SuiteUI.confirmar(`De este pago, ${fmtCOP(capital)} bajarían la deuda, pero solo debes ${fmtCOP(r.deuda)} de compras: quedaría saldo a favor en la tarjeta. Si la diferencia son intereses o cargos, escríbela en ese campo. ¿Registrar igual?`, {peligro:false}))) return;
     if(m>(from.balance||0) && !(await SuiteUI.confirmar(`El pago (${fmtCOP(m)}) supera el saldo de "${from.name}" (${fmtCOP(from.balance)}). Esa cuenta quedará en negativo. ¿Continuar?`, {peligro:false}))) return;
-    if(capital>0) STATE.transfers.push({id:uid(), date:fecha, timestamp:Date.now(), fromId:from.id, toId:a.id, amount:capital});
+    if(capital>0) STATE.transfers.push({id:uid(), date:fecha, timestamp:Date.now(), fromId:from.id, toId:a.id, amount:capital, desc:'Pago de '+a.name});
     if(cargos>0){ const cc = categoriaCostosFinancieros(); STATE.expenses.push({id:uid(), date:fecha, time:'', timestamp:Date.now(), amount:fixNum(cargos), desc:'Intereses y cargos · '+a.name, catId:cc.catId, subId:cc.subId, nivel:'debo', accountId:from.id}); }
     saveState(); closeModal(); render();
     toast(cargos>0 ? `Pago registrado: ${fmtCOP(capital)} bajaron tu deuda y ${fmtCOP(cargos)} quedaron como gasto financiero.` : `Pago de ${fmtCOP(m)} registrado. Tu deuda en ${a.name} bajó.`, {ms:8000});
@@ -1832,6 +1993,7 @@ function filaFactura(pref, marcado){
 }
 function feMarcada(pref){ const f = document.getElementById(pref+'FeFila'), c = document.getElementById(pref+'Fe'); return !!(f && c && f.style.display!=='none' && c.checked); }
 function actualizarFacturaUI(){   // la deducción exige pagar con tarjeta, transferencia u otro medio electrónico: con efectivo no aplica
+  [['addExpAcc','addExpTjAviso'],['expAccount','expTjAviso']].forEach(([sel,av])=>{ const s = document.getElementById(sel), el = document.getElementById(av); if(!s || !el) return; const a = accById(s.value); el.style.display = (a && esTarjeta(a)) ? '' : 'none'; });
   [['addExpAcc','addExp'],['expAccount','exp']].forEach(([sel,pref])=>{ const s = document.getElementById(sel), f = document.getElementById(pref+'FeFila'); if(!s || !f) return; const a = accById(s.value); f.style.display = (a && a.type==='efectivo') ? 'none' : ''; });
 }
 
@@ -2199,8 +2361,8 @@ function viewCuentasLista(){
   <button class="btn btn-secondary btn-block" data-action="transfer" style="margin:6px 0 14px;">${ic('swap',16)} Transferir entre cuentas</button>
   ${renderBienes()}
   ${moves.length ? `<div class="card"><h3 style="margin:0 0 6px;">Movimientos entre cuentas</h3>${movesShown.map(m=> m.kind==='t' ? `
-    <div class="list-item move-row" data-action="edit-transfer" data-id="${m.id}"><div class="ic-bubble">${ic('swap',20)}</div><div class="info"><div class="title">${esc(accName(m.fromId))} → ${esc(accName(m.toId))}</div><div class="meta">${esTarjeta(accById(m.toId)) ? 'Pago de tarjeta (no es gasto)' : 'Transferencia'} · ${m.date}</div></div><div class="amount">${fmtCOP(m.amount)}</div></div>` : `
-    <div class="list-item"><div class="ic-bubble">${ic('scale',20)}</div><div class="info"><div class="title">${esc(accName(m.accountId))}</div><div class="meta">Ajuste de saldo · ${m.date}</div></div><div class="amount ${m.amount<0?'neg':'pos'}">${m.amount<0?'−':'+'}${fmtCOP(Math.abs(m.amount))}</div></div>`).join('')}${moves.length>10?`<button class="btn-ghost" data-action="toggle-moves" style="width:100%; margin-top:6px;">${showAllMoves?'Ver menos':'Ver todos ('+moves.length+')'}</button>`:''}</div>` : ''}
+    <div class="list-item move-row" data-action="edit-transfer" data-id="${m.id}"><div class="ic-bubble">${ic('swap',20)}</div><div class="info"><div class="title">${esc(accName(m.fromId))} → ${esc(accName(m.toId))}</div><div class="meta">${TIPO_TR[tipoTransfer(m)].titulo} · ${m.date}</div></div><div class="amount">${fmtCOP(m.amount)}</div></div>` : `
+    <div class="list-item" data-action="edit-ajuste" data-id="${esc(m.id)}" style="cursor:pointer;"><div class="ic-bubble">${ic('scale',20)}</div><div class="info"><div class="title">${esc(accName(m.accountId))}</div><div class="meta">Ajuste de saldo · ${m.date}</div></div><div class="amount ${m.amount<0?'neg':'pos'}">${m.amount<0?'−':'+'}${fmtCOP(Math.abs(m.amount))}</div></div>`).join('')}${moves.length>10?`<button class="btn-ghost" data-action="toggle-moves" style="width:100%; margin-top:6px;">${showAllMoves?'Ver menos':'Ver todos ('+moves.length+')'}</button>`:''}</div>` : ''}
   `;
 }
 
@@ -2222,6 +2384,7 @@ function bindViewEvents(){
   });
   document.querySelectorAll('[data-action="trend-period"]').forEach(el=> el.onclick = ()=>{ STATE.ui.trendMonths = Number(el.dataset.n); saveState(); render(); });
   document.querySelectorAll('[data-action="edit-transfer"]').forEach(el=> el.onclick = ()=> openTransferModal(el.dataset.id));
+  document.querySelectorAll('[data-action="edit-ajuste"]').forEach(el=> el.onclick = ()=> openAjusteModal(el.dataset.id));
   document.querySelectorAll('[data-action="toggle-moves"]').forEach(el=> el.onclick = ()=>{ showAllMoves = !showAllMoves; render(); });
   
   const searchInput = document.getElementById('movSearch');
@@ -2370,6 +2533,7 @@ function openAddModal(defaultTab = 'gasto') {
       <label>Cuenta de origen</label><select id="addExpAcc">${STATE.accounts.map(a=>`<option value="${esc(a.id)}">${accLbl(a)}</option>`).join('')}</select>
  <div id="addExpCuotasBox" style="display:none; margin-top:6px;"><label for="addExpCuotas">¿A cuántas cuotas?</label><select id="addExpCuotas">${cuotasOpts(1)}</select><div class="sub-label" id="addExpCuotasInfo" style="margin-top:4px; line-height:1.5;"></div></div>
       <label>Fecha</label><input type="date" id="addExpDate" value="${today()}">
+      <div class="tr-explica" id="addExpTjAviso" style="display:none;">Con tarjeta de crédito la compra queda <b>pendiente</b>: se registra en su categoría y cuenta como gasto cuando pagues la tarjeta.</div>
       ${filaFactura('addExp', false)}
       
       <div id="addExpDebtHint" class="alert-box" style="display:none; margin-top:12px; font-size:12.5px; line-height:1.5; display:none;"></div>
@@ -2398,7 +2562,7 @@ function openAddModal(defaultTab = 'gasto') {
     </div>
 
     <div id="addTransfer" class="tab-content ${defaultTab==='transfer'?'active':''}">
-      <div style="font-size:12px; color:var(--text-dim); margin-bottom:12px;">Mueve dinero entre tus cuentas. Esto no afecta tu flujo de ingresos ni gastos.</div>
+      <div style="font-size:12px; color:var(--text-dim); margin-bottom:12px;">Mueve plata entre tus cuentas, paga una tarjeta o pasa cupo de una tarjeta a tu cuenta. Queda en el registro de Gastos.</div>
       
       <label>Desde (Saco dinero de...)</label>
       <select id="addTrFrom">${STATE.accounts.map(a=>`<option value="${esc(a.id)}">${esc(a.name)} (${fmtCOP(a.balance)})</option>`).join('')}</select>
@@ -2408,11 +2572,15 @@ function openAddModal(defaultTab = 'gasto') {
       
       <label>Monto (COP)</label><input type="text" id="addTrAmount" class="money-input">
       <label>Fecha</label><input type="date" id="addTrDate" value="${today()}" max="${today()}">
+      <label for="addTrDesc">Nota (opcional)</label><input type="text" id="addTrDesc" maxlength="80" placeholder="Ej: plata para el arriendo">
+      <div class="tr-explica" id="addTrExplica"></div>
       
       <div style="margin-top:18px"><button class="btn btn-primary btn-block" id="saveTrBtn">Realizar Transferencia</button></div>
     </div>
   `);
 
+  const trExp = ()=>{ const el = document.getElementById('addTrExplica'); if(el) el.textContent = explicaTransfer(document.getElementById('addTrFrom').value, document.getElementById('addTrTo').value); };
+  ['addTrFrom','addTrTo'].forEach(id=>{ const el = document.getElementById(id); if(el) el.addEventListener('change', trExp); }); trExp();
   document.querySelectorAll('#addTabs .tab').forEach(t=>{
     t.onclick = ()=>{
       document.querySelectorAll('#addTabs .tab').forEach(x=>x.classList.remove('active'));
@@ -2543,17 +2711,21 @@ function openAddModal(defaultTab = 'gasto') {
     if(!from || !to || from.id===to.id){ alert('Elige dos cuentas diferentes.'); return; }
     if(!DATE_RE.test(date) || date>today()){ alert('La fecha de una transferencia no puede ser futura.'); return; }
     if(!esTarjeta(from) && amount>(from.balance||0) && !(await SuiteUI.confirmar(`El monto (${fmtCOP(amount)}) supera el saldo de "${from.name}" (${fmtCOP(from.balance)}). Esa cuenta quedará en negativo. ¿Continuar?`, {peligro:false}))) return;
-    STATE.transfers.push({id:uid(), date, timestamp:Date.now(), fromId:from.id, toId:to.id, amount});
+    const desc = document.getElementById('addTrDesc').value.trim().slice(0,80);
+    STATE.transfers.push({id:uid(), date, timestamp:Date.now(), fromId:from.id, toId:to.id, amount, ...(desc ? {desc} : {})});
     saveState(); closeModal(); render();
   };
 }
 
 function openEditExpenseModal(id){
+  id = String(id).split('#')[0];          // un gasto confirmado al pagar la tarjeta abre su compra original
   const editing = STATE.expenses.find(e=>e.id===id);
   if(!editing) return;
+  const est = esTarjeta(accById(editing.accountId)) ? estadoCompra(editing) : null;
   
   openModal(`
     <div class="modal-head"><h3>Editar gasto</h3><button class="close-x" onclick="closeModal()" aria-label="Cerrar">${ic('x',22)}</button></div>
+    ${est ? `<div class="tr-explica" style="margin:0 0 6px;">${est.pend<0.5 ? `Compra con tarjeta <b>pagada</b>: se confirmó como gasto ${est.conf.length===1 ? 'el '+fechaCortaG(est.conf[0].fecha) : 'en '+est.conf.length+' pagos'}.` : est.pagado>0.5 ? `Compra con tarjeta <b>pagada en parte</b>: ${fmtCOP(est.pagado)} ya cuentan como gasto y faltan ${fmtCOP(est.pend)}.` : `Compra con tarjeta <b>pendiente</b>: cuenta como gasto cuando pagues la tarjeta.`}</div>` : ''}
     <label>Monto (COP)</label><input type="text" id="expAmount" class="money-input" value="${formatMoneyInputValue(editing.amount)}">
     
     <label>Descripción / Etiqueta</label>
@@ -2657,15 +2829,19 @@ function openEditIncomeModal(id){
 function openTransferModal(id){
   const t = STATE.transfers.find(x=>x.id===id); if(!t) return;
   openModal(`
-    <div class="modal-head"><h3>Editar transferencia</h3><button class="close-x" onclick="closeModal()" aria-label="Cerrar">${ic('x',22)}</button></div>
+    <div class="modal-head"><h3>${TIPO_TR[tipoTransfer(t)].titulo}</h3><button class="close-x" onclick="closeModal()" aria-label="Cerrar">${ic('x',22)}</button></div>
     <label>Desde</label><select id="trFrom">${accOpts(t.fromId,true)}</select>
     <label>Hacia</label><select id="trTo">${accOpts(t.toId,true)}</select>
     <label>Monto (COP)</label><input type="text" id="trAmount" class="money-input" value="${formatMoneyInputValue(t.amount)}">
     <label>Fecha</label><input type="date" id="trDate" value="${t.date}" max="${today()}">
+    <label for="trDesc">Nota (opcional)</label><input type="text" id="trDesc" maxlength="80" value="${esc(t.desc||'')}">
+    <div class="tr-explica" id="trExplica"></div>
     <div style="margin-top:18px"><button class="btn btn-primary btn-block" id="saveTrEditBtn">Guardar Cambios</button></div>
     <button class="btn-danger-link" id="delTrBtn" type="button">Eliminar transferencia</button>
   `);
   document.getElementById('delTrBtn').onclick = ()=> removeTransfer(t.id);
+  const trExpE = ()=>{ document.getElementById('trExplica').textContent = explicaTransfer(document.getElementById('trFrom').value, document.getElementById('trTo').value); };
+  ['trFrom','trTo'].forEach(id=>document.getElementById(id).addEventListener('change', trExpE)); trExpE();
   document.getElementById('saveTrEditBtn').onclick = async ()=>{
     const from = accById(document.getElementById('trFrom').value), to = accById(document.getElementById('trTo').value);
     const amount = parseMoneyInput(document.getElementById('trAmount'));
@@ -2676,6 +2852,7 @@ function openTransferModal(id){
     let avail = from.balance||0; if(t.fromId===from.id) avail += t.amount; if(t.toId===from.id) avail -= t.amount;
     if(!esTarjeta(from) && amount>avail && !(await SuiteUI.confirmar(`El monto (${fmtCOP(amount)}) supera el saldo disponible de "${from.name}". Quedará en negativo. ¿Continuar?`, {peligro:false}))) return;
     t.fromId = from.id; t.toId = to.id; t.amount = amount; t.date = date;
+    const desc = document.getElementById('trDesc').value.trim().slice(0,80); if(desc) t.desc = desc; else delete t.desc;
     saveState(); closeModal(); render();
   };
 }

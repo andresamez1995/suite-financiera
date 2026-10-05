@@ -26,6 +26,12 @@
 - **Resumen por bloques:** ⚙ Ajustes → «Personalizar el resumen» para mostrar, quitar u ordenar: ritmo de gasto (comparado con el mes anterior), tu colchón, tendencia, saldo del mes, uso del cupo, gastos hormiga, ingresos, gastos, categorías y debo/necesito/quiero.
 - Selector de mes «‹ Octubre 2026 ▾ ›», el neto ya no sale dos veces y Renta muestra lo que falta en una lista corta.
 
+**Ajustes tras revisar datos reales (v26):** la alerta verde ya no promete un «excelente colchón» cuando el colchón es bajo (usa el mismo cálculo del bloque «Tu colchón»); en Categorías, el mes en curso se compara con el anterior hasta el mismo día; la línea punteada del saldo solo sale si hay movimientos con fecha futura; la dona del cupo en 0 % ya no pinta un punto; los títulos que estaban en MAYÚSCULAS quedaron como el resto de la app. Los centavos se mantienen a propósito (hay deudas con centavos).
+
+**Registro de movimientos (v26):** la pestaña Gastos muestra también las transferencias, los pagos de tarjeta, los avances (pasar cupo de una tarjeta a tu cuenta) y los ajustes de saldo, cada uno con una explicación de qué hizo y qué cuentas tocó; todos se pueden abrir para editarlos o borrarlos, y las transferencias aceptan una nota. El filtro «Transferencias» los muestra solos. Los avances cuentan como plata que entró (en Resumen e Ingresos). «Ver cuentas y flujo de caja» cuadra el saldo paso a paso: lo que tenías, lo que entró, lo que salió por gastos, pagos a tarjetas y ajustes.
+
+**Compras con tarjeta de crédito (v27):** comprar con la tarjeta no toca tus cuentas, así que la compra queda registrada en su categoría como **pendiente** (no suma a Gastos). Cuando pagas la tarjeta, el pago **confirma** las compras pendientes, de la más vieja a la más nueva, y cada una cuenta como gasto en su categoría en el mes del pago: nada se cuenta dos veces. Lo que el pago cubre de avances o de deuda anterior a registrar la tarjeta no es gasto. Para la DIAN (Renta) las compras se siguen contando en la fecha en que las hiciste, que es lo que reporta el banco.
+
 **Limpieza:** las apps abiertas sueltas (`/gastos/`, `/calculadora/`) llevan a la suite; se quitaron el respaldo propio de la calculadora, `icon.png` (copia de `icons/icon-512.png`) y `_headers` (solo servía en Netlify). El color de arranque de la app instalada es el azul del ícono AURORA y la barra del celular sigue el tema que elijas.
 
 **Sigue fuera (decidido):** incapacidades y licencias, descuentos de nómina, 4×1000, próximas cuotas de tarjeta y dólares.
