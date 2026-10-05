@@ -2,9 +2,8 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<script>if(window.parent===window) location.replace('../?app=calculadora'); else document.documentElement.classList.add('en-suite');   // solo funciona dentro de la suite</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#2A8F65">
-<meta name="description" content="Calculadora de salario neto, prestaciones y retención en la fuente para Colombia (2026).">
 <title>Calculadora de salario e ingresos · Colombia</title>
 <link rel="stylesheet" href="../suite-tema.css">
 <script src="../suite-tema.js"></script>
@@ -29,27 +28,9 @@
   }
   .mono{font-variant-numeric: tabular-nums;}
 
-  header.hero{
-    background:var(--surface); color:var(--text); border-bottom:1px solid var(--border);
-    padding:1rem 1.2rem .9rem;
-  }
-  .hero h1{ font-size:1.25rem; margin:0 0 .25rem; font-weight:700; letter-spacing:-0.01em; font-family:var(--font-display); }
-  .hero p{margin:0; color:var(--text-dim); font-size:.85rem; max-width:64ch;}
 
 
-  main{max-width:960px; margin:0 auto; padding:1.4rem 1.2rem 4rem;}
 
-  /* TABS PALS */
-  .tabs-main { display:flex; gap:1rem; margin-bottom:1.5rem; justify-content:center; flex-wrap: wrap;}
-  .tabs-main button {
-    flex:1; min-width: 250px; max-width:400px; padding:1rem 1rem; border-radius:10px; font-size:1rem;
-    font-weight:700; cursor:pointer; border:1px solid var(--line); background:var(--surface);
-    color:var(--ink-soft); transition:all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.03);
-  }
-  .tabs-main button:hover { border-color: var(--teal); }
-  .tabs-main button.active {
-    background:var(--text); color:var(--bg); border-color:var(--text); box-shadow: 0 4px 8px rgba(0,0,0,0.12);
-  }
 
   .card{
     background:var(--white);
@@ -59,7 +40,6 @@
     margin-bottom:1.1rem;
   }
   .card h2{ font-size:1.02rem; margin:0 0 1rem; font-weight:700; display:block; }
-  .card h2 .n{ color:var(--teal-dark); margin-right:.4rem; }
 
   .grid2{display:grid; grid-template-columns:1fr 1fr; gap:.9rem;}
   .grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:.6rem;}
@@ -86,13 +66,6 @@
     border-radius:8px; padding:.65rem .8rem; font-size:.8rem; margin-bottom:.7rem;
   }
 
-  /* month tabs */
-  .months{display:flex; gap:.35rem; overflow-x:auto; padding-bottom:.3rem; margin-bottom:1rem;}
-  .months button{
-    flex:0 0 auto; background:var(--paper); border:1px solid var(--line); color:var(--ink-soft);
-    font-size:.8rem; font-weight:600; padding:.45rem .75rem; border-radius:20px; cursor:pointer;
-  }
-  .months button.active{ background:var(--text); color:var(--bg); border-color:var(--text); }
 
   .toolbar{display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:.8rem;}
   .toolbar button{
@@ -174,8 +147,8 @@
   .weekly-table{margin-top:.8rem; font-size:.8rem;}
   .weekly-table tr.over td{color:var(--coral); font-weight:700;}
 
-  footer{ max-width:var(--col); margin:0 auto; padding:0 1.2rem 3rem; color:var(--ink-soft); font-size:.75rem; line-height:1.6; }
-  .chip{display:inline-block; font-size:.72rem; font-weight:700; padding:.15rem .5rem; border-radius:20px; background:var(--surface-2); color:var(--ink-soft);}
+  footer{ max-width:var(--col); margin:0 auto; padding:0 1.2rem 1.5rem; color:var(--ink-soft); font-size:.75rem; line-height:1.6; }
+  .chip{display:inline-block; font-size:.68rem; font-weight:700; padding:.15rem .5rem; border-radius:20px; background:var(--surface-2); color:var(--ink-soft);}
   .chip.ok{background:color-mix(in srgb,var(--accent) 18%,var(--surface)); color:var(--teal-dark);}
   .chip.warn{background:color-mix(in srgb,var(--necesito) 18%,var(--surface)); color:var(--text);}
   .hero-neto{background:var(--accent); color:var(--accent-ink); border-radius:12px; padding:1.1rem 1.2rem; margin-bottom:.9rem;}
@@ -183,7 +156,6 @@
   .hero-neto .big{font-family:var(--font-display); font-size:2rem; font-weight:800; letter-spacing:-.02em; margin:.1rem 0 .4rem;}
   .hero-neto .sub{font-size:.78rem; opacity:.9; margin-top:.35rem;}
   .sum-toggle{cursor:pointer; font-size:.8rem; font-weight:600; color:var(--teal-dark); margin-bottom:.5rem;}
-  .charts .legend-list{font-size:.78rem; line-height:1.7;}
   @media(max-width:640px){ .cal-day .tag{font-size:.62rem; color:var(--ink);} }
 
   /* ---- diseño unificado con el gestor ---- */
@@ -192,19 +164,15 @@
   .tabs-main button:hover{border:none; color:var(--text);}
   .tabs-main button.active{background:var(--surface); color:var(--text); box-shadow:0 1px 4px rgba(0,0,0,.14); border:none;}
   .card{box-shadow:var(--shadow);}
-  .sticky-neto{margin:0 -16px .9rem; padding:.55rem 16px; background:var(--bg);}
-  .en-suite .backup-box{display:none;}
   /* ---- barra inferior, vistas y desglose visual ---- */
   html,body{overflow:hidden; overscroll-behavior:none;}
   body{position:fixed; inset:0; min-height:0 !important; padding-bottom:0 !important;}   /* ocupa exactamente lo visible: sin vh/dvh (se desfasan en Android al recargar) */
   #appc{height:100%; display:flex; flex-direction:column;}
   #scroller{flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; position:relative;}
   .s-header{flex:0 0 auto;}
-  main{padding-bottom:1.5rem;}
-  footer{padding-bottom:1.5rem;}
   .vista-off{display:none !important;}
   .bnav{position:relative; flex:0 0 auto; width:100%; z-index:30; display:flex; background:var(--surface); border-top:1px solid var(--border); padding:6px max(4px, calc((100% - var(--col)) / 2 + 4px)) calc(6px + env(safe-area-inset-bottom,0px)); min-height:64px;}
-  .bnav button{flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; border-radius:12px; color:var(--text-faint); font-family:inherit; font-size:11.5px; font-weight:600; min-height:52px; padding:6px 2px; cursor:pointer; white-space:nowrap;}
+  .bnav button{flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; border-radius:12px; color:var(--text-faint); font-family:inherit; font-size:10.5px; font-weight:600; min-height:52px; padding:6px 2px; cursor:pointer; white-space:nowrap;}
   .bnav button svg{width:22px; height:22px;}
   .bnav button[aria-current="page"]{color:var(--accent);}
   .bnav button[aria-current="page"] .bi{background:color-mix(in srgb,var(--accent) 16%,transparent);}
@@ -286,35 +254,64 @@
   .renta-banner.falta{background:var(--surface-2);}
   .renta-meses{display:flex; flex-wrap:wrap; gap:.35rem; margin:.5rem 0 .2rem;}
   /* ---- añadidos ---- */
-  html,body{overflow-x:hidden;}
-  body{padding-bottom:0;}
-  main{max-width:var(--col); margin:0 auto; padding:1rem 16px;}
-  .sticky-neto{position:sticky; top:0; z-index:20; margin:0 -1.2rem .9rem; padding:.55rem 1.2rem; background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:baseline; justify-content:space-between; gap:.8rem;}
+  main{max-width:var(--col); margin:0 auto; padding:1rem 16px 1.5rem;}
   .sticky-neto .l{font-size:.75rem; color:var(--text-dim); font-weight:600;}
   .sticky-neto .v{font-family:var(--font-display); font-weight:700; font-size:1.25rem; font-variant-numeric:tabular-nums;}
   .chips-turno{display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:.6rem;}
   .chips-turno button{font-size:.78rem; font-weight:600; padding:.35rem .7rem; border-radius:20px; border:1px solid var(--line); background:var(--surface); color:var(--text); cursor:pointer; display:inline-flex; align-items:center; gap:.35rem;}
   .chips-turno button.on{background:var(--text); color:var(--bg); border-color:var(--text);}
   .chips-turno .dot{width:.6rem; height:.6rem; border-radius:50%; display:inline-block;}
-  .yearbar{display:flex; align-items:center; justify-content:center; gap:.8rem; margin-bottom:.6rem;}
-  .yearbar button{background:var(--surface); border:1px solid var(--line); color:var(--text); border-radius:22px; width:44px; height:44px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;}
-  .yearbar button:disabled{opacity:.35; cursor:default;}
-  .yearbar strong{font-family:var(--font-display); min-width:3.5rem; text-align:center;}
   .sec-head{cursor:pointer; user-select:none;}
   .sec-head .arrow{float:right; font-size:.75rem; color:var(--ink-soft); font-weight:600;}
   .sec-head .chip{margin-left:.4rem; vertical-align:middle;}
-  .backup-box summary{cursor:pointer; font-weight:600; font-size:.85rem; color:var(--teal-dark);}
   .aviso-datos{background:color-mix(in srgb,var(--danger) 12%,var(--surface)); border:1px solid var(--danger); border-radius:10px; padding:.7rem .9rem; font-size:.82rem; margin-bottom:1rem;}
   .aviso-datos button{margin-top:.4rem;}
   .panel-soft{background:var(--surface-2); padding:1rem; border-radius:10px; border:1px solid var(--border);}
-  .tabs-main button, .toolbar button, .months button, .small-del{min-height:40px;}
+  .tabs-main button, .toolbar button, .small-del{min-height:40px;}
   .small-del{min-width:40px;}
   input.err{border-color:var(--danger);}
   button{font-family:inherit;}
+  /* ---- barra fija del neto: en el Resumen flota y solo aparece al pasar la tarjeta verde ---- */
+  .sticky-neto{position:sticky; top:0; z-index:20; margin:0 -16px .9rem;}
+  .sticky-neto .sn-in{padding:.55rem 16px; background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:baseline; justify-content:space-between; gap:.8rem;}
+  .sticky-neto.flotante{height:0; margin:0 -16px;}
+  .sticky-neto.flotante .sn-in{position:absolute; left:0; right:0; top:0; box-shadow:0 6px 16px rgba(0,0,0,.08); transition:opacity .18s, transform .18s;}
+  .sticky-neto.flotante.oculta .sn-in{opacity:0; transform:translateY(-110%); pointer-events:none;}
+  .s-header .s-sub{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  /* ---- selector de mes ---- */
+  .mes-bar{display:flex; align-items:center; gap:8px; margin-bottom:.9rem; position:relative;}
+  .mes-nav{flex:0 0 auto; width:44px; height:44px; border-radius:22px; border:1px solid var(--line); background:var(--surface); color:var(--text); display:inline-flex; align-items:center; justify-content:center; cursor:pointer;}
+  .mes-nav:disabled{opacity:.35; cursor:default;}
+  .mes-actual{flex:1; min-height:44px; border-radius:12px; border:1px solid var(--line); background:var(--surface); color:var(--text); font-family:var(--font-display); font-size:1rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:.45rem; cursor:pointer;}
+  .mes-actual[aria-expanded="true"] .mes-chev{transform:rotate(180deg);}
+  .mes-chev{display:inline-flex; color:var(--text-dim); transition:transform .15s;}
+  #mesVerif[hidden]{display:none;}   /* .chip define display: sin esto el atributo hidden no lo ocultaba */
+  .mes-pop{position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:35; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:10px; box-shadow:0 14px 34px rgba(0,0,0,.22);}
+  .mes-pop[hidden]{display:none;}
+  .mes-pop-anio{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+  .mes-pop-anio strong{font-family:var(--font-display); font-size:1.05rem;}
+  .mes-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:6px;}
+  .mes-grid button{min-height:44px; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-family:inherit; font-size:.85rem; font-weight:600; cursor:pointer;}
+  .mes-grid button.hoy{border-color:var(--accent);}
+  .mes-grid button.on{background:var(--text); color:var(--bg); border-color:var(--text);}
+  /* ---- aumentos de salario ---- */
+  .btn-aumento{display:inline-flex; align-items:center; gap:.4rem; min-height:44px;}
+  .aum-box{background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:.7rem .85rem; margin-bottom:.6rem;}
+  .aum-tit{font-size:.78rem; font-weight:700; color:var(--ink-soft); margin-bottom:.3rem;}
+  .aum-fila{display:flex; justify-content:space-between; gap:.6rem; font-size:.85rem; padding:.3rem 0; border-bottom:1px solid var(--line);}
+  .aum-fila b{font-variant-numeric:tabular-nums; white-space:nowrap;}
+  .aum-fila.actual{border-bottom:none; font-weight:700;}
+  .aum-quitar{display:flex; flex-wrap:wrap; gap:.2rem .8rem; margin-top:.3rem;}
+  /* ---- renta: lo que falta ---- */
+  .renta-check{list-style:none; margin:.55rem 0 0; padding:0; font-size:.84rem; line-height:1.45;}
+  .renta-check li{position:relative; padding:.22rem 0 .22rem 1.5rem;}
+  .renta-check li::before{position:absolute; left:0; top:.2rem; width:1.1rem; text-align:center; font-weight:800;}
+  .renta-check li.ok::before{content:'✓'; color:var(--accent-dark);}
+  .renta-check li.pend::before{content:'•'; color:var(--necesito); font-size:1.2rem; line-height:1;}
+  .renta-check li.info::before{content:'…'; color:var(--ink-soft);}
 </style>
 </head>
 <body>
-<script>if(window.parent!==window) document.documentElement.classList.add("en-suite");</script>
 
 <div id="appc">
 <header class="s-header">
@@ -323,8 +320,8 @@
     <span id="navSlotL"></span>
     <div>
       <h1 class="s-title">Calculadora salarial · <span id="anioTitulo"></span></h1>
-      <p class="s-sub" id="heroTextEmpleado">Tu salario fijo se paga completo; el calendario solo suma recargos y extras.</p>
-      <p class="s-sub" id="heroTextContratista" style="display:none;">Independientes: aportes sobre el 40% del contrato (IBC).</p>
+      <p class="s-sub" id="heroTextEmpleado">Neto, prestaciones y renta</p>
+      <p class="s-sub" id="heroTextContratista" style="display:none;">Prestación de servicios: aportes y retención</p>
     </div>
     </div>
     <span id="navSlotR"></span>
@@ -335,9 +332,10 @@
 <main>
   <div id="avisoDatos"></div>
   <div id="modalGestor" class="mg-overlay" hidden></div>
+  <div id="modalAumento" class="mg-overlay" hidden></div>
   <div id="asistente" class="mg-overlay" hidden role="dialog" aria-modal="true" aria-label="Asistente de inicio"></div>
   <div id="toastCalc" class="toast-calc" hidden></div>
-  <div class="sticky-neto" id="stickyNeto"><span class="l" id="stickyLbl">Neto</span><span class="v mono" id="stickyVal">$0</span></div>
+  <div class="sticky-neto" id="stickyNeto"><div class="sn-in"><span class="l" id="stickyLbl">Neto</span><span class="v mono" id="stickyVal">$0</span></div></div>
 
   <div class="tabs-main" id="tabsMain">
     <button id="btnTabEmpleado" class="active" onclick="switchMainTab('empleado')">Tiempo completo</button>
@@ -345,8 +343,13 @@
   </div>
 
   <div class="mes-bar" id="mesBar">
-          <div class="yearbar" id="yearBar"><button type="button" id="yearPrev" aria-label="Año anterior"></button><strong id="yearLabel"></strong><button type="button" id="yearNext" aria-label="Año siguiente"></button></div>
-      <div class="months" id="monthTabs"></div>
+    <button type="button" class="mes-nav" id="mesPrev" aria-label="Mes anterior"></button>
+    <button type="button" class="mes-actual" id="mesActual" aria-haspopup="true" aria-expanded="false" aria-controls="mesPop"><span id="mesActualTxt"></span><span class="chip ok" id="mesVerif" hidden>✓</span><span class="mes-chev" id="mesChev"></span></button>
+    <button type="button" class="mes-nav" id="mesNext" aria-label="Mes siguiente"></button>
+    <div class="mes-pop" id="mesPop" hidden>
+      <div class="mes-pop-anio"><button type="button" class="mes-nav" id="popAnioPrev" aria-label="Año anterior"></button><strong id="popAnio"></strong><button type="button" class="mes-nav" id="popAnioNext" aria-label="Año siguiente"></button></div>
+      <div class="mes-grid" id="mesGrid"></div>
+    </div>
   </div>
 
   <!-- ================= VISTA: CONTRATISTA ================= -->
@@ -363,10 +366,11 @@
         <div class="field">
           <label for="retefuenteTipo">Retención en la fuente</label>
           <select id="retefuenteTipo">
-            <option value="0.11">Honorarios - No declarante de renta (11%)</option>
-            <option value="0.10">Honorarios - Declarante de renta (10%)</option>
-            <option value="0.06">Servicios generales (manual/técnico) - No declarante (6%)</option>
-            <option value="0.04">Servicios generales (manual/técnico) - Declarante (4%)</option>
+            <option value="tabla">Tabla del art. 383: no tengo 2 o más trabajadores (lo más común)</option>
+            <option value="0.11">Honorarios con 2 o más trabajadores · no declarante (11%)</option>
+            <option value="0.10">Honorarios con 2 o más trabajadores · declarante (10%)</option>
+            <option value="0.06">Servicios generales (manual/técnico) · no declarante (6%)</option>
+            <option value="0.04">Servicios generales (manual/técnico) · declarante (4%)</option>
             <option value="custom">Personalizado (Monto exacto en pesos)</option>
             <option value="0">No aplica / No me retienen (0%)</option>
           </select>
@@ -378,8 +382,9 @@
           <details class="info-banner" style="margin-top:.5rem; padding:.5rem .8rem;">
             <summary style="cursor:pointer; font-weight:600; outline:none;">¿No sabes cuál elegir? Guía rápida aquí</summary>
             <div style="margin-top:.6rem; font-size:.8rem; line-height:1.5;">
-              <p style="margin-top:0;"><strong>1. Honorarios (trabajo intelectual):</strong> predomina el conocimiento o la creatividad. <em>Ej: desarrolladores, ingenieros, consultores, diseñadores, abogados, contadores, médicos.</em></p>
-              <p><strong>2. Servicios generales (trabajo manual/mecánico):</strong> predomina la labor física o la destreza manual. <em>Ej: mantenimiento, limpieza, transporte, construcción, reparaciones.</em> Solo se retiene si la base supera <span data-cfg="base4uvt"></span> (4 UVT).</p>
+              <p style="margin-top:0;"><strong>Tabla del art. 383 (lo más común):</strong> si eres persona natural y le informas a quien te contrata que no tienes 2 o más trabajadores vinculados a tu actividad, la retención se calcula como la de un empleado: se restan tus aportes y el 25 % exento, y si la base queda por debajo de 95 UVT no te retienen.</p>
+              <p><strong>1. Honorarios (trabajo intelectual):</strong> predomina el conocimiento o la creatividad. <em>Ej: desarrolladores, ingenieros, consultores, diseñadores, abogados, contadores, médicos.</em></p>
+              <p><strong>2. Servicios generales (trabajo manual/mecánico):</strong> predomina la labor física o la destreza manual. <em>Ej: mantenimiento, limpieza, transporte, construcción, reparaciones.</em> Solo se retiene si el pago es de <span data-cfg="baseServ"></span> o más.</p>
               <p><strong>3. Personalizado:</strong> úsalo si tu empresa te descuenta un monto fijo en pesos y prefieres ingresarlo directamente.</p>
               <p style="margin-bottom:0;"><strong>4. No aplica:</strong> si quien te contrata no está obligado a retener o tienes una exención específica.</p>
             </div>
@@ -444,6 +449,11 @@
         </div>
         <div class="hint">Si ya recibes pensión de vejez no tienes que seguir cotizando a pensión, así que se quita ese descuento y el Fondo de Solidaridad Pensional. La salud sí se sigue pagando. Si tu pensión es por invalidez o por sustitución, las reglas son distintas: déjalo desmarcado y consúltalo.</div>
       </div>
+
+        <div class="field transicion-box" style="margin-top:.2rem; display:none;">
+          <div class="check-row"><input type="checkbox" class="chk-transicion" id="transicionCon"><span style="font-size:.85rem; font-weight:600;">Estoy en el régimen de transición pensional</span></div>
+          <div class="hint">Desde el 1 de abril de 2027 rige la reforma pensional (Ley 2381 de 2024). Si a esa fecha tenías 750 semanas cotizadas (mujeres) o 900 (hombres), sigues con las reglas anteriores: márcalo. Si no, el Fondo de Solidaridad Pensional sube (1,5 % a 3 % desde 4 SMLMV).</div>
+        </div>
     </section>
 
     <section class="card" data-vista="resumen">
@@ -623,9 +633,13 @@
       <p class="hint" id="modoHint" style="margin-top:-.4rem;"></p>
       <div class="grid2">
         <div class="field">
-          <label for="salarioBase">Salario mensual base (COP)</label>
+          <label for="salarioBase">Salario mensual actual (COP)</label>
           <input type="text" inputmode="numeric" id="salarioBase" value="1.750.905">
-          <div class="hint">Es tu sueldo fijo: se paga completo todos los meses (incluidos fines de semana). Solo sube si trabajas de noche, en festivo/domingo o haces horas extra.</div>
+          <div class="hint">Es tu sueldo fijo: se paga completo todos los meses (incluidos fines de semana). Solo sube si trabajas de noche, en festivo/domingo o haces horas extra. Si te subieron el sueldo, usa «Registrar aumento o ascenso»: así los meses anteriores conservan el salario de antes.</div>
+        </div>
+        <div class="field aumentos" style="grid-column:1 / -1;">
+          <div id="aumentosLista"></div>
+          <button class="ghost btn-aumento" type="button" id="btnAumento">Registrar aumento o ascenso</button>
         </div>
         <div class="field" data-adv>
           <label for="jornadaPactada">Horas ordinarias pactadas por día</label>
@@ -637,12 +651,23 @@
           <input type="number" id="almuerzo" value="1" min="0" max="3" step="0.25">
         </div>
         <div class="field">
-          <label for="auxTransporte">Auxilio de transporte</label>
+          <label for="auxTransporte">Auxilio de transporte o de conectividad</label>
           <div class="check-row">
             <input type="checkbox" id="auxTransporte">
             <span id="auxTransporteLabel" style="font-size:.85rem;"></span>
           </div>
-          <div class="hint">Aplica solo si tu ingreso del mes (salario + comisiones) no supera 2 SMLMV (<span data-cfg="dosSmlmv"></span>). Aunque esté desmarcado, vuelve a aplicar solo cuando marques la casilla.</div>
+          <div class="hint">Aplica solo si tu ingreso del mes (salario + comisiones) no supera 2 SMLMV (<span data-cfg="dosSmlmv"></span>). Si trabajas desde casa, la empresa paga en su lugar el auxilio de conectividad, por el mismo valor. Desmárcalo si no recibes ninguno de los dos.</div>
+        </div>
+        <div class="field" style="grid-column:1 / -1;">
+          <label for="tieneNoSalarial">Pagos no salariales</label>
+          <div class="check-row"><input type="checkbox" id="tieneNoSalarial"><span style="font-size:.85rem; font-weight:600;">Me pagan bonos o auxilios que el contrato llama «no salariales»</span></div>
+          <div class="hint">Son pagos que tu contrato dice expresamente que no son salario (art. 128 del Código Sustantivo del Trabajo): tarjeta o bonos de alimentación, bonificaciones, auxilios. No cuentan para prima, cesantías, vacaciones ni indemnización. Solo pagan salud y pensión en lo que pase del 40 % de todo lo que ganas (Ley 1393 de 2010). La alimentación en tarjeta o bonos no cuenta como ingreso tuyo para la retención ni para la renta hasta 41 UVT al mes, si tu salario no pasa de 310 UVT (art. 387-1 del Estatuto Tributario).</div>
+          <div id="noSalarialFields" style="display:none; margin-top:.6rem;">
+            <label for="noSalAlim">Alimentación en tarjeta o bonos (COP al mes)</label>
+            <input type="text" inputmode="numeric" id="noSalAlim" placeholder="0">
+            <label for="noSalOtros" style="margin-top:.6rem;">Otros pagos no salariales que llegan con el sueldo (COP al mes)</label>
+            <input type="text" inputmode="numeric" id="noSalOtros" placeholder="0">
+          </div>
         </div>
         <div class="field">
           <label for="fechaIngreso">Fecha de ingreso a la empresa</label>
@@ -655,6 +680,11 @@
             <span style="font-size:.85rem; font-weight:600;">Ya estoy pensionado por vejez</span>
           </div>
           <div class="hint">Si ya recibes pensión de vejez no tienes que seguir cotizando a pensión, así que se quita ese descuento y el Fondo de Solidaridad Pensional. La salud sí se sigue pagando. Si tu pensión es por invalidez o por sustitución, las reglas son distintas: déjalo desmarcado y consúltalo.</div>
+        </div>
+
+        <div class="field transicion-box" style="grid-column: 1 / -1; margin-top:.2rem; display:none;">
+          <div class="check-row"><input type="checkbox" class="chk-transicion" id="transicionEmp"><span style="font-size:.85rem; font-weight:600;">Estoy en el régimen de transición pensional</span></div>
+          <div class="hint">Desde el 1 de abril de 2027 rige la reforma pensional (Ley 2381 de 2024). Si a esa fecha tenías 750 semanas cotizadas (mujeres) o 900 (hombres), sigues con las reglas anteriores: márcalo. Si no, el Fondo de Solidaridad Pensional sube (1,5 % a 3 % desde 4 SMLMV).</div>
         </div>
         <div class="field" data-adv style="grid-column: 1 / -1; margin-top:.4rem;">
           <div class="check-row">
@@ -728,6 +758,7 @@
             <input type="checkbox" id="tieneDependientes">
             <span style="font-size:.85rem; font-weight:600;">Tengo dependientes económicos</span>
           </div>
+        <div id="numDependientesRow" style="display:none; margin-top:.55rem;"><label for="numDependientes">¿Cuántos dependientes tienes?</label><select id="numDependientes"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5 o más</option></select></div>
         <div id="aplicaDependientesRow" class="check-row" style="display:none; margin-top:.55rem;"><input type="checkbox" id="aplicaDependientes" checked><span style="font-size:.82rem;">Mi empresa ya me lo aplica en la retención</span></div>
           <div class="hint" style="margin-top:.4rem;">Deducción del 10% del ingreso, tope 32 UVT/mes (<span data-cfg="tope32"></span>).</div>
         </div>
@@ -760,8 +791,8 @@
       <p class="hint" style="margin:.4rem 0 .9rem;">Estimación de lo que te deben al retirarte. Cambia según el contrato y la empresa: confírmalo con ellos.</p>
       <div class="grid2">
         <div class="field"><label for="liqRetiro">Fecha de retiro</label><input type="date" id="liqRetiro"></div>
-        <div class="field"><label for="liqTipo">Tipo de contrato</label><select id="liqTipo"><option value="indefinido">Término indefinido</option><option value="fijo">Término fijo</option></select></div>
-        <div class="field" id="liqFinBox" style="display:none;"><label for="liqFin">Fecha en que termina el contrato</label><input type="date" id="liqFin"></div>
+        <div class="field"><label for="liqTipo">Tipo de contrato</label><select id="liqTipo"><option value="indefinido">Término indefinido</option><option value="fijo">Término fijo</option><option value="obra">Obra o labor</option></select></div>
+        <div class="field" id="liqFinBox" style="display:none;"><label for="liqFin" id="liqFinLbl">Fecha en que termina el contrato</label><input type="date" id="liqFin"></div>
         <div class="field"><label for="liqCausa">¿Cómo termina?</label><select id="liqCausa"><option value="sin_justa">La empresa lo termina sin justa causa</option><option value="otra">Renuncia, mutuo acuerdo o justa causa</option></select></div>
         <div class="field"><label for="liqExtras">Promedio mensual de extras, recargos o comisiones (opcional)</label><input type="text" inputmode="numeric" id="liqExtras" value="0"></div>
       </div>
@@ -777,14 +808,6 @@
     <div id="previosBox"></div>
   </section>
 
-      <details class="card backup-box" data-vista="contrato">
-    <summary>Copia de seguridad de mis datos</summary>
-    <p class="hint" style="margin:.7rem 0;">Tus datos se guardan solo en este dispositivo (sin servidores ni contraseñas). Si limpias el navegador o cambias de equipo podrían perderse: exporta un backup de vez en cuando y guárdalo en tu correo o nube.</p>
-    <div class="row-actions">
-      <button class="ghost" type="button" onclick="exportarDatos()">Exportar datos (backup)</button>
-      <button class="ghost" type="button" onclick="importarDatosPrompt()">Importar datos</button>
-    </div>
-  </details>
   </div>
 </main>
 
@@ -811,6 +834,7 @@ const isObj = o => o && typeof o==='object' && !Array.isArray(o);
 const cleanText = (v,max) => (typeof v==='string'||typeof v==='number') ? String(v).slice(0,max||80) : '';
 const numOr = (v,d) => { const n=Number(v); return Number.isFinite(n)?n:d; };
 const fmtCOP = n => '$'+Math.round(n||0).toLocaleString('es-CO');
+const pctCO = (x, dec) => (x*100).toFixed(dec).replace('.',',')+' %';   // 1,5 % (coma decimal, como en Colombia)
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/, MONTH_RE = /^\d{4}-\d{2}$/;
 const HM_RE = /^([01]?\d|2[0-3]):([0-5]\d)$/;
 function normHM(s){ const m = HM_RE.exec(String(s||'').trim()); return m ? pad(+m[1])+':'+m[2] : ''; }
@@ -818,17 +842,7 @@ function normHM(s){ const m = HM_RE.exec(String(s||'').trim()); return m ? pad(+
 // ---------- Almacenamiento seguro (JSON dañado nunca deja la pantalla en blanco) ----------
 const corruptos = [];
 function lsRaw(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
-let guardadoFallo = false;
-/* Si el navegador no deja guardar (almacenamiento lleno), se avisa con una franja fija: antes se perdían los cambios en silencio. */
-function avisoGuardado(ok){
-  if(ok){ if(guardadoFallo){ guardadoFallo = false; const b = document.getElementById('saveFailBar'); if(b) b.remove(); } return; }
-  if(guardadoFallo) return; guardadoFallo = true;
-  const b = document.createElement('div'); b.id = 'saveFailBar'; b.setAttribute('role','alert');
-  b.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:300;background:var(--danger);color:#fff;border-radius:12px;padding:12px 14px;font-size:13.5px;line-height:1.45;box-shadow:0 6px 20px rgba(0,0,0,.35);';
-  b.textContent = 'No se pudo guardar: el almacenamiento de este navegador está lleno. Tus últimos cambios NO están guardados. Haz un respaldo (menú ⋯ → Exportar respaldo) y borra datos que ya no necesites.';
-  (document.body||document.documentElement).appendChild(b);
-}
-function lsSet(k,v){ try{ localStorage.setItem(k, typeof v==='string' ? v : JSON.stringify(v)); if(guardadoFallo) avisoGuardado(true); }catch(e){ avisoGuardado(false); } }
+function lsSet(k,v){ try{ localStorage.setItem(k, typeof v==='string' ? v : JSON.stringify(v)); }catch(e){} }
 function lsGet(k, fallback){
   const raw = lsRaw(k);
   if(raw==null) return fallback;
@@ -866,6 +880,9 @@ const TOPE_VIVIENDA_UVT = 100, TOPE_PREPAGADA_UVT = 16, TOPE_DEPENDIENTES_UVT = 
 
 // ---------- Tarifas que cambian por fecha (Ley 2101 de 2021 y Ley 2466 de 2025) ----------
 const RECARGO_DOMFEST_ESCALA = [['2000-01-01',0.75],['2025-07-01',0.80],['2026-07-01',0.90],['2027-07-01',1.00]];
+// Base mínima para retener por servicios: Decreto 572 de 2025 (2 UVT), suspendido del 8-may al 30-jun-2026 y vigente otra vez desde el 1-jul-2026
+const BASE_SERVICIOS_UVT = [['2000-01-01',4],['2025-06-01',2],['2026-05-08',4],['2026-07-01',2]];
+const baseServiciosUVT = () => escalaEn(BASE_SERVICIOS_UVT, isoDe(new Date()));
 const JORNADA_SEMANAL_ESCALA = [['2000-01-01',48],['2023-07-15',47],['2024-07-15',46],['2025-07-15',44],['2026-07-15',42]];
 const NOCTURNO_DESDE_ESCALA  = [['2000-01-01',21],['2025-12-25',19]];
 function escalaEn(escala, iso){ let v = escala[0][1]; for(const [d,val] of escala){ if(iso>=d) v = val; } return v; }
@@ -909,8 +926,7 @@ function festivoODomingo(dt){ return dt.getDay()===0 || !!festivoInfo(dt.getFull
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const DOW = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
 const DEFAULT_PRESETS = {
-  colombia:{label:"Colombia", start:"08:00", end:"17:00", color:"#1F9D8A", sinRecargo:false},
-  alaska:{label:"Alaska", start:"11:00", end:"20:00", color:"#3B7DD8", sinRecargo:false},
+  colombia:{label:"Oficina", start:"08:00", end:"17:00", color:"#1F9D8A", sinRecargo:false},
   vacaciones:{label:"Vacaciones", start:"08:00", end:"17:00", color:"#9B6BC7", sinRecargo:true}
 };
 const PRESETS_PROTEGIDOS = ['vacaciones'];
@@ -921,12 +937,11 @@ let currentTab = 'empleado';
 let currentMonth = new Date().getMonth();
 let selectedKey = null, multiMode = false, multiSelected = new Set();
 let workdays = {}, historialPrima = {}, comisionesPorMes = {}, interesesEneroVal = 0, ajustesBanco = {};
-let shiftPresets = {}, appConfig = {}, auxPref = true;
+let shiftPresets = {}, appConfig = {}, auxPref = true, histSal = [];   // histSal: salarios anteriores [{hasta, salario, motivo}], del más viejo al más nuevo
 let modo = 'avanzado', pensionado = false, ultimoNetoCalculado = 0, ultimoNetoMostrado = 0, ultimoDesglose = {}, verifBancoMesMostrado = null, retencionActual = 0;
 let ENT = null, _mesCache = {};
 const colapsadas = lsGet('co_colapsadas', {});
 const K = n => `co${ANIO}_${n}`;
-const EN_SUITE = (function(){ try{ return window.parent !== window; }catch(e){ return true; } })();
 let previos = {tipo:'neto', meses:{}, liquidacion:0, totalCert:0};
 let antesGestor = {compras:0, tarjeta:0, consignaciones:0, completo:false};
 let docsMarcados = {};   // ingresos de empleos anteriores (solo para la declaración de renta)
@@ -951,7 +966,7 @@ function sanitizeWorkdays(obj, presets){
     const type = cleanText(w.type,40)||'personalizado';
     const ex0 = normHM(w.extraStart), ex1 = normHM(w.extraEnd), tiene = !!w.tieneExtra && !!ex0 && !!ex1;
     out[k] = { start: normHM(w.start)||'08:00', end: normHM(w.end)||'17:00', type, tieneExtra: tiene, extraStart: tiene?ex0:'', extraEnd: tiene?ex1:'',
-      sinPago: typeof w.sinPago==='boolean' ? w.sinPago : !!(presets[type] && presets[type].sinRecargo) };
+      sinPago: typeof w.sinPago==='boolean' ? w.sinPago : !!(presets && presets[type] && presets[type].sinRecargo) };
   });
   return out;
 }
@@ -973,13 +988,19 @@ function sanitizeAjustes(obj){
     out[k] = { esperado:numOr(a.esperado,0), real:numOr(a.real,0), diferencia:numOr(a.diferencia,0) }; });
   return out;
 }
-const CFG_STR = ['aporteVol','aporteVolTipo','procRetencion','retencionPct','vacSaldoIni','vacCompensadas','modo','salarioBase','jornadaPactada','almuerzo','valorContrato','retefuenteTipo','retefuenteCustomValor','nivelARL','ccfRateSelect','ccfCustomValor','interesesVivienda','pagoPrepagada','viviendaDesde','viviendaAntes','prepagadaDesde'];
-const CFG_BOOL = ['aplicaVivienda','aplicaPrepagada','aplicaDependientes','salarioIntegral','sabadoHabil','pensionado','pagaCajaEmpresa','pagoMesVencido','pagaARL','pagaCCF','tieneVivienda','tienePrepagada','tieneDependientes','auxPref'];
+const CFG_STR = ['noSalAlim','noSalOtros','migRet','numDependientes','aporteVol','aporteVolTipo','procRetencion','retencionPct','vacSaldoIni','vacCompensadas','modo','salarioBase','jornadaPactada','almuerzo','valorContrato','retefuenteTipo','retefuenteCustomValor','nivelARL','ccfRateSelect','ccfCustomValor','interesesVivienda','pagoPrepagada','viviendaDesde','viviendaAntes','prepagadaDesde'];
+const CFG_BOOL = ['tieneNoSalarial','transicionPensional','aplicaVivienda','aplicaPrepagada','aplicaDependientes','salarioIntegral','sabadoHabil','pensionado','pagaCajaEmpresa','pagoMesVencido','pagaARL','pagaCCF','tieneVivienda','tienePrepagada','tieneDependientes','auxPref'];
 function sanitizeConfig(obj){
   const out = {}; if(!isObj(obj)) return out;
   CFG_STR.forEach(k=>{ if(typeof obj[k]==='string' || typeof obj[k]==='number') out[k] = cleanText(obj[k],24); });
   CFG_BOOL.forEach(k=>{ if(typeof obj[k]==='boolean') out[k] = obj[k]; });
   if(typeof obj.fechaIngreso==='string' && (obj.fechaIngreso===''||DATE_RE.test(obj.fechaIngreso))) out.fechaIngreso = obj.fechaIngreso;
+  if(Array.isArray(obj.historialSalario)){
+    const vistos = new Set();
+    out.historialSalario = obj.historialSalario.filter(h=>isObj(h) && DATE_RE.test(h.hasta) && Number.isFinite(Number(h.salario)) && Number(h.salario)>0 && Number(h.salario)<=1e10)
+      .map(h=>({hasta:h.hasta, salario:Math.round(Number(h.salario)), motivo: h.motivo==='ascenso' ? 'ascenso' : 'aumento'}))
+      .sort((a,b)=>a.hasta.localeCompare(b.hasta)).filter(h=>!vistos.has(h.hasta) && vistos.add(h.hasta)).slice(-40);
+  }
   return out;
 }
 
@@ -1031,7 +1052,7 @@ function saveDocs(){ lsSet(K('docs'), docsMarcados); }
 function saveIngresoGestor(){ lsSet(K('ingreso_gestor'), ingresoGestor); }
 
 // ---------- Configuración de pantalla <-> almacenamiento ----------
-const SEL_DEFAULTS = { retefuenteTipo:'0.11', nivelARL:'0.00522', ccfRateSelect:'0.02' };
+const SEL_DEFAULTS = { retefuenteTipo:'tabla', nivelARL:'0.00522', ccfRateSelect:'0.02' };
 function aplicarConfig(){
   const c = appConfig;
   $('salarioBase').value = c.salarioBase || fmtNumPlain(SMLMV);
@@ -1039,6 +1060,10 @@ function aplicarConfig(){
   $('almuerzo').value = c.almuerzo===undefined ? '1' : c.almuerzo;
   $('fechaIngreso').value = c.fechaIngreso || '';
   pensionado = !!c.pensionado; $('pensionadoEmp').checked = pensionado; $('pensionadoCon').checked = pensionado;
+  $('transicionEmp').checked = $('transicionCon').checked = !!c.transicionPensional;
+  histSal = Array.isArray(c.historialSalario) ? c.historialSalario.map(h=>Object.assign({}, h)) : [];
+  $('numDependientes').value = /^[1-5]$/.test(c.numDependientes||'') ? c.numDependientes : '1';
+  $('tieneNoSalarial').checked = !!c.tieneNoSalarial; $('noSalAlim').value = c.noSalAlim || ''; $('noSalOtros').value = c.noSalOtros || '';
   $('pagaCajaEmpresa').checked = !!c.pagaCajaEmpresa;
   $('pagoMesVencido').checked = !!c.pagoMesVencido;
   auxPref = c.auxPref!==false;
@@ -1070,7 +1095,9 @@ function saveConfig(){
     ccfRateSelect:$('ccfRateSelect').value, ccfCustomValor:$('ccfCustomValor').value,
     salarioIntegral:$('salarioIntegral').checked, aporteVolTipo:$('aporteVolTipo').value, aporteVol:$('aporteVol').value,
     procRetencion:$('procRetencion').value, retencionPct:$('retencionPct').value,
-    vacSaldoIni:$('vacSaldoIni').value, vacCompensadas:$('vacCompensadas').value, sabadoHabil:$('sabadoHabil').checked, modo
+    vacSaldoIni:$('vacSaldoIni').value, vacCompensadas:$('vacCompensadas').value, sabadoHabil:$('sabadoHabil').checked, modo,
+    transicionPensional:$('transicionEmp').checked, numDependientes:$('numDependientes').value, historialSalario:histSal, migRet:'1',
+    tieneNoSalarial:$('tieneNoSalarial').checked, noSalAlim:$('noSalAlim').value, noSalOtros:$('noSalOtros').value
   };
   lsSet('co_config', appConfig);
 }
@@ -1103,9 +1130,14 @@ function diasEsperadosMes(m){
   if(m<im) return 0; if(m>im) return 30;
   return Math.max(0, 31-id);
 }
-function fspRate(ibc){
-  const m = ibc/SMLMV;
-  if(m<4) return 0; if(m<16) return 0.01; if(m<17) return 0.012; if(m<18) return 0.014; if(m<19) return 0.016; if(m<20) return 0.018;
+// Fondo de Solidaridad Pensional. Desde el 1-abr-2027 rige la Ley 2381 de 2024 (sentencia C-264 de 2026) para quien NO quedó
+// en el régimen de transición (750 semanas mujeres / 900 hombres): 1,5 % a 3 %. Antes de esa fecha (o en transición) sigue la Ley 797 de 2003.
+const REFORMA_PENSIONAL_DESDE = '2027-04-01';
+function fspRate(ibc, fecha){
+  const m = ibc/SMLMV, iso = isoDe(fecha || new Date());
+  if(m<4) return 0;
+  if(iso>=REFORMA_PENSIONAL_DESDE && !appConfig.transicionPensional){ if(m<7) return 0.015; if(m<11) return 0.018; if(m<19) return 0.025; if(m<=20) return 0.028; return 0.03; }
+  if(m<16) return 0.01; if(m<17) return 0.012; if(m<18) return 0.014; if(m<19) return 0.016; if(m<20) return 0.018;
   return 0.02;
 }
 // Retención art. 383 ET (valores enteros de la tabla oficial, en UVT)
@@ -1193,7 +1225,8 @@ function leerEntradas(){
     tieneVivienda:$('tieneVivienda').checked, interesesVivienda:getMoney('interesesVivienda'), viviendaDesde:parseInt($('viviendaDesde').value,10)||1, viviendaAntes:getMoney('viviendaAntes'), prepagadaDesde:parseInt($('prepagadaDesde').value,10)||1,
     tienePrepagada:$('tienePrepagada').checked, pagoPrepagada:getMoney('pagoPrepagada'), tieneDependientes:$('tieneDependientes').checked, aplicaVivienda:$('aplicaVivienda').checked, aplicaPrepagada:$('aplicaPrepagada').checked, aplicaDependientes:$('aplicaDependientes').checked,
     integral: $('salarioIntegral').checked && getMoney('salarioBase') >= 13*SMLMV,
-    volTipo:$('aporteVolTipo').value, vol:leerVol(), proc2:$('procRetencion').value==='2', retPct:numDec('retencionPct')
+    volTipo:$('aporteVolTipo').value, vol:leerVol(), proc2:$('procRetencion').value==='2', retPct:numDec('retencionPct'),
+    noSalAlim: $('tieneNoSalarial').checked ? getMoney('noSalAlim') : 0, noSalOtros: $('tieneNoSalarial').checked ? getMoney('noSalOtros') : 0
   };
 }
 function numDec(id){ const v = parseFloat(String($(id).value||'').replace(',','.')); return Number.isFinite(v) ? v : 0; }
@@ -1202,38 +1235,145 @@ function leerVol(){
   const v = $('aporteVolTipo').value==='pct' ? parseFloat(raw.replace(',','.')) : parseFloat(raw.replace(/\./g,'').replace(/\s/g,'').replace(',','.'));
   return Number.isFinite(v) && v>0 ? v : 0;
 }
+// ---------- Salario por fecha (aumentos y ascensos) ----------
+// El campo «Salario» es el salario ACTUAL; cada aumento guarda hasta qué día rigió el salario anterior.
+function salarioEn(f){
+  const iso = typeof f==='string' ? f : isoDe(f);
+  for(const h of histSal){ if(iso <= h.hasta) return h.salario; }
+  return ENT ? ENT.salarioBase : getMoney('salarioBase');
+}
+const fechaComercial = (m, d) => new Date(ANIO, m, Math.min(d, new Date(ANIO, m+1, 0).getDate()));   // mes de 30 días: el 29 y 30 de febrero caen el último día
+function promedioSalario(desde, hasta){   // promedio diario del salario entre dos fechas (inclusive)
+  if(!histSal.length) return salarioEn(hasta);
+  let t = 0, n = 0; for(const d = new Date(desde); d <= hasta; d.setDate(d.getDate()+1)){ t += salarioEn(d); n++; }
+  return n ? t/n : salarioEn(hasta);
+}
+const diaSiguiente = iso => { const d = new Date(iso+'T00:00:00'); d.setDate(d.getDate()+1); return isoDe(d); };
+const diaAnterior = iso => { const d = new Date(iso+'T00:00:00'); d.setDate(d.getDate()-1); return isoDe(d); };
+// ---------- Registrar un aumento o ascenso ----------
+function fechaCorta(iso){ const d = new Date(iso+'T00:00:00'); return `${d.getDate()} ${MESES[d.getMonth()].slice(0,3).toLowerCase()} ${d.getFullYear()}`; }
+function renderAumentos(){
+  const box = $('aumentosLista'); if(!box) return;
+  if(!histSal.length){ box.innerHTML = ''; return; }
+  const actual = getMoney('salarioBase'), n = histSal.length;
+  const filas = histSal.map((h,i)=>`<div class="aum-fila"><span>${i ? 'Del '+fechaCorta(diaSiguiente(histSal[i-1].hasta))+' al ' : 'Hasta el '}${fechaCorta(h.hasta)}</span><b>${fmtCOP(h.salario)}</b></div>`).join('')
+    + `<div class="aum-fila actual"><span>Desde el ${fechaCorta(diaSiguiente(histSal[n-1].hasta))} · actual</span><b>${fmtCOP(actual)}</b></div>`;
+  const quitar = histSal.map((h,i)=>`<button type="button" class="small-del" data-quitar-aum="${i}">Quitar el ${h.motivo} del ${fechaCorta(diaSiguiente(h.hasta))}</button>`).join('');
+  box.innerHTML = `<div class="aum-box"><div class="aum-tit">Tu historial de salario</div>${filas}<div class="aum-quitar">${quitar}</div></div>`;
+}
+function cerrarAumento(){ $('modalAumento').hidden = true; $('modalAumento').innerHTML = ''; }
+function abrirAumento(){
+  const box = $('modalAumento'), actual = getMoney('salarioBase'), hoy = new Date(), sig = isoDe(new Date(hoy.getFullYear(), hoy.getMonth()+1, 1));
+  const inicio = histSal.length ? diaSiguiente(histSal[histSal.length-1].hasta) : ($('fechaIngreso').value || '');   // primer día del salario actual
+  let motivo = 'aumento';
+  box.innerHTML = `<div class="mg-box" role="dialog" aria-modal="true" aria-labelledby="aumT"><h3 id="aumT">Aumento o ascenso</h3>
+    <p>Hoy ganas <b>${fmtCOP(actual)}</b>. Los meses anteriores a la fecha que elijas conservan ese salario.</p>
+    <div class="modo-switch" role="group" aria-label="Tipo de cambio" style="margin:.2rem 0 .8rem;"><button type="button" data-mot="aumento" aria-pressed="true">Aumento</button><button type="button" data-mot="ascenso" aria-pressed="false">Ascenso</button></div>
+    <div class="field"><label for="aumValor">Nuevo salario mensual (COP)</label><input type="text" inputmode="numeric" id="aumValor" placeholder="Ej: 9.000.000" autocomplete="off"></div>
+    <div class="field"><label for="aumFecha">¿Desde qué fecha rige?</label><input type="date" id="aumFecha" value="${sig}" ${inicio ? `min="${diaSiguiente(inicio)}"` : ''}>
+      <div class="hint">Si empezó a mitad de mes, pon el día exacto: ese mes se paga por días con cada salario.</div></div>
+    <div id="aumResumen" class="info-banner" style="margin:.2rem 0 0;"></div>
+    <div class="mg-actions"><button class="primary" type="button" id="aumOk">Confirmar</button><button class="ghost" type="button" id="aumNo">Cancelar</button></div></div>`;
+  box.hidden = false;
+  const resumen = ()=>{
+    const v = getMoney('aumValor'), f = $('aumFecha').value;
+    $('aumResumen').innerHTML = (!v || !DATE_RE.test(f)) ? 'Escribe el nuevo salario y la fecha desde la que rige.'
+      : `Desde el <b>${esc(fechaLarga(new Date(f+'T00:00:00')))}</b> tu salario pasa de ${fmtCOP(actual)} a <b>${fmtCOP(v)}</b> (${v>=actual?'+':'−'}${(Math.abs(v-actual)/actual*100).toFixed(1).replace('.',',')} %). Lo anterior a esa fecha sigue con ${fmtCOP(actual)}.`;
+  };
+  $('aumValor').addEventListener('input', e=>{ bancoFormatInput(e.target); resumen(); });
+  $('aumFecha').addEventListener('input', resumen); resumen();
+  box.querySelectorAll('[data-mot]').forEach(b=>b.onclick = ()=>{ motivo = b.dataset.mot; box.querySelectorAll('[data-mot]').forEach(x=>x.setAttribute('aria-pressed', String(x===b))); $('aumT').textContent = motivo==='ascenso' ? 'Ascenso' : 'Aumento de salario'; });
+  $('aumNo').onclick = cerrarAumento; box.onclick = e=>{ if(e.target===box) cerrarAumento(); };
+  $('aumOk').onclick = async ()=>{
+    const v = getMoney('aumValor'), f = $('aumFecha').value;
+    if(!v){ alert('Escribe el nuevo salario.'); return; }
+    if(v<SMLMV){ alert('El salario no puede ser menor al mínimo ('+fmtCOP(SMLMV)+').'); return; }
+    if(v===actual){ alert('Es el mismo salario que tienes ahora.'); return; }
+    if(!DATE_RE.test(f)){ alert('Elige la fecha desde la que rige el nuevo salario.'); return; }
+    if(inicio && f<=inicio){ alert(`La fecha debe ser posterior al ${fechaLarga(new Date(inicio+'T00:00:00'))}, cuando empezó tu salario actual. Si te equivocaste en un aumento anterior, quítalo primero.`); return; }
+    if(v<actual && !(await SuiteUI.confirmar(`El nuevo salario (${fmtCOP(v)}) es menor que el actual (${fmtCOP(actual)}). ¿Registrarlo igual?`, {peligro:false}))) return;
+    histSal.push({hasta:diaAnterior(f), salario:actual, motivo}); histSal.sort((a,b)=>a.hasta.localeCompare(b.hasta));
+    $('salarioBase').value = v.toLocaleString('es-CO');
+    saveConfig(); cerrarAumento(); renderAll();
+    toastCalc(`${motivo==='ascenso'?'Ascenso':'Aumento'} registrado: desde el ${fechaCorta(f)} ganas ${fmtCOP(v)}.`);
+  };
+  setTimeout(()=>$('aumValor').focus(), 60);
+}
+async function quitarAumento(i){
+  const h = histSal[i]; if(!h) return;
+  const ultimo = i===histSal.length-1, nuevo = ultimo ? getMoney('salarioBase') : histSal[i+1].salario;
+  if(!(await SuiteUI.confirmar(`Se quitará el ${h.motivo} del ${fechaCorta(diaSiguiente(h.hasta))} (${fmtCOP(h.salario)} → ${fmtCOP(nuevo)}): ${fmtCOP(h.salario)} seguirá rigiendo después de esa fecha. ¿Continuar?`, {peligro:false}))) return;
+  if(ultimo){ $('salarioBase').value = h.salario.toLocaleString('es-CO'); histSal.pop(); }
+  else { h.hasta = histSal[i+1].hasta; h.motivo = histSal[i+1].motivo; histSal.splice(i+1, 1); }
+  saveConfig(); renderAll();
+}
 // UNA sola función de devengado por mes: alimenta resumen, prima, cesantías y gráficas
 function calcMes(m){
   if(_mesCache[m]) return _mesCache[m];
   const E = ENT || (ENT = leerEntradas());
-  const dias = diasEsperadosMes(m), salarioProrr = (E.salarioBase/30)*dias;
+  const dias = diasEsperadosMes(m);
   let esMesIngreso = false;
   if(E.fechaIngreso){ const ing = new Date(E.fechaIngreso+'T00:00:00'); esMesIngreso = ing.getFullYear()===ANIO && ing.getMonth()===m; }
   const vencido = E.pagoMesVencido && !esMesIngreso;
   let target = m, conExtras = !E.integral;          // en salario integral los recargos, extras y comisiones ya van incluidos
-  if(vencido){ if(m===0) conExtras = false; else target = m-1; }
-  let recNoct=0, recFest=0, extD=0, extN=0;
-  (conExtras ? keysForMonth(target) : []).forEach(k=>{
-    const p = computeDiaPago(workdays[k], new Date(ANIO,target,parseInt(k.slice(8,10),10)), E.salarioBase, E.jornada, E.almuerzo);
-    if(!p || p.esVacacion) return;
-    recNoct += p.recargoNocturno; recFest += p.recargoFestivo; extD += p.extraDiurnaPago; extN += p.extraNocturnaPago;
-  });
-  const adiciones = recNoct+recFest+extD+extN;
-  const comisiones = conExtras ? getTotalComisionesMes(target) : 0, comisProrr = (comisiones/30)*dias;
-  const auxElegible = !E.integral && (E.salarioBase + comisiones) <= 2*SMLMV;
-  const auxAplica = auxElegible && auxPref;
-  const aux = auxAplica ? (AUX_TRANSPORTE/30)*dias : 0;
+  // Mes vencido: lo variable de cada mes se paga el mes siguiente. En enero llega lo de diciembre del AÑO ANTERIOR (guardado al cerrar ese año).
+  let x = {recNoct:0, recFest:0, extD:0, extN:0, comisiones:0};
+  if(conExtras){
+    if(vencido && m===0){ const c = cierreDe(ANIO-1); if(c && c.dic) x = c.dic; target = -1; }
+    else { if(vencido) target = m-1; x = extrasDeMes(target); }
+  }
+  const {recNoct, recFest, extD, extN, comisiones} = x;
+  const adiciones = recNoct+recFest+extD+extN, comisProrr = (comisiones/30)*dias;
+  // salario y auxilio día por día (30 días comerciales): con un aumento a mitad de mes, cada día usa el salario vigente
+  let salarioProrr = 0, diasAux = 0; const tramos = [];
+  for(let d = 31-dias; dias>0 && d<=30; d++){
+    const s = salarioEn(fechaComercial(m, d)); salarioProrr += s/30;
+    if(!E.integral && s + comisiones <= 2*SMLMV) diasAux++;
+    const t = tramos[tramos.length-1]; if(t && t.salario===s) t.hasta = d; else tramos.push({desde:d, hasta:d, salario:s});
+  }
+  const auxElegible = diasAux>0, auxAplica = auxElegible && auxPref, aux = auxAplica ? (AUX_TRANSPORTE/30)*diasAux : 0;
   const ibcSinAux = salarioProrr + adiciones + comisProrr;
-  const r = { dias, salarioProrr, pagoDiario:E.salarioBase/30, esMesIngreso, vencido, target, conExtras, recNoct, recFest, extD, extN, adiciones,
-    comisiones, comisProrr, auxElegible, auxAplica, aux, ibcSinAux, ibcTotal: ibcSinAux+aux };
+  // Pagos no salariales (art. 128 CST): se prorratean por días como el sueldo; no cuentan para prima, cesantías ni vacaciones
+  const salMes = tramos.length ? tramos[tramos.length-1].salario : E.salarioBase;
+  const nsAlim = (E.noSalAlim/30)*dias, nsOtros = (E.noSalOtros/30)*dias, noSal = nsAlim + nsOtros;
+  const exceso1393 = Math.max(0, noSal - 0.40*(ibcSinAux + noSal));                 // Ley 1393 de 2010: lo que pase del 40 % sí paga salud y pensión
+  const alimGravable = salMes > 310*UVT ? nsAlim : Math.max(0, nsAlim - 41*UVT);     // art. 387-1 ET: hasta 41 UVT/mes no es ingreso tuyo
+  const r = { dias, salarioProrr, tramos, pagoDiario:salMes/30, esMesIngreso, vencido, target, conExtras, recNoct, recFest, extD, extN, adiciones,
+    comisiones, comisProrr, auxElegible, auxAplica, aux, ibcSinAux, ibcTotal: ibcSinAux+aux,
+    nsAlim, nsOtros, noSal, exceso1393, alimGravable, noSalGravable: nsOtros + alimGravable };
   return (_mesCache[m] = r);
 }
 function computeMesPrestacional(m){ const r = calcMes(m); return {dias:r.dias, devengadoPrestacional:r.ibcTotal}; }
-function calcRetencion(ibcSinAux, dias, mes){
+// Recargos, extras y comisiones de un mes del año que se está viendo
+function extrasDeMes(target){
+  const E = ENT, x = {recNoct:0, recFest:0, extD:0, extN:0, comisiones:0}; if(target<0 || target>11) return x;
+  keysForMonth(target).forEach(k=>{
+    const f = new Date(ANIO,target,parseInt(k.slice(8,10),10)), p = computeDiaPago(workdays[k], f, salarioEn(f), E.jornada, E.almuerzo);
+    if(!p || p.esVacacion) return;
+    x.recNoct += p.recargoNocturno; x.recFest += p.recargoFestivo; x.extD += p.extraDiurnaPago; x.extN += p.extraNocturnaPago;
+  });
+  x.comisiones = getTotalComisionesMes(target);
+  return x;
+}
+// «Cierre» de cada año: lo que ese año deja para el siguiente (intereses de cesantías que se pagan en enero, cesantías que se consignan
+// en febrero y, para quien cobra mes vencido, lo variable de diciembre que llega en enero). Se guarda al calcular ese año.
+function cierreDe(y){
+  const c = lsGet(`co${y}_cierre`, null); if(!isObj(c)) return null;
+  const n = v => Number.isFinite(Number(v)) ? Math.max(0, Number(v)) : 0, d = isObj(c.dic) ? c.dic : {};
+  return {cesantias:n(c.cesantias), intereses:n(c.intereses), dias:n(c.dias), dic:{recNoct:n(d.recNoct), recFest:n(d.recFest), extD:n(d.extD), extN:n(d.extN), comisiones:n(d.comisiones)}};
+}
+function guardarCierre(ces){
+  const x = extrasDeMes(11), R = Math.round;
+  const c = {cesantias:R(ces.valor), intereses:R(ces.intereses), dias:ces.dias, dic:{recNoct:R(x.recNoct), recFest:R(x.recFest), extD:R(x.extD), extN:R(x.extN), comisiones:R(x.comisiones)}};
+  if(JSON.stringify(lsGet(`co${ANIO}_cierre`, null))!==JSON.stringify(c)) lsSet(`co${ANIO}_cierre`, c);
+}
+const retDe = (r, m) => calcRetencion(r.ibcSinAux, r.dias, m, {exceso:r.exceso1393, gravable:r.noSalGravable});
+function calcRetencion(ibcSinAux, dias, mes, ns){
   const E = ENT, d = dias===undefined ? 30 : dias, mi = mes===undefined ? 99 : mes;   // mes (0-11): las deducciones cuentan desde el mes en que empezaste a pagarlas
-  // Base de aportes: 70% del salario si es integral; nunca más de 25 SMLMV (IBC máximo)
-  const baseAp = Math.min(E.integral ? 0.70*ibcSinAux : ibcSinAux, 25*SMLMV*(d/30));
-  const salud = baseAp*SALUD_PCT, pension = E.pensionado ? 0 : baseAp*PENSION_PCT, fspPct = E.pensionado ? 0 : fspRate(baseAp), fsp = baseAp*fspPct;   // pensionado por vejez: no cotiza pensión ni FSP (la salud sí)
+  const exceso = (ns && ns.exceso) || 0, gravNS = (ns && ns.gravable) || 0;           // pagos no salariales: lo que paga aportes y lo que es ingreso para retención
+  // Base de aportes: 70% del salario si es integral (+ lo no salarial que pase del 40 %); nunca más de 25 SMLMV (IBC máximo)
+  const baseAp = Math.min((E.integral ? 0.70*ibcSinAux : ibcSinAux) + exceso, 25*SMLMV*(d/30));
+  const salud = baseAp*SALUD_PCT, pension = E.pensionado ? 0 : baseAp*PENSION_PCT, fspPct = E.pensionado ? 0 : fspRate(baseAp, mi<12 ? new Date(ANIO, mi, 1) : new Date()), fsp = baseAp*fspPct;   // pensionado por vejez: no cotiza pensión ni FSP (la salud sí)
   const ss = salud+pension+fsp;
   // Aporte voluntario (AFC / pensión voluntaria): se descuenta del neto completo
   const volPago = E.vol>0 ? (E.volTipo==='pct' ? (E.vol/100)*ibcSinAux : E.vol) : 0;
@@ -1241,20 +1381,32 @@ function calcRetencion(ibcSinAux, dias, mes){
   // Mes incompleto (ej: empezaste el 14): la retención se calcula con el sueldo del MES COMPLETO y luego se prorratea por días,
   // porque la tabla del art. 383 va por tramos mensuales (así sale en el desprendible). Salud, pensión y FSP se descuentan sobre lo realmente devengado.
   const f = d<30 ? 30/d : 1;
-  const ibcEq = ibcSinAux*f, ssEq = ss*f, sub1 = Math.max(0, ibcEq-ssEq);
+  const ibcEq = (ibcSinAux + gravNS)*f, ssEq = ss*f, volBase = E.vol>0 ? (E.volTipo==='pct' ? (E.vol/100)*ibcSinAux*f : E.vol) : 0;
+  const {baseGravable, retMes} = depurarRetencion(ibcEq, ssEq, mi, volBase);
+  const retefuente = Math.round(retMes/f/1000)*1000;       // la retención se aproxima al múltiplo de mil más cercano
+  return {salud, pension, fsp, fspPct, ss, retefuente, prorrateada:f>1, dias:d, retMes, vol:volPago, baseGravable, f, ibcEq, ssEq, volBase};
+}
+// Depuración del procedimiento 1 (art. 383, 387 y 388 ET) con los pagos laborales de un mes completo
+function depurarRetencion(ingreso, aportes, mi, volBase){
+  const E = ENT, sub1 = Math.max(0, ingreso-aportes);
   const vivienda = (E.tieneVivienda && E.aplicaVivienda!==false && mi+1 >= (E.viviendaDesde||1)) ? Math.min(E.interesesVivienda, TOPE_VIVIENDA_UVT*UVT) : 0;
   const prepagada = (E.tienePrepagada && E.aplicaPrepagada!==false && mi+1 >= (E.prepagadaDesde||1)) ? Math.min(E.pagoPrepagada, TOPE_PREPAGADA_UVT*UVT) : 0;
-  const dependientes = (E.tieneDependientes && E.aplicaDependientes!==false) ? Math.min(0.10*ibcEq, TOPE_DEPENDIENTES_UVT*UVT) : 0;
+  const dependientes = (E.tieneDependientes && E.aplicaDependientes!==false) ? Math.min(0.10*ingreso, TOPE_DEPENDIENTES_UVT*UVT) : 0;
   const ded387 = vivienda+prepagada+dependientes;
-  const volEq = E.vol>0 ? Math.min(E.volTipo==='pct' ? (E.vol/100)*ibcEq : E.vol, 0.30*ibcEq, (3800/12)*UVT) : 0;   // renta exenta: máx. 30% del ingreso y 3.800 UVT al año
+  const volEq = volBase>0 ? Math.min(volBase, 0.30*ingreso, (3800/12)*UVT) : 0;   // renta exenta: máx. 30% del ingreso y 3.800 UVT al año
   const sub2 = Math.max(0, sub1-ded387-volEq);
   const exenta = Math.min(0.25*sub2, (790/12)*UVT);
   const topeGlobal = Math.min(0.40*sub1, (TOPE_GLOBAL_UVT_ANUAL/12)*UVT);
   const beneficios = Math.min(ded387+volEq+exenta, topeGlobal);
   const baseGravable = Math.max(0, sub1-beneficios);
   const retMes = (E.proc2 && E.retPct>0) ? baseGravable*(E.retPct/100) : impuestoUVT(baseGravable/UVT)*UVT;   // procedimiento 2: porcentaje fijo del desprendible
-  const retefuente = Math.round(retMes/f/1000)*1000;       // la retención se aproxima al múltiplo de mil más cercano
-  return {salud, pension, fsp, fspPct, ss, retefuente, prorrateada:f>1, dias:d, retMes, vol:volPago, baseGravable, f};
+  return {baseGravable, retMes};
+}
+// La prima es un pago laboral del mes en que se paga: se suma a esos pagos para la retención (no paga salud ni pensión)
+function retencionPrima(d, prima, mes){
+  if(!(prima>0) || !(d.ibcEq>0)) return 0;
+  const sin = depurarRetencion(d.ibcEq, d.ssEq, mes, d.volBase).retMes, con = depurarRetencion(d.ibcEq+prima, d.ssEq, mes, d.volBase).retMes;
+  return Math.max(0, Math.round((con-sin)/1000)*1000);
 }
 
 // ============================================================
@@ -1269,6 +1421,11 @@ function irArriba(){ const sc = $('scroller'); if(sc && sc.scrollTo) sc.scrollTo
 function construirNav(){
   $('bnav').innerHTML = vistasDe(currentTab).map(([id,ico,nom])=>`<button type="button" data-vista="${id}" aria-label="${nom}"><span class="bi">${ic(ico,22)}</span><span>${nom}</span></button>`).join('');
 }
+let heroVisible = false;
+function actualizarSticky(){
+  const s = $('stickyNeto'), flota = vistaActual==='resumen' && currentTab==='empleado';
+  s.classList.toggle('flotante', flota); s.classList.toggle('oculta', flota && heroVisible);
+}
 function mostrarVista(v, opts){
   const lista = vistasDe(currentTab).map(x=>x[0]);
   if(!lista.includes(v)) v = 'resumen';
@@ -1277,9 +1434,10 @@ function mostrarVista(v, opts){
   raiz.querySelectorAll(':scope > [data-vista]').forEach(el=>el.classList.toggle('vista-off', el.dataset.vista!==v));
   document.querySelectorAll('#bnav button').forEach(b=>{ if(b.dataset.vista===v) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
   const emp = currentTab==='empleado';
-  $('tabsMain').style.display = (v==='resumen' || v==='contrato') ? '' : 'none';
+  $('tabsMain').style.display = v==='contrato' ? '' : 'none';   // el tipo de vinculación se elige una vez, en Contrato
   $('mesBar').style.display = (emp && (v==='resumen' || v==='calendario' || v==='prestaciones')) ? '' : 'none';
   $('stickyNeto').style.display = (v==='resumen' || v==='calendario' || v==='contrato') ? '' : 'none';
+  actualizarSticky();
   if(!(opts && opts.sinScroll)) irArriba();
   if(v==='resumen' && !(opts && opts.sinScroll)){ raiz.classList.add('anim-fl'); setTimeout(()=>raiz.classList.remove('anim-fl'), 700); }
   lsSet('co_ui', {vista:v, modo:currentTab});
@@ -1300,20 +1458,31 @@ function switchMainTab(tab, vista){
 }
 document.addEventListener('click', e=>{ const b = e.target.closest && e.target.closest('#bnav button'); if(b) mostrarVista(b.dataset.vista); });
 
+// ---------- Selector de mes: «‹ Octubre 2026 ▾ ›» (el ▾ abre los 12 meses y el año) ----------
+let popAnio = null;
+const mesVerificado = i => !!(ajustesBanco[`${ANIO}-${pad(i+1)}`] || valorPrevio(i)!==undefined);
+function irAMes(y, m){
+  if(y===undefined) return;
+  if(y!==ANIO){ if(!ANIOS.includes(y)) return; cambiarAnio(y); }
+  currentMonth = m; selectedKey = null; multiSelected.clear(); syncComisionesUI(); renderAll();
+}
 function renderMonthTabs(){
-  const el = $('monthTabs'); el.innerHTML = '';
-  MESES.forEach((m,i)=>{
-    const b = document.createElement('button');
-    b.textContent = m.slice(0,3) + ((ajustesBanco[`${ANIO}-${pad(i+1)}`] || valorPrevio(i)!==undefined) ? ' ✓' : '');
-    if(i===currentMonth) b.classList.add('active');
-    b.onclick = ()=>{ currentMonth=i; selectedKey=null; multiSelected.clear(); syncComisionesUI(); renderAll(); };
-    el.appendChild(b);
-  });
-  const act = el.querySelector('.active'); if(act) el.scrollLeft = Math.max(0, act.offsetLeft - el.clientWidth/2 + act.offsetWidth/2);
-  const idx = ANIOS.indexOf(ANIO);
-  $('yearLabel').textContent = ANIO;
-  $('yearBar').style.display = ANIOS.length>1 ? 'flex' : 'none';
-  $('yearPrev').disabled = idx<=0; $('yearNext').disabled = idx>=ANIOS.length-1;
+  const i0 = ANIOS.indexOf(ANIO);
+  $('mesActualTxt').textContent = `${MESES[currentMonth]} ${ANIO}`;
+  $('mesVerif').hidden = !mesVerificado(currentMonth);
+  $('mesPrev').disabled = currentMonth===0 && i0<=0; $('mesNext').disabled = currentMonth===11 && i0>=ANIOS.length-1;
+  if(!$('mesPop').hidden) pintarPopMes();
+}
+function pintarPopMes(){
+  const y = popAnio || ANIO, iy = ANIOS.indexOf(y), hoy = new Date();
+  $('popAnio').textContent = y; $('popAnioPrev').disabled = iy<=0; $('popAnioNext').disabled = iy>=ANIOS.length-1;
+  $('mesGrid').innerHTML = MESES.map((m,i)=>{ const on = y===ANIO && i===currentMonth, esHoy = y===hoy.getFullYear() && i===hoy.getMonth();
+    return `<button type="button" data-mes="${i}" class="${on?'on':''}${esHoy?' hoy':''}" aria-pressed="${on}">${m.slice(0,3)}${y===ANIO && mesVerificado(i) ? ' ✓' : ''}</button>`; }).join('');
+}
+function abrirPopMes(abrir){
+  const p = $('mesPop'), on = abrir===undefined ? p.hidden : abrir;
+  p.hidden = !on; $('mesActual').setAttribute('aria-expanded', String(on));
+  if(on){ popAnio = ANIO; pintarPopMes(); const b = $('mesGrid').querySelector('.on'); if(b) b.focus(); }
 }
 function cambiarAnio(y){
   if(!ANIOS.includes(y) || y===ANIO) return;
@@ -1494,7 +1663,7 @@ function renderWeeklyHours(){
   const E = ENT, weeks = {};
   keysForCurrentMonth().forEach(k=>{
     const base = new Date(ANIO,currentMonth,parseInt(k.slice(8,10),10));
-    const pago = computeDiaPago(workdays[k], base, E.salarioBase, E.jornada, E.almuerzo);
+    const pago = computeDiaPago(workdays[k], base, salarioEn(base), E.jornada, E.almuerzo);
     if(!pago || pago.esVacacion) return;
     const mon = new Date(base); mon.setDate(mon.getDate()-((mon.getDay()+6)%7));
     const wk = isoDe(mon);
@@ -1576,7 +1745,7 @@ function renderSummaryEmpleado(){
   const E = ENT, r = calcMes(currentMonth);
   if(r.dias<=0){ renderMesPrevio(); return; }          // mes anterior a tu ingreso: no hay cálculo, solo el dato de tu empleo anterior
   $('verifBanco').style.display = ''; $('previoAviso').style.display = 'none'; $('summaryTable').closest('details').style.display = '';
-  const d = calcRetencion(r.ibcSinAux, r.dias, currentMonth);
+  const d = retDe(r, currentMonth);
   retencionActual = d.retefuente;
   const chk = $('auxTransporte'), lbl = $('auxTransporteLabel');
   if(r.auxElegible){
@@ -1586,7 +1755,7 @@ function renderSummaryEmpleado(){
     chk.disabled = true; chk.checked = false;
     lbl.textContent = `No aplica este mes — salario + comisiones supera 2 SMLMV (${fmtCOP(2*SMLMV)})`;
   }
-  const neto = r.ibcTotal - d.ss - d.retefuente - d.vol;
+  const neto = r.ibcTotal + r.nsOtros - d.ss - d.retefuente - d.vol;   // lo que llega a tu cuenta (la alimentación va a la tarjeta)
   ultimoNetoCalculado = neto;
   // Si ya verificaste lo que llegó al banco, ESE es el neto que se muestra
   const aj = ajustesBanco[keyMesActual()], difBanco = aj ? aj.real - Math.round(neto) : 0;
@@ -1597,48 +1766,55 @@ function renderSummaryEmpleado(){
       rows.push(['total','Salario neto calculado', fmtCOP(neto)]);
       rows.push(['sub-item','Diferencia registrada con el banco', (difBanco>0?'+':'−')+fmtCOP(Math.abs(difBanco))]);
       rows.push(['total','Salario neto a recibir (verificado en el banco)', fmtCOP(aj.real)]);
-    } else rows.push(['total','Salario neto a recibir', fmtCOP(neto)]);
+    } else rows.push(['total', r.noSal>0 ? 'Neto a recibir en tu cuenta' : 'Salario neto a recibir', fmtCOP(neto)]);
+    if(r.nsAlim>0){ rows.push(['add','+ Alimentación en tu tarjeta o bonos', fmtCOP(r.nsAlim)]); rows.push(['total','Total que recibes (cuenta + tarjeta)', fmtCOP(netoMostrado + r.nsAlim)]); }
   };
-  ultimoDesglose = {'Salario fijo':r.salarioProrr, 'Recargos':r.recNoct+r.recFest, 'Horas extra':r.extD+r.extN, 'Comisiones':r.comisProrr, 'Auxilio transporte':r.aux};
+  ultimoDesglose = {'Salario fijo':r.salarioProrr, 'Recargos':r.recNoct+r.recFest, 'Horas extra':r.extD+r.extN, 'Comisiones':r.comisProrr, 'Auxilio transporte':r.aux, 'No salarial':r.nsOtros};
 
-  const suf = (r.vencido && r.conExtras) ? ` (de ${MESES[r.target]})` : '';
+  const suf = (r.vencido && r.conExtras) ? ` (de ${r.target<0 ? `diciembre de ${ANIO-1}` : MESES[r.target].toLowerCase()})` : '';
   const rows = [];
   rows.push(['add-header', `${E.integral ? 'Salario integral' : 'Salario fijo'} — ${r.dias} días`, fmtCOP(r.salarioProrr)]);
   if(E.integral) rows.push(['sub-item','Incluye prestaciones, recargos y extras. Los aportes se calculan sobre el 70%','']);
-  rows.push(['sub-item', 'Pago por día (salario ÷ 30)', fmtCOP(r.pagoDiario)]);
+  if(r.tramos.length>1) r.tramos.forEach(t=>rows.push(['sub-item', `Del ${t.desde} al ${t.hasta}: salario de ${fmtCOP(t.salario)}`, fmtCOP(t.salario/30*(t.hasta-t.desde+1))]));
+  else rows.push(['sub-item', 'Pago por día (salario ÷ 30)', fmtCOP(r.pagoDiario)]);
   if(r.comisProrr>0) rows.push(['sub-item','+ Comisiones y bonos'+suf, fmtCOP(r.comisProrr)]);
   if(r.recNoct>0) rows.push(['sub-item','+ Recargo nocturno'+suf, fmtCOP(r.recNoct)]);
   if(r.recFest>0) rows.push(['sub-item','+ Recargo dominical/festivo'+suf, fmtCOP(r.recFest)]);
   if(r.extD>0) rows.push(['sub-item','+ Horas extra diurnas'+suf, fmtCOP(r.extD)]);
   if(r.extN>0) rows.push(['sub-item','+ Horas extra nocturnas'+suf, fmtCOP(r.extN)]);
   rows.push(['add','Total devengado', fmtCOP(r.ibcTotal)]);
+  if(r.nsOtros>0) rows.push(['add','+ Pagos no salariales (llegan con el sueldo)', fmtCOP(r.nsOtros)]);
+  if(r.nsAlim>0) rows.push(['sub-item', `Alimentación no salarial: ${fmtCOP(r.nsAlim)} (va a la tarjeta, abajo)${r.alimGravable>0 ? ` · ${fmtCOP(r.alimGravable)} pasan de 41 UVT y pagan retención` : ''}`, '']);
+  if(r.exceso1393>0) rows.push(['sub-item', `Lo no salarial pasa del 40 % de lo que ganas: ${fmtCOP(r.exceso1393)} sí pagan salud y pensión (Ley 1393)`, '']);
   rows.push(['deduct','− Salud (4%)', fmtCOP(d.salud)]);
   if(E.pensionado) rows.push(['sub-item','Pensionado por vejez: no se descuenta pensión ni Fondo de Solidaridad','']);
   else rows.push(['deduct','− Pensión (4%)', fmtCOP(d.pension)]);
-  if(d.fsp>0) rows.push(['deduct',`− Fondo de Solidaridad (${(d.fspPct*100).toFixed(1)}%)`, fmtCOP(d.fsp)]);
+  if(d.fsp>0) rows.push(['deduct',`− Fondo de Solidaridad (${pctCO(d.fspPct,1)})`, fmtCOP(d.fsp)]);
   if(d.vol>0) rows.push(['deduct','− Aporte voluntario (AFC / pensión voluntaria)', fmtCOP(d.vol)]);
   if(d.retefuente>0) rows.push(['deduct',E.proc2&&E.retPct>0 ? `− Retención en la fuente (${E.retPct}% fijo)` : '− Retención en la fuente', fmtCOP(d.retefuente)]);
   if(d.retefuente>0 && d.prorrateada) rows.push(['sub-item',`La retención se calcula con el sueldo del mes completo (${fmtCOP(d.retMes)}) y se prorratea: ${r.dias}/30 días`, '']);
   if(r.aux>0) rows.push(['add','+ Auxilio de transporte', fmtCOP(r.aux)]);
-  if(E.pagaCaja) rows.push(['sub-item','+ Caja de Compensación (aporte patronal 4%)', fmtCOP(r.ibcSinAux*0.04)]);
+  if(E.pagaCaja) rows.push(['sub-item','Tu empresa aporta a la Caja de Compensación (4 %): no sale de tu sueldo', fmtCOP(r.ibcSinAux*0.04)]);
 
   const nota = $('notaMesEspecial'); nota.innerHTML = '';
   $('eneroInteresesContainer').style.display = currentMonth===0 ? 'block' : 'none';
   if((currentMonth===5 || currentMonth===11) && !E.integral){
     const s0 = currentMonth<6 ? 0 : 6; let tot = 0;
     for(let m=s0; m<=s0+5; m++) tot += primaDeMes(m).devengadoPrestacional;
-    const prima = tot/12;
+    const prima = tot/12, retP = retencionPrima(d, prima, currentMonth);
     filasNeto();
     rows.push(['add','+ Prima de servicios (semestral)', fmtCOP(prima)]);
-    rows.push(['total','Pago total estimado del mes (salario + prima)', fmtCOP(netoMostrado+prima)]);
-    nota.innerHTML = `<div class="info-banner">ℹ️ <strong>Nota sobre la prima:</strong> según la empresa, puede pagarse junto con el salario o por separado (generalmente en la primera quincena de junio / diciembre).</div>`;
+    if(retP>0) rows.push(['deduct','− Retención en la fuente sobre la prima (estimada)', fmtCOP(retP)]);
+    rows.push(['total','Pago total estimado del mes (salario + prima)', fmtCOP(netoMostrado+prima-retP)]);
+    nota.innerHTML = `<div class="info-banner">ℹ️ <strong>Nota sobre la prima:</strong> por ley se paga a más tardar el 30 de junio y el 20 de diciembre. Para la retención se suma a los pagos del mes (así lo calcula la mayoría de empresas). Puede llegar junto con el salario o por separado (generalmente en la primera quincena de junio / diciembre).</div>`;
   } else if(currentMonth===0 && !E.integral){
     filasNeto();
-    if(interesesEneroVal>0){
-      rows.push(['add','+ Intereses sobre cesantías (ingresados manualmente)', fmtCOP(interesesEneroVal)]);
-      rows.push(['total','Pago total estimado del mes (salario + intereses)', fmtCOP(netoMostrado+interesesEneroVal)]);
+    const ca = cesantiasAnteriores(), intEne = interesesEneroVal>0 ? interesesEneroVal : (ca.intereses||0);
+    if(intEne>0){
+      rows.push(['add', interesesEneroVal>0 ? `+ Intereses sobre cesantías de ${ANIO-1} (lo que escribiste)` : `+ Intereses sobre cesantías de ${ANIO-1} (estimado${ca.deDatos ? ` con tus datos de ${ANIO-1}` : ''})`, fmtCOP(intEne)]);
+      rows.push(['total','Pago total estimado del mes (salario + intereses)', fmtCOP(netoMostrado+intEne)]);
     }
-    nota.innerHTML = `<div class="info-banner">ℹ️ <strong>Nota sobre intereses de cesantías:</strong> por ley, los intereses de las cesantías del año anterior (${ANIO-1}) se pagan directamente al trabajador a más tardar el 31 de enero. Si los recibiste, ingrésalos arriba para sumarlos al neto del mes.</div>`;
+    nota.innerHTML = `<div class="info-banner">ℹ️ <strong>Enero:</strong> los intereses de las cesantías de ${ANIO-1} se pagan directamente a ti a más tardar el 31 de enero${ca.ces>0 ? `, y las cesantías (${fmtCOP(ca.ces)}) van a tu fondo a más tardar el 14 de febrero` : ''}. ${intEne>0 && interesesEneroVal<=0 ? 'El valor es estimado: cuando te los paguen, escribe el real arriba.' : 'Si los recibiste, escribe el valor arriba para sumarlo al neto del mes.'}</div>`;
   } else filasNeto();
 
   $('summaryTable').innerHTML = rows.map(([c,l,v])=>`<tr class="${c}"><td>${esc(l)}</td><td class="val">${v}</td></tr>`).join('');
@@ -1693,7 +1869,7 @@ function renderVerificacionBanco(){
   }
   if(aj.esperado!==esperado) html += `<div class="hint" style="margin-top:.5rem;">⚠️ El valor esperado cambió desde que registraste esto (antes era ${fmtCOP(aj.esperado)}). Si ya no cuadra, vuelve a registrar el monto.</div>`;
   const yaEnGestor = !!ingresoGestor[keyMesActual()];
-  html += `<div class="row-actions"><button class="ghost" type="button" style="padding:.3rem .7rem; font-size:.75rem;" onclick="bancoCopiar(this)">Copiar monto verificado</button>${EN_SUITE ? `<button class="ghost" type="button" style="padding:.3rem .7rem; font-size:.75rem;" onclick="ofrecerIngresoGestor(ajustesBanco[keyMesActual()].real)">${yaEnGestor ? '✓ En el gestor · actualizar' : 'Agregar al gestor de gastos'}</button>` : ''}<button class="small-del" type="button" onclick="bancoQuitarAjuste()">quitar verificación de este mes</button></div>`;
+  html += `<div class="row-actions"><button class="ghost" type="button" style="padding:.3rem .7rem; font-size:.75rem;" onclick="bancoCopiar(this)">Copiar monto verificado</button><button class="ghost" type="button" style="padding:.3rem .7rem; font-size:.75rem;" onclick="ofrecerIngresoGestor(ajustesBanco[keyMesActual()].real)">${yaEnGestor ? '✓ En el gestor · actualizar' : 'Agregar al gestor de gastos'}</button><button class="small-del" type="button" onclick="bancoQuitarAjuste()">quitar verificación de este mes</button></div>`;
   msg.innerHTML = html;
 }
 
@@ -1718,7 +1894,6 @@ function toastCalc(msg){
 function cerrarModalGestor(){ $('modalGestor').hidden = true; $('modalGestor').innerHTML = ''; }
 function ultimoDiaDelMes(y,m){ return `${y}-${pad(m+1)}-${pad(new Date(y,m+1,0).getDate())}`; }
 async function ofrecerIngresoGestor(real){
-  if(!EN_SUITE) return;                                   // solo existe dentro de la suite (necesita el gestor)
   const mesIdx = currentMonth, mesKey = keyMesActual(), idExistente = ingresoGestor[mesKey] || '';
   const box = $('modalGestor'); box.hidden = false;
   box.innerHTML = `<div class="mg-box"><h3>Salario de ${MESES[mesIdx]}</h3><p>Conectando con el gestor de gastos…</p></div>`;
@@ -1766,18 +1941,20 @@ function criteriosGestor(umbral, confirmado, faltan){
   const desde = a && a.desde && a.desde<'9999' ? a.desde : '';
   const nota = (txt, extra)=> txt + (desde ? ` · el gestor tiene datos desde ${desde}` : '') + (extra>0 ? ` · incluye ${fmtCOP(extra)} que escribiste` : '');
   const vC = (a?a.compras:0)+A0.compras, vT = (a?a.tarjeta:0)+A0.tarjeta, vK = (a?a.consignaciones:0)+A0.consignaciones;
+  const vB = (a ? (a.entradasBanco||0) : 0)+A0.consignaciones;   // todo lo que entró a cuentas bancarias, incluso lo que pasas entre tus cuentas
   const items = [
     {id:'ingresos', nombre:'Ingresos brutos', valor:confirmado, tope, estado: confirmado>=umbral ? 'supera' : (faltan.length ? 'parcial' : 'no'), nota:'lo que calcula la app, con empleos anteriores'},
     {id:'compras', nombre:'Compras y consumos', valor:vC, tope, estado:est(vC,tope), nota:nota('tus gastos del año, sin pagos de deudas', A0.compras)},
     {id:'tarjeta', nombre:'Consumos con tarjeta de crédito', valor:vT, tope, estado:est(vT,tope), nota:nota('gastos pagados con tus tarjetas', A0.tarjeta)},
-    {id:'consig', nombre:'Consignaciones y depósitos', valor:vK, tope, estado:est(vK,tope), nota:nota('ingresos registrados en tus cuentas', A0.consignaciones)},
+    {id:'consig', nombre:'Consignaciones y depósitos', valor:vK, tope, estado: vK<tope && vB>=tope ? 'revisar' : est(vK,tope),
+      nota: vK<tope && vB>=tope ? `tus ingresos no llegan al tope, pero contando lo que pasas entre tus cuentas entraron ${fmtCOP(vB)}: el banco le reporta a la DIAN todo lo que entra; confírmalo con tu contador` : nota('ingresos registrados en tus cuentas', A0.consignaciones)},
     {id:'patrimonio', nombre:'Patrimonio bruto', valor:pat, tope:tPat, estado: pat>=tPat ? 'supera' : (pat===0 ? 'sin_datos' : 'parcial'), nota:'saldos de cuentas de hoy + tus bienes (lo que cuenta es el saldo al 31 de diciembre)'}
   ];
   return {items, hayGestor:!!a, meses, esperados, desde, completo: cubre};
 }
 function renderCriterios(crit){
   const el = $('criteriosBox'); if(!el) return;
-  const chip = e => e==='supera' ? '<span class="chip warn">Supera el tope</span>' : e==='no' ? '<span class="chip ok">Bajo el tope</span>' : e==='parcial' ? '<span class="chip">Hasta ahora, bajo el tope</span>' : '<span class="chip">Sin datos</span>';
+  const chip = e => e==='supera' ? '<span class="chip warn">Supera el tope</span>' : e==='revisar' ? '<span class="chip warn">Revisar</span>' : e==='no' ? '<span class="chip ok">Bajo el tope</span>' : e==='parcial' ? '<span class="chip">Hasta ahora, bajo el tope</span>' : '<span class="chip">Sin datos</span>';
   const nSup = crit.items.filter(c=>c.estado==='supera').length;
   const bars = crit.items.map(c=>{ const p = Math.min(100, Math.round(c.valor/c.tope*100)); return `<div style="margin-bottom:.8rem;"><div style="display:flex; justify-content:space-between; gap:.5rem; font-size:.85rem; font-weight:700;"><span>${esc(c.nombre)}</span>${chip(c.estado)}</div>
     <div class="fl-bar" role="img" aria-label="${esc(c.nombre)}: ${p}% del tope" style="height:10px; margin:.35rem 0 .25rem;"><span style="flex:${p||0.5} 1 0; background:${c.estado==='supera'?'var(--danger)':'var(--accent)'};"></span><span style="flex:${100-p} 1 0; background:transparent;"></span></div>
@@ -1837,7 +2014,7 @@ function comparar(){
   const out = $('asRes'); if(!neto){ out.innerHTML = '<div class="info-banner">Escribe el neto que te pagaron.</div>'; return; }
   ENT = leerEntradas(); _mesCache = {};
   const r = calcMes(m); if(r.dias<=0){ out.innerHTML = '<div class="info-banner">Ese mes es anterior a tu fecha de ingreso: elige otro.</div>'; return; }
-  const d = calcRetencion(r.ibcSinAux, r.dias, m), app = Math.round(r.ibcTotal - d.ss - d.retefuente - d.vol), dif = neto - app;
+  const d = retDe(r, m), app = Math.round(r.ibcTotal + r.nsOtros - d.ss - d.retefuente - d.vol), dif = neto - app;
   const fila = (t,v,c)=>`<div class="liq-row ${c||''}"><span>${t}</span><b>${v}</b></div>`;
   let h = fila('La calculadora dice', fmtCOP(app)) + fila('Tu desprendible dice', fmtCOP(neto)) + fila('Diferencia', (dif>=0?'+':'−')+fmtCOP(Math.abs(dif)), 'liq-tot'), hints = [], btn = '';
   if(Math.abs(dif)<=2000) hints.push('✅ Coincide. La calculadora está calibrada con tu empresa.');
@@ -1866,6 +2043,8 @@ function listaDocumentos(){
   if(E.tieneDependientes) L.push({id:'doc_dependientes', t:'Documentos de cada dependiente', d:'Que acrediten el parentesco y que dependen económicamente de ti.'});
   if(E.vol>0) L.push({id:'cert_voluntarios', t:'Certificado de tus aportes voluntarios (AFC o pensión voluntaria)', d:'Del fondo donde los haces.'});
   if((pt.cuentas||0)+(pt.bienes||0)>0) L.push({id:'cert_saldos', t:'Certificados de saldos al 31 de diciembre', d:'De tus cuentas, inversiones y tarjetas.'});
+  const feAnio = (g && g.anios && g.anios[String(ANIO)] && g.anios[String(ANIO)].facturaE) || 0;
+  if(feAnio>0) L.push({id:'doc_facturas', t:'Las facturas electrónicas a tu nombre', d:'Te llegan al correo; también las puedes consultar en la DIAN. Sirven para la deducción del 1 %.'});
   if((pt.bienes||0)>0) L.push({id:'doc_bienes', t:'Escrituras o tarjeta de propiedad de tus bienes', d:''});
   if((pt.deudas||0)>0) L.push({id:'cert_deudas', t:'Certificados de deuda al 31 de diciembre', d:'De tus créditos y tarjetas.'});
   return L;
@@ -1876,13 +2055,14 @@ function renderDocsBox(){
     ${L.map(x=>`<label class="doc-fila"><input type="checkbox" data-doc="${esc(x.id)}" ${docsMarcados[x.id]?'checked':''}><span><b>${esc(x.t)}</b>${x.d ? `<small>${esc(x.d)}</small>` : ''}</span></label>`).join('')}</div>`;
 }
 function datosContador(){
-  const E = ENT || (ENT = leerEntradas()), g = leerGestor(), hasta = hastaIdx(), T = {dev:0, pres:0, salud:0, pension:0, fsp:0, vol:0, ret:0, meses:0}, P = {dev:0};
+  const E = ENT || (ENT = leerEntradas()), g = leerGestor(), hasta = hastaIdx(), T = {dev:0, pres:0, salud:0, pension:0, fsp:0, vol:0, ret:0, meses:0, noSal:0, alim:0}, P = {dev:0};
   const dViv = Math.max(1, E.viviendaDesde||1), dPre = Math.max(1, E.prepagadaDesde||1);
   let mesesPre = 0, mesesPreProy = 0, mesesViv = 0;
   for(let m=0;m<12;m++){
     const r = calcMes(m); if(!(r.dias>0)) continue;
     if(m<=hasta){
-      const d = calcRetencion(r.ibcSinAux, r.dias, m);
+      const d = retDe(r, m);
+      T.noSal += r.noSalGravable; T.alim += r.nsAlim - r.alimGravable;
       T.dev += r.ibcTotal; T.pres += primaDeMes(m).devengadoPrestacional; T.salud += d.salud; T.pension += d.pension; T.fsp += d.fsp; T.vol += d.vol||0; T.ret += d.retefuente; T.meses++;
       if(m+1>=dPre) mesesPre++; if(m+1>=dViv) mesesViv++;
     } else { P.dev += r.ibcTotal; if(m+1>=dPre) mesesPreProy++; }
@@ -1899,14 +2079,22 @@ function datosContador(){
   const ded = [
     {id:'vivienda', nombre:'Intereses de vivienda (leasing o crédito hipotecario)', valor:viv, aplica:E.aplicaVivienda!==false, nota:vivNota, aprox:vivAprox},
     {id:'prepagada', nombre:'Medicina prepagada', valor:pre, aplica:E.aplicaPrepagada!==false, nota:E.tienePrepagada ? mesesPre+' mes(es) desde '+MESES[dPre-1].toLowerCase()+' × lo que pagas al mes (tope 16 UVT)' : 'no lo marcaste', aprox:true},
-    {id:'dependientes', nombre:'Dependientes económicos', valor:dep, aplica:E.aplicaDependientes!==false, nota:E.tieneDependientes ? '10% de tus ingresos, con tope de 32 UVT al mes' : 'no lo marcaste', aprox:true}
+    {id:'dependientes', nombre:'Dependientes económicos (10 %)', valor:dep, aplica:E.aplicaDependientes!==false, nota:E.tieneDependientes ? '10% de tus ingresos, con tope de 32 UVT al mes' : 'no lo marcaste', aprox:true}
   ];
-  return { anio:ANIO, hasta, T, P, prev, usaCert, ded, noAplicadas:ded.filter(x=>x.valor>0 && !x.aplica), preProy, prestEst:T.pres*(2/12+0.12/12), docs:listaDocumentos() };
+  const nDep = E.tieneDependientes ? Math.min(4, Math.max(0, (parseInt($('numDependientes').value,10)||1) - 1)) : 0;
+  if(nDep>0) ded.push({id:'dep72', nombre:`Dependientes adicionales en la declaración (72 UVT por cada uno, hasta 4)`, valor:72*UVT*nDep, aplica:false, nota:`${nDep} dependiente${nDep>1?'s':''} además del que usas para el 10 % · tu contador define con qué deducción va cada uno`, aprox:true});
+  const fe = (g && g.anios && g.anios[String(ANIO)] && g.anios[String(ANIO)].facturaE) || 0;
+  if(fe>0) ded.push({id:'fe1', nombre:'1 % de tus compras con factura electrónica', valor:Math.min(0.01*fe, 240*UVT), aplica:false, nota:`compras por ${fmtCOP(fe)} que marcaste en el gestor, pagadas con tarjeta o transferencia · tope 240 UVT al año`, aprox:true});
+  return { anio:ANIO, hasta, T, P, prev, usaCert, ded, noAplicadas:ded.filter(x=>x.valor>0 && !x.aplica), preProy, prestEst:T.pres/12, cesAnt:cesantiasAnteriores(), docs:listaDocumentos() };
 }
 function filasContador(d){
   const T = d.T, R = Math.round, f = [], parcial = d.hasta>=0 && d.hasta<11, s1 = 'Ingresos de '+d.anio+(parcial ? ' (hasta '+MESES[d.hasta].toLowerCase()+')' : '');
   f.push([s1, 'Devengado en esta empresa (salario, recargos, extras, comisiones y auxilio)', R(T.dev), T.meses+' mes(es)', false]);
-  if(T.pres>0) f.push([s1, 'Prima, cesantías e intereses (estimado)', R(d.prestEst), 'tu certificado de ingresos y retenciones trae el valor real', true]);
+  if(T.noSal>0) f.push([s1, 'Pagos no salariales (bonificaciones, auxilios y alimentación sobre 41 UVT)', R(T.noSal), 'son ingreso tuyo aunque no sean salario', false]);
+  if(T.alim>0) f.push([s1, 'Alimentación en tarjeta o bonos que no es ingreso tuyo', R(T.alim), 'art. 387-1 del Estatuto Tributario: hasta 41 UVT al mes, con salario de hasta 310 UVT · no va en la declaración', false]);
+  if(T.pres>0) f.push([s1, 'Prima de servicios (estimado)', R(d.prestEst), 'tu certificado de ingresos y retenciones trae el valor real', true]);
+  if(d.cesAnt.valor>0) f.push([s1, `Cesantías e intereses de ${d.anio-1} consignados y pagados en ${d.anio}`, R(d.cesAnt.valor), (d.cesAnt.interesReal ? 'intereses: lo que escribiste en enero; cesantías: ' : '') + (d.cesAnt.deDatos ? `calculadas con tus datos de ${d.anio-1}` : 'estimadas con tu salario'), true]);
+  if(!ENT.integral && T.meses>0) f.push([s1, `Las cesantías de ${d.anio} se consignan en febrero de ${d.anio+1}`, '', `cuentan como ingreso de ${d.anio+1} (art. 27 del Estatuto Tributario), no de ${d.anio}`, false]);
   if(d.prev>0) f.push([s1, 'Empleos anteriores', R(d.prev), d.usaCert ? 'total del certificado que escribiste' : 'según lo que registraste'+(previos.tipo==='neto' ? ' (bruto estimado desde lo que llegó al banco)' : '')+': reemplázalo con el certificado de cada empresa', !d.usaCert]);
   const s2 = 'Aportes y retención'+(parcial ? ' (hasta '+MESES[d.hasta].toLowerCase()+')' : '');
   f.push([s2, 'Salud (aporte del trabajador)', R(T.salud), '', false]);
@@ -1958,16 +2146,42 @@ const NETO_A_BRUTO = 0.92;   // neto ≈ 92% del bruto (salud y pensión 8%)
 function mesesPrevios(){ const out = []; for(let m=0; m<12; m++) if(diasEsperadosMes(m)<=0) out.push(m); return out; }
 function brutoPrevio(v){ return previos.tipo==='bruto' ? v : v/NETO_A_BRUTO; }
 
+// Cesantías e intereses del año anterior: se consignan (feb) y pagan (ene) este año, así que son ingreso de este año (art. 27 ET)
+function cesantiasAnteriores(){
+  const E = ENT; if(!E || E.integral || !E.fechaIngreso) return {valor:0};
+  const ing = new Date(E.fechaIngreso+'T00:00:00'), ini = new Date(ANIO-1,0,1), fin = new Date(ANIO-1,11,30);
+  if(ing > fin) return {valor:0};
+  const c = cierreDe(ANIO-1);
+  if(c && c.cesantias>0){ const intereses = interesesEneroVal>0 ? interesesEneroVal : c.intereses; return {valor:c.cesantias+intereses, ces:c.cesantias, intereses, dias:c.dias, interesReal:interesesEneroVal>0, deDatos:true}; }
+  const cfg = cfgDe(ANIO-1), dias = dias360(ing>ini?ing:ini, fin), sal = salarioEn(`${ANIO-1}-12-31`), aux = (sal<=2*cfg.smlmv && auxPref) ? cfg.auxTransporte : 0;
+  const ces = (sal+aux)*dias/360, intereses = interesesEneroVal>0 ? interesesEneroVal : ces*0.12*dias/360;
+  return {valor:ces+intereses, ces, intereses, dias, interesReal: interesesEneroVal>0};
+}
+// Lo que falta para saber si declaras, en una lista corta en vez de un párrafo con doce meses
+function checklistRenta(req, crit, revisar){
+  const hoyIdx = hastaIdx(), rango = arr => arr.length ? (arr.length===1 ? MESES[arr[0]] : `${MESES[arr[0]].slice(0,3)}–${MESES[arr[arr.length-1]].slice(0,3)}`) : '';
+  const prev = req.filter(x=>x.previo), prevSin = prev.filter(x=>!x.doc).map(x=>x.m);
+  const aqui = req.filter(x=>!x.previo && x.m<=hoyIdx), aquiOk = aqui.filter(x=>x.doc).length, futuros = req.filter(x=>!x.previo && x.m>hoyIdx).map(x=>x.m);
+  const it = [];
+  if(prev.length) it.push([!prevSin.length, prevSin.length ? `Tu empleo anterior (${rango(prev.map(x=>x.m))}): escribe lo que ganabas, abajo` : `Tu empleo anterior (${rango(prev.map(x=>x.m))}): registrado`]);
+  if(aqui.length) it.push([aquiOk===aqui.length, `En esta empresa: ${aquiOk} de ${aqui.length} mes${aqui.length>1?'es':''} verificado${aqui.length>1?'s':''} con el banco${aquiOk<aqui.length?' (los demás se estiman con tu salario)':''}`]);
+  if(futuros.length) it.push([null, `${rango(futuros)}: todavía no llegan; se estiman con tu salario actual`]);
+  it.push([crit.completo, crit.hayGestor ? `Gestor de gastos: movimientos en ${crit.meses} de ${crit.esperados} meses${crit.completo?'':' (para compras, tarjetas y consignaciones)'}` : 'Gestor de gastos: sin datos (sirve para medir compras, tarjetas y consignaciones)']);
+  if(revisar) it.push([false, 'Consignaciones: con las transferencias entre tus cuentas pasas el tope (mira «Los 5 criterios de la DIAN»)']);
+  return `<ul class="renta-check">${it.map(([ok,t])=>`<li class="${ok===true?'ok':ok===false?'pend':'info'}">${esc(t)}</li>`).join('')}</ul>`;
+}
 function renderRenta(){
   const el = $('rentaBox'); if(!el) return;
   construirPrevios(false); renderContadorBox(); renderDocsBox();
-  const umbral = 1400*UVT, k = ENT.integral ? 1 : 1 + 2/12 + (0.12/12);   // en esta empresa: salario + prima + cesantías + intereses proporcionales
+  // en esta empresa: devengado + prima (se paga en junio y diciembre del mismo año). Las cesantías y sus intereses de este año se consignan
+  // y pagan en febrero y enero del año siguiente: por el art. 27 del ET son ingreso de ese año, no de este.
+  const umbral = 1400*UVT, k = ENT.integral ? 1 : 1 + 1/12, cesAnt = cesantiasAnteriores();
   const req = [];
   const usaCert = (previos.totalCert||0)>0;
   for(let m=0; m<12; m++){
     const key = `${ANIO}-${pad(m+1)}`, aj = ajustesBanco[key], guard = historialPrima[key];
     if(diasEsperadosMes(m)>0){
-      req.push({m, key, bruto: primaDeMes(m).devengadoPrestacional*k, previo:false, doc: !!(aj||guard)});
+      req.push({m, key, bruto: primaDeMes(m).devengadoPrestacional*k + calcMes(m).noSalGravable, previo:false, doc: !!(aj||guard)});
     } else {
       const v = valorPrevio(m);
       req.push({m, key, bruto: (usaCert || v===undefined) ? 0 : brutoPrevio(v), previo:true, doc: usaCert || v!==undefined});
@@ -1976,29 +2190,28 @@ function renderRenta(){
   const liq = usaCert ? previos.totalCert : (previos.liquidacion||0);   // con el certificado de las empresas anteriores se usa ese total
   const docs = req.filter(x=>x.doc), faltan = req.filter(x=>!x.doc);
   const deAntes = req.filter(x=>x.previo).reduce((t,x)=>t+x.bruto,0) + liq;
-  const confirmado = docs.reduce((t,x)=>t+x.bruto,0) + liq, proyeccion = req.reduce((t,x)=>t+x.bruto,0) + liq;
-  const nom = x => MESES[x.m].slice(0,3), lista = faltan.map(nom).join(', ');
+  const confirmado = docs.reduce((t,x)=>t+x.bruto,0) + liq + cesAnt.valor, proyeccion = req.reduce((t,x)=>t+x.bruto,0) + liq + cesAnt.valor;
+  const nom = x => MESES[x.m].slice(0,3);
   const faltanPrevios = faltan.some(x=>x.previo);
   const crit = criteriosGestor(umbral, confirmado, faltan);
   const razones = []; if(confirmado >= umbral) razones.push('ingresos brutos');
   crit.items.filter(c=>c.estado==='supera' && c.id!=='ingresos').forEach(c=>razones.push(c.nombre.toLowerCase()));
-  let cls, titulo, texto;
+  let cls, titulo, texto, checklist = '';
+  const revisar = crit.items.some(c=>c.estado==='revisar');
   if(razones.length){
     cls = 'declara'; titulo = `Sí: debes declarar renta en ${ANIO+1}`;
     texto = `Superas el tope en: ${razones.join(', ')}. Basta con superar uno solo de los criterios.`;
-  } else if(!faltan.length && crit.completo){
+  } else if(!faltan.length && crit.completo && !revisar){
     cls = 'no'; titulo = `Con lo que registraste, no estarías obligado a declarar renta en ${ANIO+1}`;
     texto = `No superas ninguno de los 5 criterios y hay movimientos de los ${crit.esperados} meses. Confírmalo con tu contador antes de decidir.`;
   } else {
-    cls = 'falta'; titulo = 'Todavía no se puede saber si declaras';
-    const faltas = []; if(faltan.length) faltas.push('ingresos de '+lista); if(!crit.completo) faltas.push(crit.hayGestor ? `movimientos del gestor (hay ${crit.meses} de ${crit.esperados} meses)` : 'los datos del gestor de gastos');
-    texto = `Por ahora no superas ningún tope, pero faltan: ${faltas.join(' y ')}. ` +
-      (faltanPrevios ? 'Para los meses anteriores a tu ingreso, completa el formulario de abajo (si no trabajabas en otra empresa, usa «No trabajé antes»). ' : '') +
-      (proyeccion >= umbral ? `Además, con lo estimado tus ingresos de ${ANIO} cerrarían en ${fmtCOP(proyeccion)}: es probable que sí debas declarar.` : '');
+    cls = 'falta'; titulo = revisar && !faltan.length && crit.completo ? 'Revisa las consignaciones con tu contador' : 'Todavía no se puede saber si declaras';
+    texto = 'Por ahora no superas ningún tope. Esto es lo que falta para estar seguros:' + (proyeccion >= umbral ? ` (ojo: con lo estimado tus ingresos de ${ANIO} cerrarían en ${fmtCOP(proyeccion)}, así que es probable que sí debas declarar)` : '');
+    checklist = checklistRenta(req, crit, revisar);
   }
   const chips = req.map(x=>`<span class="chip ${x.doc?'ok':''}">${nom(x)} ${x.doc?'✓':'…'}${x.previo&&x.doc?'*':''}</span>`).join('');
   const irForm = (cls==='falta' && faltanPrevios) ? `<div><button class="primary" type="button" style="margin-top:.7rem;" onclick="$('previosBox').scrollIntoView({behavior:'smooth', block:'start'})">Completar mi empleo anterior ↓</button></div>` : '';
-  el.innerHTML = `<div class="renta-banner ${cls}"><strong class="t">${esc(titulo)}</strong><span style="font-size:.85rem;">${esc(texto)}</span>${irForm}</div>
+  el.innerHTML = `<div class="renta-banner ${cls}"><strong class="t">${esc(titulo)}</strong><span style="font-size:.85rem;">${esc(texto)}</span>${checklist}${irForm}</div>
     <details class="ren-det"><summary>Ver el detalle del cálculo</summary>
  <div class="renta-meses">${chips}</div>
     <p class="hint">En esta empresa, un mes cuenta como documentado cuando lo verificas con el banco (pestaña Resumen) o lo guardas en el historial (pestaña Prestaciones). ✓ = documentado · … = solo estimado${deAntes>0||req.some(x=>x.previo&&x.doc)?' · * = de tu empleo anterior (lo que escribiste)':''}.</p>
@@ -2006,11 +2219,12 @@ function renderRenta(){
       <tr><td>Tope para declarar (1.400 UVT de ${ANIO}${C.provisional?', provisional':''})</td><td class="val">${fmtCOP(umbral)}</td></tr>
       <tr><td>Ingresos brutos confirmados (${docs.length} de ${req.length} meses)</td><td class="val">${fmtCOP(confirmado)}</td></tr>
       ${deAntes>0 ? `<tr class="sub-item"><td>Incluye de empleos anteriores${previos.tipo==='neto'?' (lo del banco ÷ 0,92)':''}</td><td class="val">${fmtCOP(deAntes)}</td></tr>` : ''}
+      ${cesAnt.valor>0 ? `<tr class="sub-item"><td>Incluye cesantías e intereses de ${ANIO-1} que se consignan y pagan en ${ANIO} (estimado)</td><td class="val">${fmtCOP(cesAnt.valor)}</td></tr>` : ''}
       <tr class="sub-item"><td>Proyección del año con lo estimado</td><td class="val">${fmtCOP(proyeccion)}</td></tr>
     </table>
     <details class="info-banner" style="margin-top:.8rem; padding:.5rem .8rem;"><summary style="cursor:pointer; font-weight:600; outline:none;">¿Qué incluye este cálculo y qué no?</summary>
       <div style="margin-top:.6rem; font-size:.8rem; line-height:1.5;">
-        <p style="margin-top:0;">Para saber si debes declarar, la DIAN suma <em>todo</em> lo que ganaste en el año (ingresos brutos), de todas tus empresas. En los meses de esta empresa la app suma el devengado (salario, recargos, extras, comisiones y auxilio) más la prima, las cesantías y los intereses que le corresponden. El año ${ANIO} se declara en ${ANIO+1}.</p>
+        <p style="margin-top:0;">Para saber si debes declarar, la DIAN suma <em>todo</em> lo que ganaste en el año (ingresos brutos), de todas tus empresas. En los meses de esta empresa la app suma el devengado (salario, recargos, extras, comisiones y auxilio) más la prima. Las cesantías cuentan el año en que te las consignan al fondo (febrero) y sus intereses el año en que te los pagan (enero): por eso suman las de ${ANIO-1} y no las de ${ANIO}. El año ${ANIO} se declara en ${ANIO+1}.</p>
         <p>Para los meses de un empleo anterior solo usa lo que tú escribes. Si escribes lo que te llegaba al banco (neto), estima el bruto dividiéndolo por 0,92 (salud y pensión descontadas). No se calcula prima ni cesantías de esos meses: esa empresa te las pagó al liquidarte; si quieres sumarlas, escríbelas en «Liquidación final».</p>
         <p style="margin-bottom:0;">Solo cuenta lo que registraste aquí (si recibes mesada pensional, no está incluida y también es un ingreso del año). También te obliga a declarar tener un patrimonio bruto de 4.500 UVT o más, o consumos con tarjeta, compras o consignaciones por 1.400 UVT o más en el año. Esto es una guía de referencia: confírmalo con tu contador.</p>
       </div></details></details>`;
@@ -2063,21 +2277,21 @@ function initPrevios(){
     const id = e.target.id; if(!id) return;
     if(id==='prevCero'){ mesesPrevios().forEach(m=>{ previos.meses[`${ANIO}-${pad(m+1)}`] = 0; }); savePrevios(); construirPrevios(true); renderRenta(); renderMonthTabs(); }
     else if(id==='prevAplicar'){ const v = money($('prevFijo')); if(v===null){ alert('Escribe primero cuánto te llegaba al mes.'); return; } mesesPrevios().forEach(m=>{ previos.meses[`${ANIO}-${pad(m+1)}`] = v; }); savePrevios(); construirPrevios(true); renderRenta(); renderMonthTabs(); }
-    else if(id==='prevBorrar'){ if(!confirmaYa('Se borrará lo que escribiste de tu empleo anterior. ¿Continuar?')) return; previos = {tipo:previos.tipo, meses:{}, liquidacion:0, totalCert:0}; savePrevios(); construirPrevios(true); renderRenta(); renderMonthTabs(); }
+    else if(id==='prevBorrar'){ SuiteUI.confirmar('Se borrará lo que escribiste de tu empleo anterior. ¿Continuar?').then(ok=>{ if(!ok) return; previos = {tipo:previos.tipo, meses:{}, liquidacion:0, totalCert:0}; savePrevios(); construirPrevios(true); renderRenta(); renderMonthTabs(); }); }
   });
 }
 
 // ---------- Desglose visual: de dónde sale y a dónde se va ----------
 function renderFlujo(r, d, neto, aj){
   const el = $('flujoBox'); if(!el) return;
-  const total = r.ibcTotal;
+  const total = r.ibcTotal + (r.nsOtros||0);   // lo que llega a tu cuenta (la alimentación en tarjeta va aparte)
   if(!(total>0)){
     el.innerHTML = aj
       ? `<div class="empty-state sin-icono">Registraste <b>${fmtCOP(aj.real)}</b> recibidos en el banco. Este mes es anterior a tu fecha de ingreso, por eso la app no tiene desglose. Ese valor sí cuenta para tu declaración de renta.</div>`
       : '<div class="empty-state">Sin ingresos en este mes (según tu fecha de ingreso).</div>';
     return;
   }
-  const comp = [['Salario fijo', r.salarioProrr, 'var(--accent)'], ['Recargos', r.recNoct+r.recFest, 'var(--quiero)'], ['Horas extra', r.extD+r.extN, 'var(--necesito)'], ['Comisiones', r.comisProrr, 'var(--debo)'], ['Auxilio de transporte', r.aux, '#5E9FB0']].filter(x=>x[1]>0.5);
+  const comp = [['Salario fijo', r.salarioProrr, 'var(--accent)'], ['Recargos', r.recNoct+r.recFest, 'var(--quiero)'], ['Horas extra', r.extD+r.extN, 'var(--necesito)'], ['Comisiones', r.comisProrr, 'var(--debo)'], ['Auxilio de transporte', r.aux, '#5E9FB0'], ['Pagos no salariales', r.nsOtros||0, '#8A7FB0']].filter(x=>x[1]>0.5);
   const dest = [['Tu neto', neto, 'var(--accent)'], ['Salud', d.salud, 'var(--debo)'], ['Pensión', d.pension, 'var(--quiero)'], ['Fondo de solidaridad', d.fsp, 'var(--necesito)'], ['Aporte voluntario', d.vol, '#5E9FB0'], ['Retención en la fuente', d.retefuente, 'var(--danger)']].filter(x=>x[1]>0.5);
   const barra = (items, aria)=>`<div class="fl-bar" role="img" aria-label="${esc(aria)}">${items.map(([n,v,c])=>`<span style="flex:${Math.max(v,total*0.012)} 1 0; background:${c};" title="${esc(n)}: ${fmtCOP(v)}"></span>`).join('')}</div>`;
   const filas = items=>items.map(([n,v,c])=>`<div class="fl-row"><span class="dot" style="background:${c};"></span><span>${esc(n)}</span><span class="amt">${fmtCOP(v)}</span><span class="pct">${Math.round(v/total*100)}%</span></div>`).join('');
@@ -2092,12 +2306,14 @@ function renderMejoras(){
   const hero = $('heroNeto'); if(!hero) return;
   const aj = ajustesBanco[keyMesActual()], dev = m => calcMes(m).ibcTotal;
   let cmp = '';
-  if(currentMonth>0 && (dev(currentMonth)>0 || dev(currentMonth-1)>0)){
+  if(currentMonth>0 && calcMes(currentMonth).dias===30 && calcMes(currentMonth-1).dias===30){   // un mes de ingreso (parcial) no se compara con uno completo
     const dd = Math.round(dev(currentMonth)-dev(currentMonth-1));
     cmp = dd===0 ? `Devengado igual al de ${MESES[currentMonth-1]}.` : `Devengado ${fmtCOP(Math.abs(dd))} ${dd>0?'más':'menos'} que en ${MESES[currentMonth-1]}.`;
   }
-  hero.innerHTML = `<div class="hero-neto"><div class="lbl">Salario neto a recibir · ${MESES[currentMonth]}</div>
+  const rm = calcMes(currentMonth);
+  hero.innerHTML = `<div class="hero-neto"><div class="lbl">${rm.noSal>0 ? 'Neto a recibir en tu cuenta' : 'Salario neto a recibir'} · ${MESES[currentMonth]}</div>
     <div class="big mono">${fmtCOP(ultimoNetoMostrado)}</div>
+    ${rm.nsAlim>0 ? `<div class="sub">+ ${fmtCOP(rm.nsAlim)} en tu tarjeta de alimentación</div>` : ''}
     ${aj ? '<span class="chip ok">✓ verificado con el banco</span>' : '<span class="chip">sin verificar</span>'}
     ${aj && Math.round(ultimoNetoCalculado)!==aj.real ? `<div class="sub">Valor real del banco. La app calculaba ${fmtCOP(ultimoNetoCalculado)}.</div>` : ''}
     ${cmp ? `<div class="sub">${cmp}</div>` : ''}</div>`;
@@ -2107,6 +2323,19 @@ function renderMejoras(){
 function guardarMesPrima(){ historialPrima[keyMesActual()] = computeMesPrestacional(currentMonth); savePrima(); renderAll(); }
 function actualizarMesPrima(key,m){ historialPrima[key] = computeMesPrestacional(m); savePrima(); renderAll(); }
 function eliminarMesPrima(key){ delete historialPrima[key]; savePrima(); renderAll(); }
+// Cesantías del año (art. 249 y 253 CST): un mes de salario por año, proporcional a los días.
+// Base: el último salario si no cambió en los últimos 3 meses y no hubo pagos variables; si no, el promedio de lo devengado.
+// Intereses (Ley 52 de 1975): 12 % anual, proporcional a los días trabajados.
+function cesantiasDelAnio(){
+  let total = 0, dias = 0, variable = false;
+  for(let m=0; m<12; m++){ const p = primaDeMes(m), r = calcMes(m); total += p.devengadoPrestacional; dias += p.dias||0; if(r.adiciones + r.comisProrr > 0.5) variable = true; }
+  if(!dias) return {valor:0, intereses:0, dias:0, nota:''};
+  const corte = `${ANIO}-09-30`, cambio = histSal.some(h=>h.hasta >= corte && h.hasta < `${ANIO}-12-31`);
+  let valor, nota;
+  if(!variable && !cambio){ const d = calcMes(11), base = salarioEn(`${ANIO}-12-31`) + (d.auxAplica ? AUX_TRANSPORTE : 0); valor = base*dias/360; nota = `Base: tu último salario${d.auxAplica?' más el auxilio':''} (${fmtCOP(base)}), porque no cambió en los últimos 3 meses.`; }
+  else { valor = total/12; nota = `Base: el promedio de lo devengado (${fmtCOP(total/(dias/30))} al mes)${cambio?', porque tu salario cambió en los últimos 3 meses':', porque hubo recargos, extras o comisiones'}.`; }
+  return {valor, intereses: valor*0.12*dias/360, dias, nota};
+}
 function renderPrima(){
   if(ENT.integral){ $('primaTable').innerHTML = ''; $('cesantiasBox').innerHTML = '<div class="info-banner" style="margin:0;">Con salario integral no hay prima, cesantías ni intereses: ya van incluidos en el salario. Las vacaciones sí se mantienen (ver abajo).</div>'; $('mesActualLabel').textContent = MESES[currentMonth]; return; }
   const s0 = currentMonth<6 ? 0 : 6; let totalSem = 0, rows = '';
@@ -2118,13 +2347,13 @@ function renderPrima(){
     const accion = g ? (desact ? `<span class="chip warn">⚠ desactualizado</span> <button class="small-del" type="button" style="color:var(--teal-dark);" onclick="actualizarMesPrima('${key}',${m})">actualizar</button> ${q}` : `<span class="chip ok">✓ guardado</span> ${q}`) : (data.dias===0 ? '—' : '<span class="chip">estimado</span>');
     rows += `<tr><td>${MESES[m]}</td><td class="num">${data.dias}</td><td class="num">${fmtCOP(data.devengadoPrestacional)}</td><td style="font-size:.75rem; color:var(--ink-soft);">${accion}</td></tr>`;
   }
-  let totalAnual = 0; for(let m=0; m<12; m++) totalAnual += primaDeMes(m).devengadoPrestacional;
-  const cesantias = totalAnual/12, intereses = cesantias*0.12;
+  const ces = cesantiasDelAnio(), cesantias = ces.valor, intereses = ces.intereses;
+  if(ces.dias>0) guardarCierre(ces);
   $('primaTable').innerHTML = `<table><thead><tr><th>Mes</th><th>Días</th><th>Devengado prestacional (real)</th><th></th></tr></thead><tbody>${rows}</tbody></table>
     <table class="summary" style="margin-top:.6rem;"><tr class="total"><td>Prima estimada del semestre</td><td class="val">${fmtCOP(totalSem/12)}</td></tr></table>`;
   $('cesantiasBox').innerHTML = `<table class="summary">
-    <tr class="add-header"><td>Cesantías estimadas (acumulado anual)<br><small style="font-weight:normal; color:var(--ink-soft);">ℹ️ Se consignan a tu fondo a más tardar el 14 de febrero.</small></td><td class="val">${fmtCOP(cesantias)}</td></tr>
-    <tr class="sub-item"><td>Intereses sobre cesantías (12% anual)<br><small style="color:var(--ink-soft);">ℹ️ Te los pagan en dinero a más tardar el 31 de enero.</small></td><td class="val">${fmtCOP(intereses)}</td></tr></table>`;
+    <tr class="add-header"><td>Cesantías estimadas (acumulado anual)<br><small style="font-weight:normal; color:var(--ink-soft);">ℹ️ Se consignan a tu fondo a más tardar el 14 de febrero. ${esc(ces.nota)}</small></td><td class="val">${fmtCOP(cesantias)}</td></tr>
+    <tr class="sub-item"><td>Intereses sobre cesantías (12% anual, proporcional a ${ces.dias} días)<br><small style="color:var(--ink-soft);">ℹ️ Te los pagan en dinero a más tardar el 31 de enero.</small></td><td class="val">${fmtCOP(intereses)}</td></tr></table>`;
   $('mesActualLabel').textContent = MESES[currentMonth];
 }
 
@@ -2146,7 +2375,7 @@ function renderContratista(){
   h += `<tr class="important"><td>Ingreso Base de Cotización (IBC)</td><td class="val">${fmtCOP(ibc)}</td></tr>`;
   $('ibcTableContratista').innerHTML = h;
 
-  const salud = ibc*CONTRATO_SALUD_PCT, pension = pensionado ? 0 : ibc*CONTRATO_PENSION_PCT, fspPct = pensionado ? 0 : fspRate(ibc), fsp = ibc*fspPct;   // pensionado por vejez: solo salud (y ARL si la pagas)
+  const salud = ibc*CONTRATO_SALUD_PCT, pension = pensionado ? 0 : ibc*CONTRATO_PENSION_PCT, fspPct = pensionado ? 0 : fspRate(ibc, new Date()), fsp = ibc*fspPct;   // pensionado por vejez: solo salud (y ARL si la pagas)
   const pagaARL = $('pagaARL').checked, arlPct = parseFloat($('nivelARL').value)||0, arl = pagaARL ? ibc*arlPct : 0;
   $('arlNotaIVV').style.display = (arlPct>=0.0435 && pagaARL) ? 'block' : 'none';
   const pagaCCF = $('pagaCCF').checked, ccfRate = getCCFRate(), ccf = pagaCCF ? ibc*ccfRate : 0;
@@ -2155,19 +2384,26 @@ function renderContratista(){
   const baseRet = Math.max(0, valor - salud - pension - fsp), tipo = $('retefuenteTipo').value;
   let retefuente = 0, retLabel = '− Retención en la fuente', retNota = '';
   if(tipo==='custom'){ retefuente = getMoney('retefuenteCustomValor'); retLabel = '− Retención en la fuente (monto manual)'; }
+  else if(tipo==='tabla'){
+    // Igual que un empleado (art. 383 par. 2 ET): ingreso − aportes obligatorios − 25 % exento (tope 790 UVT/año), dentro del 40 % / 1.340 UVT
+    const exenta = Math.min(0.25*baseRet, (790/12)*UVT), base = Math.max(0, baseRet - Math.min(exenta, 0.40*baseRet, (TOPE_GLOBAL_UVT_ANUAL/12)*UVT));
+    retefuente = Math.round(impuestoUVT(base/UVT)*UVT/1000)*1000;
+    retLabel = '− Retención en la fuente (tabla del art. 383)';
+    retNota = retefuente>0 ? `Base de retención: ${fmtCOP(base)} (el pago menos tus aportes y el 25 % exento).` : `No te retienen: la base (${fmtCOP(base)}, el pago menos tus aportes y el 25 % exento) es menor a 95 UVT (${fmtCOP(95*UVT)}).`;
+  }
   else {
-    const pct = parseFloat(tipo)||0, esServicios = (pct===0.06 || pct===0.04);
-    if(esServicios && baseRet < 4*UVT && pct>0){ retNota = `Retención de servicios: no aplica porque la base (${fmtCOP(baseRet)}) es menor a 4 UVT (${fmtCOP(4*UVT)}).`; }
+    const pct = parseFloat(tipo)||0, esServicios = (pct===0.06 || pct===0.04), minServ = baseServiciosUVT();
+    if(esServicios && valor < minServ*UVT && pct>0){ retNota = `Retención de servicios: no aplica porque el pago es menor a ${minServ} UVT (${fmtCOP(minServ*UVT)}).`; }
     else retefuente = baseRet*pct;
-    retLabel = `− Retención en la fuente (${(pct*100).toFixed(0)}% sobre ${fmtCOP(baseRet)})`;
+    retLabel = `− Retención en la fuente (${pctCO(pct,0)} sobre ${fmtCOP(baseRet)})`;
   }
   const neto = valor - salud - pension - fsp - arl - ccf - retefuente;
   let r = `<tr><td>Valor mensual del contrato</td><td class="val">${fmtCOP(valor)}</td></tr>
     <tr class="deduct"><td>− Salud (12,5% del IBC)</td><td class="val">${fmtCOP(salud)}</td></tr>
     ${pensionado ? '<tr class="sub-item"><td colspan="2">Pensionado por vejez: no cotizas a pensión ni al Fondo de Solidaridad.</td></tr>' : `<tr class="deduct"><td>− Pensión (16% del IBC)</td><td class="val">${fmtCOP(pension)}</td></tr>`}`;
-  if(fsp>0) r += `<tr class="deduct"><td>− Fondo de Solidaridad Pensional (${(fspPct*100).toFixed(1)}% del IBC)</td><td class="val">${fmtCOP(fsp)}</td></tr>`;
-  if(pagaARL) r += `<tr class="deduct"><td>− ARL (${(arlPct*100).toFixed(3)}% del IBC)</td><td class="val">${fmtCOP(arl)}</td></tr>`;
-  if(pagaCCF) r += `<tr class="deduct"><td>− Caja de Compensación (${(ccfRate*100).toFixed(2)}% del IBC)</td><td class="val">${fmtCOP(ccf)}</td></tr>`;
+  if(fsp>0) r += `<tr class="deduct"><td>− Fondo de Solidaridad Pensional (${pctCO(fspPct,1)} del IBC)</td><td class="val">${fmtCOP(fsp)}</td></tr>`;
+  if(pagaARL) r += `<tr class="deduct"><td>− ARL (${pctCO(arlPct,3)} del IBC)</td><td class="val">${fmtCOP(arl)}</td></tr>`;
+  if(pagaCCF) r += `<tr class="deduct"><td>− Caja de Compensación (${pctCO(ccfRate,2)} del IBC)</td><td class="val">${fmtCOP(ccf)}</td></tr>`;
   if(retefuente>0) r += `<tr class="deduct"><td>${esc(retLabel)}</td><td class="val">${fmtCOP(retefuente)}</td></tr>`;
   if(retNota) r += `<tr class="sub-item"><td colspan="2">${esc(retNota)}</td></tr>`;
   r += `<tr class="total"><td>Neto a recibir</td><td class="val">${fmtCOP(neto)}</td></tr>`;
@@ -2177,52 +2413,10 @@ function renderContratista(){
 }
 
 // ============================================================
-//  Respaldo (exportar / importar) con validación
-// ============================================================
-function descargar(contenido, nombre, tipo){
-  const url = URL.createObjectURL(new Blob([contenido], {type:tipo}));
-  const a = document.createElement('a'); a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url), 2000);
-}
-function exportarDatos(){
-  saveConfig();
-  const backup = { version:'2026.15', anio:ANIO, workdays, historialPrima, shiftPresets, comisionesPorMes, interesesEneroVal, ajustesBanco, appConfig, empleosPrevios: previos };
-  descargar(JSON.stringify(backup,null,2), `respaldo_calculadora_salario_${ANIO}.json`, 'application/json');
-}
-function importarDatosPrompt(){
-  const input = document.createElement('input'); input.type = 'file'; input.accept = '.json,application/json';
-  input.onchange = e=>{
-    const file = e.target.files[0]; if(!file) return;
-    const reader = new FileReader();
-    reader.onload = ev=>{
-      let b; try{ b = JSON.parse(ev.target.result); }catch(err){ alert('El archivo no es un JSON válido o está corrupto.'); return; }
-      if(!isObj(b) || !(isObj(b.workdays) || isObj(b.appConfig) || isObj(b.shiftPresets))){ alert('El archivo no parece ser un respaldo de esta calculadora.'); return; }
-      const y = ANIOS.includes(Number(b.anio)) ? Number(b.anio) : 2026;
-      const presets = sanitizePresets(b.shiftPresets || shiftPresets);
-      const wd = sanitizeWorkdays(b.workdays, presets);
-      (window.confirmaLuego||(m=>Promise.resolve(confirm(m))))(`El respaldo trae ${Object.keys(wd).length} días marcados del año ${y}. Se reemplazarán tus datos de ${y}. ¿Continuar?`).then(ok=>{
-      if(!ok) return;
-      lsSet(`co${y}_workdays`, wd);
-      lsSet(`co${y}_historial_prima`, sanitizeHistorial(b.historialPrima));
-      lsSet(`co${y}_comisiones_por_mes`, sanitizeComisiones(b.comisionesPorMes));
-      lsSet(`co${y}_ajustes_banco`, sanitizeAjustes(b.ajustesBanco));
-      lsSet(`co${y}_empleos_previos`, sanitizePrevios(b.empleosPrevios));
-      lsSet(`co${y}_intereses_enero`, String(Math.max(0, Math.round(numOr(b.interesesEneroVal,0)))));
-      if(b.shiftPresets) lsSet('co_presets', presets);
-      if(b.appConfig) lsSet('co_config', sanitizeConfig(b.appConfig));
-      location.reload();
-    });
-    };
-    reader.readAsText(file);
-  };
-  input.click();
-}
-
-// ============================================================
 //  Textos dinámicos, avisos y pie de página
 // ============================================================
 function hidratarTextos(){
-  const T = { smlmv:fmtCOP(SMLMV), dosSmlmv:fmtCOP(2*SMLMV), aux:fmtCOP(AUX_TRANSPORTE), uvt:fmtCOP(UVT), base4uvt:fmtCOP(4*UVT),
+  const T = { smlmv:fmtCOP(SMLMV), dosSmlmv:fmtCOP(2*SMLMV), aux:fmtCOP(AUX_TRANSPORTE), uvt:fmtCOP(UVT), baseServ:`${baseServiciosUVT()} UVT (${fmtCOP(baseServiciosUVT()*UVT)})`,
     tope100:fmtCOP(TOPE_VIVIENDA_UVT*UVT), tope16:fmtCOP(TOPE_PREPAGADA_UVT*UVT), tope32:fmtCOP(TOPE_DEPENDIENTES_UVT*UVT) };
   document.querySelectorAll('[data-cfg]').forEach(el=>{ if(T[el.dataset.cfg]!==undefined) el.textContent = T[el.dataset.cfg]; });
   $('anioTitulo').textContent = ANIO; document.title = `Calculadora de salario e ingresos · Colombia ${ANIO}`;
@@ -2237,12 +2431,12 @@ function renderFooters(){
     Jornada máxima de ${t.limiteSemanal} horas semanales (Ley 2101 de 2021: 44 h desde el 15-jul-2025 y 42 h desde el 15-jul-2026); valor de la hora ordinaria = salario ÷ ${t.divisor}.
     Recargo dominical/festivo del ${pct}% (Ley 2466 de 2025: 80% desde el 1-jul-2025, 90% desde el 1-jul-2026 y 100% desde el 1-jul-2027); <em>cada día trabajado se calcula con la tarifa vigente en su fecha</em>.
     Recargo nocturno del 35% entre las 7:00 p.m. y las 6:00 a.m. Horas extra: +25% diurna, +75% nocturna, combinables con el recargo festivo.
-    Aportes: salud 4% y pensión 4%; Fondo de Solidaridad Pensional (1% a 2%) si el ingreso supera 4 SMLMV. Si marcas «Ya estoy pensionado por vejez» no se descuenta pensión ni ese fondo (la salud sí); en pensión por invalidez o por sustitución las reglas son distintas.
+    Aportes: salud 4% y pensión 4%; Fondo de Solidaridad Pensional (1% a 2%) si el ingreso supera 4 SMLMV; desde el 1-abr-2027, 1,5% a 3% para quien no esté en el régimen de transición (Ley 2381 de 2024, sentencia C-264 de 2026). Si marcas «Ya estoy pensionado por vejez» no se descuenta pensión ni ese fondo (la salud sí); en pensión por invalidez o por sustitución las reglas son distintas.
     Retención en la fuente por el procedimiento 1 del art. 383 del Estatuto Tributario (UVT ${fmtCOP(UVT)}, renta exenta 25% con tope 790 UVT anuales), con las deducciones del art. 387 (intereses de vivienda hasta 100 UVT/mes, prepagada hasta 16 UVT/mes, dependientes 10% hasta 32 UVT/mes), sujetas al límite conjunto del 40% del ingreso o 1.340 UVT anuales.
     <br><br><strong>Cómo se calcula el mes:</strong> tu salario pactado se paga completo (prorrateado solo en el mes de ingreso). El calendario solo suma excepciones: recargo nocturno, recargo dominical/festivo y horas extra. Un día marcado como "sin pago adicional" (vacaciones, permiso) no suma nada. El auxilio de transporte se prorratea por los días del período y lo aplica la misma regla en el resumen, la prima y las cesantías. La prima = devengado de los 6 meses ÷ 12.
     <br><br>Esta calculadora da una estimación de referencia. Para una liquidación oficial, confírmala con talento humano o un contador.`;
-  $('footerContratistaBody').innerHTML = `<strong>Supuestos y normativa aplicada para contratistas (${ANIO}):</strong> la base de cotización (IBC) para contratos de prestación de servicios personales es el 40% del valor mensualizado del contrato (art. 244 de la Ley 1955 de 2019). No puede ser inferior a 1 SMLMV (${fmtCOP(SMLMV)}) ni superior a 25 SMLMV. Aportes asumidos por el contratista: salud 12,5% y pensión 16%, más el Fondo de Solidaridad Pensional (1% a 2%) cuando el IBC es de 4 SMLMV o más. ARL entre 0,522% y 6,960% según el riesgo: por ley (Decreto 723 de 2013) en riesgos IV y V la paga el contratante, por eso la casilla es opcional y solo debes marcarla si tu contrato te la asigna. La Caja de Compensación es voluntaria.
-    <br><br><strong>Retención en la fuente:</strong> se calcula sobre el pago menos los aportes obligatorios (salud, pensión y fondo de solidaridad). Honorarios: 11% no declarante y 10% declarante. Servicios generales: 6% y 4%, solo cuando la base supera 4 UVT (${fmtCOP(4*UVT)}). Eres declarante de renta si en el año gravable anterior tus ingresos brutos fueron de 1.400 UVT o más (unos ${fmtCOP(declarante)} con la UVT de ${cfgDe(ANIO-1).de}). Esta calculadora da una estimación de referencia; para PILA o declaración de renta confírmalo con tu contador.`;
+  $('footerContratistaBody').innerHTML = `<strong>Supuestos y normativa aplicada para contratistas (${ANIO}):</strong> la base de cotización (IBC) para contratos de prestación de servicios personales es el 40% del valor mensualizado del contrato, sin IVA. No puede ser inferior a 1 SMLMV (${fmtCOP(SMLMV)}) ni superior a 25 SMLMV. Aportes asumidos por el contratista: salud 12,5% y pensión 16%, más el Fondo de Solidaridad Pensional cuando el IBC es de 4 SMLMV o más (1% a 2%; desde el 1-abr-2027, 1,5% a 3% para quien no esté en el régimen de transición de la reforma pensional). ARL entre 0,522% y 6,960% según el riesgo: por ley (Decreto 723 de 2013) en riesgos IV y V la paga el contratante, por eso la casilla es opcional y solo debes marcarla si tu contrato te la asigna. La Caja de Compensación es voluntaria.
+    <br><br><strong>Retención en la fuente:</strong> si no tienes 2 o más trabajadores vinculados a tu actividad y así se lo informas a quien te contrata, se aplica la tabla del art. 383 del Estatuto Tributario (parágrafo 2), igual que a un empleado: pago menos aportes obligatorios, menos el 25% exento (tope 790 UVT al año), dentro del límite del 40% / 1.340 UVT. Si no aplica la tabla: honorarios 11% no declarante y 10% declarante; servicios generales 6% y 4%, desde ${baseServiciosUVT()} UVT (${fmtCOP(baseServiciosUVT()*UVT)}, Decreto 572 de 2025). Eres declarante de renta si en el año gravable anterior tus ingresos brutos fueron de 1.400 UVT o más (unos ${fmtCOP(declarante)} con la UVT de ${cfgDe(ANIO-1).de}). Esta calculadora da una estimación de referencia; para PILA o declaración de renta confírmalo con tu contador.`;
 }
 function renderAvisos(){
   let h = '';
@@ -2292,7 +2486,7 @@ function diaHabilVac(d){ if(festivoODomingo(d)) return false; if(d.getDay()===6 
 function vacTomadas(){
   const E = ENT; if(!E.fechaIngreso) return 0; const ing = new Date(E.fechaIngreso+'T00:00:00'); let n = 0;
   for(let y=ing.getFullYear(); y<=new Date().getFullYear(); y++){
-    const w = y===ANIO ? workdays : sanitizeWorkdays(lsGet(`co${y}_workdays`,{}));
+    const w = y===ANIO ? workdays : sanitizeWorkdays(lsGet(`co${y}_workdays`,{}), shiftPresets);
     Object.keys(w).forEach(k=>{ if(w[k].type!=='vacaciones') return; const d = new Date(k+'T00:00:00'); if(d>=ing && diaHabilVac(d)) n++; });
   }
   return n;
@@ -2318,11 +2512,15 @@ function calcLiquidacion(){
   const E = ENT; if(!E.fechaIngreso) return {error:'Pon tu fecha de ingreso en la pestaña Contrato.'};
   const ing = new Date(E.fechaIngreso+'T00:00:00'), ret = new Date(($('liqRetiro').value || isoDe(new Date()))+'T00:00:00');
   if(isNaN(ret) || ret<ing) return {error:'La fecha de retiro debe ser posterior a tu fecha de ingreso.'};
-  const extras = getMoney('liqExtras')||0, salario = E.salarioBase, salVar = salario+extras, integral = E.integral;
-  const aux = (!integral && salVar<=2*SMLMV && auxPref) ? AUX_TRANSPORTE : 0, baseP = salVar+aux;
-  const ini1 = new Date(ret.getFullYear(),0,1), dCes = dias360(ing>ini1?ing:ini1, ret);
-  const semIni = new Date(ret.getFullYear(), ret.getMonth()<6?0:6, 1), dPr = dias360(ing>semIni?ing:semIni, ret);
-  const cesantias = integral ? 0 : baseP*dCes/360, intereses = integral ? 0 : cesantias*dCes*0.12/360, prima = integral ? 0 : baseP*dPr/360;
+  const extras = getMoney('liqExtras')||0, salario = salarioEn(ret), salVar = salario+extras, integral = E.integral;
+  const aux = (!integral && salVar<=2*SMLMV && auxPref) ? AUX_TRANSPORTE : 0;
+  const ini1 = new Date(ret.getFullYear(),0,1), desdeCes = ing>ini1?ing:ini1, dCes = dias360(desdeCes, ret);
+  const semIni = new Date(ret.getFullYear(), ret.getMonth()<6?0:6, 1), desdePr = ing>semIni?ing:semIni, dPr = dias360(desdePr, ret);
+  // art. 253 CST: si el salario cambió en los 3 meses anteriores al retiro, las cesantías se liquidan con el promedio del período
+  const hace3 = new Date(ret.getFullYear(), ret.getMonth()-3, ret.getDate());
+  const cambio3 = histSal.some(h=>{ const d = new Date(diaSiguiente(h.hasta)+'T00:00:00'); return d>hace3 && d<=ret; });
+  const baseCes = (cambio3 ? promedioSalario(desdeCes, ret) : salario) + extras + aux, basePr = promedioSalario(desdePr, ret) + extras + aux;
+  const cesantias = integral ? 0 : baseCes*dCes/360, intereses = integral ? 0 : cesantias*dCes*0.12/360, prima = integral ? 0 : basePr*dPr/360;
   const causadas = dias360(ing,ret)/360*15, pend = Math.max(0, numDec('vacSaldoIni') + causadas - vacTomadas() - numDec('vacCompensadas')), vacaciones = pend*salVar/30;
   const anios = dias360(ing,ret)/360;
   let indem = 0, indemTxt = 'No aplica: solo se paga si la empresa termina el contrato sin justa causa.';
@@ -2331,16 +2529,18 @@ function calcLiquidacion(){
       const alto = salVar >= 10*SMLMV, base = alto ? 20 : 30, extra = alto ? 15 : 20, dias = base + (anios>1 ? extra*(anios-1) : 0);
       indem = dias*salVar/30; indemTxt = `${fd(dias)} días de salario: ${base} por el primer año${anios>1 ? ' + '+extra+' por cada año adicional ('+fd(anios-1)+' años, proporcional)' : ''}${alto?' (salario de 10 SMLMV o más)':''}.`;
     } else {
-      if(!$('liqFin').value) return {error:'Para contrato a término fijo escribe la fecha en que termina.'};
-      const fin = new Date($('liqFin').value+'T00:00:00'), rest = Math.max(15, Math.ceil((fin-ret)/86400000));
-      indem = rest*salVar/30; indemTxt = `Lo que falta del contrato (${fd(rest)} días de salario; mínimo 15).`;
+      const obra = $('liqTipo').value==='obra';
+      if(!$('liqFin').value) return {error: obra ? 'Para contrato por obra o labor escribe la fecha estimada en que termina.' : 'Para contrato a término fijo escribe la fecha en que termina.'};
+      const fin = new Date($('liqFin').value+'T00:00:00'), faltan = Math.max(0, Math.ceil((fin-ret)/86400000)), rest = obra ? Math.max(15, faltan) : faltan;   // el mínimo de 15 días es solo del contrato por obra o labor
+      indem = rest*salVar/30; indemTxt = obra ? `El tiempo que falta para terminar la obra (${fd(rest)} días de salario; mínimo 15).` : `Los salarios del tiempo que falta del contrato (${fd(rest)} días).`;
     }
   }
   return {error:null, dCes, dPr, cesantias, intereses, prima, pend, vacaciones, indem, indemTxt, integral, total: cesantias+intereses+prima+vacaciones+indem};
 }
 function renderLiquidacion(){
   const out = $('liqOut'); if(!out) return;
-  $('liqFinBox').style.display = $('liqTipo').value==='fijo' ? '' : 'none';
+  const tipoLiq = $('liqTipo').value; $('liqFinBox').style.display = tipoLiq==='indefinido' ? 'none' : '';
+  $('liqFinLbl').textContent = tipoLiq==='obra' ? 'Fecha estimada en que termina la obra o labor' : 'Fecha en que termina el contrato';
   const r = calcLiquidacion(); if(r.error){ out.innerHTML = `<div class="info-banner">${esc(r.error)}</div>`; return; }
   const fila = (t,sub,v,cls)=>`<div class="liq-row ${cls||''}"><span>${esc(t)}${sub?`<small>${esc(sub)}</small>`:''}</span><b>${fmtCOP(Math.round(v))}</b></div>`;
   out.innerHTML = `<div style="margin-top:.4rem;">${r.integral ? '<div class="hint" style="margin:0 0 .5rem;">Salario integral: sin cesantías, intereses ni prima.</div>' : ''}
@@ -2364,7 +2564,8 @@ function syncCamposVisibles(){
   $('modoSimple').setAttribute('aria-pressed', String(modo==='simple')); $('modoAvanzado').setAttribute('aria-pressed', String(modo!=='simple'));
   $('modoHint').textContent = modo==='simple' ? 'Solo lo esencial. Pásate a Avanzado para turnos con recargos, comisiones, deducciones y más.' : 'Todas las opciones: calendario con recargos, comisiones, deducciones, renta y liquidación.';
   const vis = (id,on)=>{ $(id).style.display = on ? 'block' : 'none'; };
-  vis('viviendaFields', $('tieneVivienda').checked); vis('prepagadaFields', $('tienePrepagada').checked); vis('aplicaDependientesRow', $('tieneDependientes').checked);
+  vis('viviendaFields', $('tieneVivienda').checked); vis('prepagadaFields', $('tienePrepagada').checked); vis('aplicaDependientesRow', $('tieneDependientes').checked); vis('numDependientesRow', $('tieneDependientes').checked); vis('noSalarialFields', $('tieneNoSalarial').checked);
+  document.querySelectorAll('.transicion-box').forEach(b=>{ b.style.display = ANIO>=2027 ? '' : 'none'; });   // la reforma pensional rige desde abril de 2027
   vis('arlFields', $('pagaARL').checked); vis('ccfFields', $('pagaCCF').checked);
   vis('retefuenteCustomContainer', $('retefuenteTipo').value==='custom'); vis('ccfCustomContainer', $('ccfRateSelect').value==='custom');
 }
@@ -2373,7 +2574,7 @@ function _renderAllNow(){
   syncCamposVisibles();
   if(currentTab==='empleado'){
     renderMonthTabs(); renderIngresoWarning(); renderCalendar(); renderDaysList(); renderWeeklyHours();
-    renderSummaryEmpleado(); renderPrima(); renderVacaciones(); renderLiquidacion(); renderRenta(); renderViviendaGestor();
+    renderSummaryEmpleado(); renderPrima(); renderVacaciones(); renderLiquidacion(); renderRenta(); renderViviendaGestor(); renderAumentos();
     $('dayEditor').style.display = (selectedKey && !multiMode) ? 'block' : 'none';
     $('multiPanel').style.display = multiMode ? 'block' : 'none';
     updateMultiCount(); aplicarColapsables();
@@ -2385,11 +2586,13 @@ function _renderAllNow(){
 //  Eventos
 // ============================================================
 function wire(){
-  ['salarioBase','interesesVivienda','viviendaAntes','pagoPrepagada','valorContrato','retefuenteCustomValor'].forEach(id=>attachMoneyFormatting(id));
+  ['salarioBase','interesesVivienda','viviendaAntes','pagoPrepagada','valorContrato','retefuenteCustomValor','noSalAlim','noSalOtros'].forEach(id=>attachMoneyFormatting(id));
   attachMoneyFormatting('interesesCesantiasEnero', ()=>{ interesesEneroVal = getMoney('interesesCesantiasEnero'); saveInteresesEnero(); renderAll(); });
   ['jornadaPactada','almuerzo','ccfCustomValor'].forEach(id=>$(id).addEventListener('input', ()=>{ saveConfig(); renderAll(); }));
-  ['fechaIngreso','tieneVivienda','tienePrepagada','tieneDependientes','pagaCajaEmpresa','pagoMesVencido','retefuenteTipo','pagaARL','nivelARL','pagaCCF','ccfRateSelect']
+  ['fechaIngreso','tieneNoSalarial','tieneVivienda','tienePrepagada','tieneDependientes','pagaCajaEmpresa','pagoMesVencido','retefuenteTipo','pagaARL','nivelARL','pagaCCF','ccfRateSelect']
     .forEach(id=>$(id).addEventListener('change', ()=>{ saveConfig(); renderAll(); }));
+  ['transicionEmp','transicionCon'].forEach(id=>$(id).addEventListener('change', e=>{ $('transicionEmp').checked = $('transicionCon').checked = e.target.checked; saveConfig(); renderAll(); }));
+  $('numDependientes').addEventListener('change', ()=>{ saveConfig(); renderAll(); });
   ['pensionadoEmp','pensionadoCon'].forEach(id=>$(id).addEventListener('change', e=>{ pensionado = e.target.checked; $('pensionadoEmp').checked = pensionado; $('pensionadoCon').checked = pensionado; saveConfig(); renderAll(); }));
   ['aporteVol','retencionPct','vacSaldoIni','vacCompensadas'].forEach(id=>$(id).addEventListener('input', ()=>{ saveConfig(); renderAll(); }));
   ['salarioIntegral','aporteVolTipo','procRetencion','sabadoHabil'].forEach(id=>$(id).addEventListener('change', ()=>{ saveConfig(); renderAll(); }));
@@ -2414,8 +2617,15 @@ function wire(){
   $('tieneComisiones').addEventListener('change', toggleComisiones);
   $('btnAddComision').addEventListener('click', addComisionRow);
   $('btnAddTurno').addEventListener('click', addTurno);
-  $('yearPrev').addEventListener('click', ()=>cambiarAnio(ANIOS[ANIOS.indexOf(ANIO)-1]));
-  $('yearNext').addEventListener('click', ()=>cambiarAnio(ANIOS[ANIOS.indexOf(ANIO)+1]));
+  $('btnAumento').addEventListener('click', abrirAumento);
+  $('aumentosLista').addEventListener('click', e=>{ const b = e.target.closest('[data-quitar-aum]'); if(b) quitarAumento(+b.dataset.quitarAum); });
+  $('mesPrev').addEventListener('click', ()=>{ if(currentMonth>0) irAMes(ANIO, currentMonth-1); else irAMes(ANIOS[ANIOS.indexOf(ANIO)-1], 11); });
+  $('mesNext').addEventListener('click', ()=>{ if(currentMonth<11) irAMes(ANIO, currentMonth+1); else irAMes(ANIOS[ANIOS.indexOf(ANIO)+1], 0); });
+  $('mesActual').addEventListener('click', e=>{ e.stopPropagation(); abrirPopMes(); });
+  [['popAnioPrev',-1],['popAnioNext',1]].forEach(([id,dir])=>$(id).addEventListener('click', e=>{ e.stopPropagation(); const i = ANIOS.indexOf(popAnio||ANIO)+dir; if(i>=0 && i<ANIOS.length){ popAnio = ANIOS[i]; pintarPopMes(); } }));
+  $('mesGrid').addEventListener('click', e=>{ const b = e.target.closest('[data-mes]'); if(!b) return; const y = popAnio||ANIO; abrirPopMes(false); irAMes(y, +b.dataset.mes); $('mesActual').focus(); });
+  document.addEventListener('click', e=>{ if(!$('mesPop').hidden && !e.target.closest('#mesBar')) abrirPopMes(false); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !$('mesPop').hidden){ abrirPopMes(false); $('mesActual').focus(); } });
 
   // comisiones (delegado: no se reconstruye la lista mientras se escribe)
   const cl = $('comisionesList');
@@ -2468,13 +2678,17 @@ migrarLegado();
 cargarPresets();
 cargarDatosAnio();
 appConfig = sanitizeConfig(lsGet('co_config', {}));
+if(appConfig.retefuenteTipo==='0.11' && appConfig.migRet!=='1') appConfig.retefuenteTipo = 'tabla';   // el 11 % era el valor por defecto: ahora es la tabla del art. 383
 aplicarConfig();
 initPrevios(); initContador();
 initColapsables();
 hintsAAyuda('#sec-contrato'); hintsAAyuda('#sec-deducciones'); hintsAAyuda('#viewContratista');
 wire();
 $('navSlotL').innerHTML = SuiteNav.selector('calculadora'); $('navSlotR').innerHTML = SuiteNav.menu(); SuiteNav.iniciar();
-$('yearPrev').innerHTML = ic('chev-left',20); $('yearNext').innerHTML = ic('chev-right',20);
+$('mesPrev').innerHTML = ic('chev-left',20); $('mesNext').innerHTML = ic('chev-right',20); $('popAnioPrev').innerHTML = ic('chev-left',18); $('popAnioNext').innerHTML = ic('chev-right',18); $('mesChev').innerHTML = ic('chev-down',16);
+$('btnAumento').innerHTML = ic('plus',18)+'<span>Registrar aumento o ascenso</span>';
+// La barra fija con el neto solo aparece en el Resumen cuando la tarjeta verde ya no se ve (antes salía el neto dos veces)
+if('IntersectionObserver' in window) new IntersectionObserver(es=>{ es.forEach(e=>{ heroVisible = e.isIntersecting; }); actualizarSticky(); }, {root:$('scroller'), threshold:0}).observe($('heroNeto'));
 hidratarTextos();
 syncComisionesUI();
 renderTurnosManager(); renderLegend();

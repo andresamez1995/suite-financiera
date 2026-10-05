@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Calculadora salarial colombiana y gestor de gastos personales. Funciona sin conexión; tus datos quedan en tu dispositivo.">
 <title>Mi Suite Financiera</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -11,7 +10,7 @@
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <meta name="theme-color" content="#F4F1EA" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#121618" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0F1316" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -132,7 +131,7 @@ button{font-family:inherit; cursor:pointer;}
   <div id="sheet">
     <button type="button" class="close" id="closeMenu" aria-label="Cerrar"><span data-ic="x"></span></button>
     <h2>Mi Suite Financiera</h2>
-    <div class="sub">Tus datos viven solo en este dispositivo.</div>
+    <div class="sub" id="menuSub"></div>
     <div id="menuItems"></div>
     <div class="status"><span id="netPill" class="pill">…</span><span id="offlinePill" class="pill">…</span></div>
     <div class="status" id="verLine"></div>
@@ -288,20 +287,20 @@ function exportarTodo(){
 }
 function importarTodo(file){
   const r = new FileReader();
-  r.onload = ev=>{
+  r.onload = async ev=>{
     let data; try{ data = JSON.parse(ev.target.result); }catch(e){ alert('El archivo no es un JSON válido.'); return; }
     if(!data || data.suite!=='mi-suite-financiera' || !data.storage || typeof data.storage!=='object'){ alert('Este archivo no es un respaldo de Mi Suite (use el que exporta este menú).'); return; }
     const claves = Object.keys(data.storage).filter(k=>STORAGE_PATTERN.test(k) && !SKIP.test(k) && typeof data.storage[k]==='string');
     for(const k of claves){ try{ JSON.parse(data.storage[k]); }catch(e){ if(!/_intereses_enero$/.test(k)){ alert('El respaldo tiene datos dañados ('+k+'). No se importó nada.'); return; } } }
     if(!claves.length){ alert('El respaldo no contiene datos de las apps.'); return; }
     const tieneG = claves.includes('finanzas_app_v12'), nCalc = claves.filter(k=>k!=='finanzas_app_v12').length;
-    (window.confirmaLuego||(m=>Promise.resolve(confirm(m))))('Se reemplazarán los datos actuales de las dos apps con los del archivo ('+(tieneG?'gastos + ':'')+nCalc+' bloques de la calculadora). ¿Continuar?').then(ok=>{
-      if(!ok) return;
-      clavesSuite().forEach(k=>localStorage.removeItem(k));
-      claves.forEach(k=>localStorage.setItem(k, data.storage[k]));
-      APPS.forEach(a=>{ const f = $('frame-'+a); if(f.getAttribute('src')){ try{ f.contentWindow.location.reload(); }catch(e){ f.setAttribute('src', f.dataset.src); } } });
-      iconoTema(); cerrarMenu(); toast('Datos restaurados en las dos apps ✓');
-    });
+    const conSync = SuiteSync.estado().conectado;
+    const ok = await SuiteUI.confirmar('Se reemplazarán los datos actuales de las dos apps con los del archivo ('+(tieneG?'gastos + ':'')+nCalc+' bloques de la calculadora).'+(conSync ? ' Como la sincronización está activa, el cambio también llegará a tu Drive y a tus otros dispositivos.' : '')+' ¿Continuar?', {peligro:true});
+    if(!ok) return;
+    clavesSuite().forEach(k=>localStorage.removeItem(k));
+    claves.forEach(k=>localStorage.setItem(k, data.storage[k]));
+    APPS.forEach(a=>{ const f = $('frame-'+a); if(f.getAttribute('src')){ try{ f.contentWindow.location.reload(); }catch(e){ f.setAttribute('src', f.dataset.src); } } });
+    cerrarMenu(); toast('Datos restaurados en las dos apps ✓');
   };
   r.readAsText(file);
 }
@@ -335,7 +334,9 @@ function construirMenu(){
   it.push(`<button class="item" data-act="buscar"><span class="ic">${ic('refresh')}</span><span>Buscar actualización</span></button>`);
   it.push(`<button class="item" data-act="tour"><span class="ic">${ic('help')}</span><span>Ver el recorrido de bienvenida</span></button>`);
   $('menuItems').innerHTML = it.join('');
-  $('verLine').textContent = 'Los datos se guardan solo en este dispositivo: exporta un respaldo de vez en cuando.';
+  const conectado = SuiteSync.estado().conectado;
+  $('menuSub').textContent = conectado ? 'Tus datos están en este dispositivo y se sincronizan con tu Google Drive.' : 'Tus datos se guardan en este dispositivo.';
+  $('verLine').textContent = conectado ? 'Tu Drive guarda además una copia automática por día (últimos 7 días).' : 'Exporta un respaldo de vez en cuando o activa la sincronización con tu Drive.';
 }
 function abrirMenu(){ construirMenu(); pintarEstado(); $('overlay').classList.add('show'); try{ window.focus(); $('closeMenu').focus(); }catch(e){} }   // el foco pasa al menú para que Esc y el teclado funcionen también si se abrió desde una app
 function cerrarMenu(){ $('overlay').classList.remove('show'); }
@@ -386,7 +387,7 @@ async function pintarSync(){
       <div class="sy-box">Necesitas un <b>ID de cliente</b> de Google (gratis):<ul>
         <li>Entra a <b>console.cloud.google.com</b> y crea un proyecto.</li>
         <li>En «APIs y servicios → Biblioteca», activa <b>Google Drive API</b>.</li>
-        <li>En «Pantalla de consentimiento OAuth»: tipo <b>Externo</b>, escribe el nombre de la app y tu correo, agrega el permiso <b>…/auth/drive.appdata</b> y publícala (<b>En producción</b>).</li>
+        <li>En «Pantalla de consentimiento OAuth»: tipo <b>Externo</b>, escribe el nombre de la app y tu correo, agrega el permiso <b>…/auth/drive.appdata</b>, deja el estado en <b>Pruebas</b> y agrega como «usuarios de prueba» los Gmail que la van a usar.</li>
         <li>En «Credenciales → Crear → ID de cliente de OAuth → Aplicación web», agrega en «Orígenes autorizados de JavaScript»: <b>${esc(location.origin)}</b></li>
         <li>Copia el ID de cliente y pégalo abajo.</li></ul></div>
       <input class="sy-input" id="syCid" placeholder="123456-abc.apps.googleusercontent.com" autocomplete="off" spellcheck="false">
@@ -395,7 +396,7 @@ async function pintarSync(){
     h += `<div class="sub">Usa tus datos en el celular y en el computador sin exportar respaldos.</div>${AVISO_LEGAL}
       <label class="sy-check"><input type="checkbox" id="syAcepto" ${e.acepto?'checked':''}><span>Entiendo y acepto cómo funciona.</span></label>
       <button class="sy-btn" id="syConectar" ${e.acepto?'':'disabled'}>Conectar con Google</button>
-      <button class="sy-btn sec" id="syCambiarCid">Cambiar ID de cliente</button>`;
+      ${e.idPropio ? '<button class="sy-btn sec" id="syCambiarCid">Quitar el ID que pegué en este dispositivo</button>' : ''}`;
   } else {
     const cls = (e.fase==='error' || e.fase==='reconectar') ? 'mal' : (e.pendiente || e.fase==='sin_conexion' || e.fase==='pendiente') ? 'pend' : '';
     h += `<div class="sub">${esc(e.email ? 'Cuenta: '+e.email : 'Conectado')}</div>
@@ -419,9 +420,9 @@ $('syncSheet').addEventListener('click', async ev=>{
     else if(b.id==='syConectar'){ b.disabled = true; b.textContent = 'Conectando…'; const ok = await SuiteSync.conectar(); if(ok) toast('Conectado. Tus datos se sincronizan con tu Drive.'); pintarSync(); }
     else if(b.id==='syReconectar'){ b.disabled = true; await SuiteSync.reconectar(); pintarSync(); }
     else if(b.id==='sySync'){ b.disabled = true; await SuiteSync.sincronizarAhora(); pintarSync(); }
-    else if(b.id==='syDesconectar'){ if(confirmaYa('Este dispositivo dejará de sincronizar. Tus datos locales y los de tu Drive se conservan.')){ SuiteSync.desconectar(); pintarSync(); } }
-    else if(b.id==='syBorrar'){ if(confirmaYa('Se borrarán de tu Drive la copia de la app y sus respaldos, y este dispositivo se desconectará. Tus datos en este dispositivo se conservan. ¿Continuar?')){ await SuiteSync.borrarNube(); toast('Tus datos en Drive fueron borrados.'); pintarSync(); } }
-    else if(b.dataset.rest){ if(confirmaYa('Se reemplazarán los datos de TODOS tus dispositivos por los de esta copia. ¿Continuar?')){ await SuiteSync.restaurarCopia(b.dataset.rest); toast('Copia restaurada.'); pintarSync(); } }
+    else if(b.id==='syDesconectar'){ if(await SuiteUI.confirmar('Este dispositivo dejará de sincronizar. Tus datos locales y los de tu Drive se conservan.', {peligro:false})){ SuiteSync.desconectar(); pintarSync(); } }
+    else if(b.id==='syBorrar'){ if(await SuiteUI.confirmar('Se borrarán de tu Drive la copia de la app y sus respaldos, y este dispositivo se desconectará. Tus datos en este dispositivo se conservan. ¿Continuar?')){ await SuiteSync.borrarNube(); toast('Tus datos en Drive fueron borrados.'); pintarSync(); } }
+    else if(b.dataset.rest){ if(await SuiteUI.confirmar('Se reemplazarán los datos de TODOS tus dispositivos por los de esta copia. ¿Continuar?')){ await SuiteSync.restaurarCopia(b.dataset.rest); toast('Copia restaurada.'); pintarSync(); } }
   }catch(err){ alert((err && err.message) || 'No se pudo completar la acción'); pintarSync(); }
 });
 $('syncSheet').addEventListener('change', ev=>{ if(ev.target.id==='syAcepto'){ SuiteSync.aceptar(ev.target.checked); const c = $('syConectar'); if(c) c.disabled = !ev.target.checked; } });
@@ -439,7 +440,7 @@ setInterval(()=>{ if(!$('syncOverlay').hidden) pintarSync(); }, 30000);
 /* ---------- Recorrido de bienvenida ---------- */
 const TOUR = [
   {art:['calc','wallet'], t:'Dos herramientas, una suite', x:'La calculadora te dice cuánto te llega de verdad cada mes. El gestor te muestra a dónde se va. Se pasan datos entre ellas.'},
-  {art:['shield'], t:'Tus datos son tuyos', x:'Todo se guarda solo en este dispositivo: sin cuentas ni servidores. Haz un respaldo de vez en cuando desde el menú ⋯.'},
+  {art:['shield'], t:'Tus datos son tuyos', x:'Todo se guarda en este dispositivo y la app no tiene servidores propios. Si quieres, sincronízala con tu Google Drive o descarga un respaldo desde el menú ⋯.'},
   {art:['phone','cloud-off'], t:'Instálala y úsala sin internet', x:'Agrégala a tu pantalla de inicio y abre igual sin conexión. El tema claro u oscuro se cambia con un solo botón.'}
 ];
 let tourIdx = 0;
