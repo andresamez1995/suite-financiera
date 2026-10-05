@@ -11,6 +11,8 @@
     'chev-left':'<path d="M15 5l-7 7 7 7"/>',
     'chev-right':'<path d="M9 5l7 7-7 7"/>',
     'chev-down':'<path d="M5 9l7 7 7-7"/>',
+    'chev-up':'<path d="M5 15l7-7 7 7"/>',
+    'sliders':'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
     'x':'<path d="M6 6l12 12M18 6L6 18"/>',
     'edit':'<path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3z"/><path d="M14.5 7.5l3 3"/>',
     'trash':'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>',

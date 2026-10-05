@@ -4,6 +4,7 @@
   var EN = false; try{ EN = window.parent !== window; }catch(e){ EN = true; }
   var APPS = {calculadora:{n:'Calculadora', i:'calc'}, gastos:{n:'Gastos', i:'wallet'}};
   function enviar(m){ try{ window.parent.postMessage(m, location.origin); }catch(e){} }
+  // cada toque avisa al index (como máximo cada 3 s): Google solo deja renovar el acceso a Drive tras un gesto de la persona
   if(EN){ var ultG = 0; document.addEventListener('pointerdown', function(){ var t = Date.now(); if(t-ultG<3000) return; ultG = t; enviar({suite:'gesto'}); }, true); }
   // el index avisa si muestra la columna lateral (escritorio): entonces estos controles sobran
   if(/[?&]rail=1/.test(location.search)) document.documentElement.classList.add('rail');
@@ -11,7 +12,6 @@
     if(e.origin !== location.origin || !e.data || e.data.suite !== 'layout') return;
     document.documentElement.classList.toggle('rail', !!e.data.rail);
   });
-  if(EN){ var ultG = 0; document.addEventListener('pointerdown', function(){ var n = Date.now(); if(n-ultG > 20000){ ultG = n; enviar({suite:'gesto'}); } }, true); }
   window.SuiteNav = {
     enSuite: EN,
     selector: function(actual){

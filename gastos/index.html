@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mis Finanzas — Panel Financiero</title>
-<script>try{ if(window.parent!==window) document.documentElement.classList.add("en-suite"); }catch(e){ document.documentElement.classList.add("en-suite"); }</script>
+<script>if(window.parent===window) location.replace('../?app=gastos'); else document.documentElement.classList.add("en-suite");   // solo funciona dentro de la suite (respaldo, sincronización y tema son globales)</script>
 <link rel="stylesheet" href="../suite-tema.css">
 <script src="../suite-tema.js"></script>
 <script src="../suite-iconos.js"></script>
@@ -247,7 +247,29 @@ details[open] > summary .sec-peek{display:none;}
 .acc-add::after{display:none;}
 .acc-plus{width:48px; height:48px; border-radius:50%; background:var(--surface-2); display:inline-flex; align-items:center; justify-content:center; color:var(--accent);}
 @media (min-width:600px){ .acc-carousel{flex-wrap:wrap; overflow:visible; scroll-snap-type:none;} .acc-slot{flex:0 0 calc(50% - 6px);} }
-.en-suite #themeToggle{display:none;}
+
+/* ---- resumen por bloques, pago de tarjetas y opciones ---- */
+.card .sec-titulo{font-size:15px; font-weight:700; margin:0; color:var(--text); letter-spacing:-.005em;}
+.colchon-escala{display:flex; justify-content:space-between; font-size:11px; color:var(--text-faint);}
+.btn-bloques{display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:48px; margin:6px 0 4px; border:1px dashed var(--border); border-radius:var(--radius); background:transparent; color:var(--text-dim); font-family:inherit; font-size:14px; font-weight:600; cursor:pointer;}
+.btn-bloques:hover{background:var(--surface); color:var(--text);}
+.bq-fila{display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);}
+.bq-fila label{flex:1; display:flex; gap:10px; align-items:flex-start; margin:0; cursor:pointer; font-size:14px; font-weight:600; color:var(--text);}
+.bq-fila label input{width:20px; height:20px; min-height:0; margin:2px 0 0; flex:0 0 auto; accent-color:var(--accent);}
+.bq-fila small{display:block; font-weight:400; font-size:12px; color:var(--text-dim); line-height:1.4; margin-top:2px;}
+.bq-fila.off label{color:var(--text-dim);}
+.bq-mover{display:flex; gap:4px;}
+.bq-mover button{width:40px; height:40px; border-radius:10px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); display:inline-flex; align-items:center; justify-content:center; cursor:pointer;}
+.bq-mover button:disabled{opacity:.3; cursor:default;}
+.chip-var{font-size:12px; font-weight:700; padding:3px 8px; border-radius:20px; white-space:nowrap;}
+.chip-var.sube{background:color-mix(in srgb,var(--positive) 16%,transparent); color:var(--positive);}
+.chip-var.baja{background:color-mix(in srgb,var(--danger) 14%,transparent); color:var(--danger);}
+.cupo-box{display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
+.cupo-fila{display:flex; justify-content:space-between; gap:10px; font-size:13px; padding:7px 0; border-bottom:1px solid var(--border);}
+.cupo-fila span:last-child{color:var(--text-dim); font-variant-numeric:tabular-nums; text-align:right;}
+.fe-fila, .opc-fila{display:flex; gap:10px; align-items:flex-start; margin:12px 0 0; font-size:13.5px; font-weight:600; color:var(--text); cursor:pointer;}
+.fe-fila input, .opc-fila input{width:20px; height:20px; min-height:0; margin:1px 0 0; flex:0 0 auto; accent-color:var(--accent);}
+.opc-fila small{display:block; font-weight:400; font-size:12px; color:var(--text-dim); line-height:1.45; margin-top:2px;}
 </style>
 </head>
 <body>
@@ -261,7 +283,6 @@ details[open] > summary .sec-peek{display:none;}
     </div>
     <div class="topbar-right">
       <button class="settings-btn" id="settingsBtn" title="Ajustes y respaldo">⚙</button>
-      <button class="theme-toggle" id="themeToggle" title="Cambiar tema">◐</button>
       <span id="navSlotR"></span>
     </div>
   </div>
@@ -280,13 +301,16 @@ details[open] > summary .sec-peek{display:none;}
 
 <script>
 const STORAGE_KEY = 'finanzas_app_v12';
+// Bloques del Resumen que se pueden quitar o agregar (el saldo y la alerta siempre se muestran)
+const BLOQUES_IDS = ['ritmo','colchon','tendencia','saldoMes','cupo','hormiga','ingresos','gastos','categorias','naturaleza'];
+const BLOQUES_DEF = ['ritmo','colchon','tendencia','cupo','hormiga','ingresos','gastos','categorias','naturaleza'];
+const syncActiva = () => { try{ return localStorage.getItem('suite_sync_on')==='1'; }catch(e){ return false; } };
 const APP_VERSION = 13;
 let storageOk = true;
 
 /* ---------- utilidades base ---------- */
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function fixNum(n){ n = Number(n); if(!Number.isFinite(n)) return 0; if(Number.isInteger(n)) return n; return Math.round(n*100)/100; }
-function adjBal(acc, delta){ if(acc) acc.balance = fixNum((acc.balance||0) + delta); }
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH_RE = /^\d{4}-\d{2}$/;
 const NIVELES = ['debo','necesito','quiero'];
@@ -349,7 +373,7 @@ function asignarColores(cats){ cats.forEach((c,i)=>{ if(!c.color) c.color = colo
 function defaultState(){
   return {
     version: APP_VERSION,
-    theme: null,
+    opciones: {},
     viewingMonth: monthKey(new Date()),
     accounts: [],
     categories: asignarColores(defaultCategories()),
@@ -382,6 +406,7 @@ function sanitizeState(raw, strict){
   const ua = makeUniq();
   S.accounts = (Array.isArray(raw.accounts)?raw.accounts:[]).filter(isObj).map(a=>({
     id: ua(a.id), name: cleanText(a.name,60)||'Cuenta', balance: fixNum(a.balance),
+    ...(typeof a.inicial==='number' && Number.isFinite(a.inicial) ? {inicial: fixNum(a.inicial)} : {}),
     ...(['efectivo','banco','tarjeta','ahorro'].includes(a.type) ? {type:a.type} : {}),
     ...(HEX_RE.test(a.color) ? {color:a.color} : {}),
     ...(numOr0(a.cupo)>0 ? {cupo:fixNum(a.cupo)} : {}),
@@ -419,7 +444,7 @@ function sanitizeState(raw, strict){
     if(!DATE_RE.test(e.date) || !(numOr0(e.amount)>0)) return null;
     return { id: ue(e.id), date: e.date, time: cleanText(e.time,12), timestamp: numOr0(e.timestamp), amount: fixNum(e.amount),
       desc: cleanText(e.desc,120), catId: cleanId(e.catId), subId: cleanId(e.subId),
-      nivel: NIVELES.includes(e.nivel)?e.nivel:'quiero', accountId: cleanId(e.accountId), applied: e.applied===false?false:true,
+      nivel: NIVELES.includes(e.nivel)?e.nivel:'quiero', accountId: cleanId(e.accountId), applied: e.applied===false?false:true, ...(e.fe===true ? {fe:true} : {}),
     ...(Number.isInteger(Number(e.cuotas)) && Number(e.cuotas)>1 && Number(e.cuotas)<=120 ? {cuotas:Number(e.cuotas)} : {}) };
   }).filter(Boolean);
   S.incomes = (Array.isArray(raw.incomes)?raw.incomes:[]).filter(isObj).map(i=>{
@@ -439,7 +464,9 @@ function sanitizeState(raw, strict){
   if(isObj(raw.icons)) Object.keys(raw.icons).slice(0,300).forEach(k=>{ const v=cleanText(raw.icons[k],8); if(v) S.icons[cleanText(k,80)] = v; });
   S.ui = {};
   if(isObj(raw.ui)) Object.keys(raw.ui).slice(0,300).forEach(k=>{ const v=raw.ui[k]; if(typeof v==='boolean'||typeof v==='number') S.ui[cleanText(k,100)] = v; });
-  S.theme = (raw.theme==='light'||raw.theme==='dark') ? raw.theme : null;
+  if(isObj(raw.opciones)){ const o = raw.opciones;
+    if(o.facturaE===true) S.opciones.facturaE = true;
+    if(Array.isArray(o.bloques)) S.opciones.bloques = o.bloques.filter(b=>typeof b==='string' && BLOQUES_IDS.includes(b)).filter((b,i,a)=>a.indexOf(b)===i); }
   S.viewingMonth = MONTH_RE.test(raw.viewingMonth) ? raw.viewingMonth : monthKey(new Date());
   if(DATE_RE.test(raw.lastBackup)) S.lastBackup = raw.lastBackup;
   S.version = APP_VERSION;
@@ -453,7 +480,7 @@ function loadState(){
     try{
       const clean = sanitizeState(JSON.parse(raw), false);
       if(!clean) throw new Error('formato');
-      STATE = clean; if(_coloresAsignados) saveState(); return;
+      STATE = clean; const migro = migrarSaldoInicial(); recalcularSaldos(); if(_coloresAsignados || migro) saveState(); return;
     }catch(e){
       // Dato dañado: se guarda una copia aparte ANTES de que saveState() lo pise
       try{
@@ -468,7 +495,7 @@ function loadState(){
   STATE = defaultState();
 }
 function saveState(){
-  IDX = null; _today = null;
+  IDX = null; _today = null; recalcularSaldos();
   try{
     localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE));
     storageOk = true;
@@ -548,23 +575,37 @@ function nivelLabel(n){ return n==='debo'?'Debo':n==='necesito'?'Necesito':'Quie
 
 /* ================= CÁLCULOS ================= */
 function isRealized(e){ return e.date <= today(); }
-function reconcileScheduledExpenses(){
-  let changed = false;
-  STATE.expenses.forEach(e=>{
-    if(e.applied===undefined) e.applied = true;
-    if(!e.applied && isRealized(e)){
-      adjBal(STATE.accounts.find(a=>a.id===e.accountId), -e.amount);
-      e.applied = true; changed = true;
-    }
+// El saldo de cada cuenta NO se guarda como un número suelto: es su saldo inicial + todos los movimientos con fecha hasta `fin`.
+// Así un gasto con fecha futura cuenta solo cuando llega su día, y la sincronización entre dispositivos nunca descuadra saldos.
+function saldosHasta(fin){
+  const m = {}; STATE.accounts.forEach(a=>{ m[a.id] = a.inicial||0; });
+  const add = (id,d)=>{ if(id in m) m[id] += d; };
+  STATE.incomes.forEach(i=>{ if(i.date<=fin) add(i.accountId, +i.amount); });
+  STATE.expenses.forEach(e=>{ if(e.date<=fin) add(e.accountId, -e.amount); });
+  STATE.adjustments.forEach(a=>{ if(a.date<=fin) add(a.accountId, +a.amount); });
+  STATE.transfers.forEach(t=>{ if(t.date<=fin){ add(t.fromId, -t.amount); add(t.toId, +t.amount); } });
+  Object.keys(m).forEach(k=>{ m[k] = fixNum(m[k]); });
+  return m;
+}
+function recalcularSaldos(){
+  const hoy = today(), m = saldosHasta(hoy);
+  STATE.accounts.forEach(a=>{ a.balance = m[a.id]; });
+  // se siguen guardando para que una versión anterior de la app (abierta en otro dispositivo) lea datos coherentes
+  STATE.expenses.forEach(e=>{ e.applied = e.date<=hoy; }); STATE.incomes.forEach(i=>{ i.applied = i.date<=hoy; });
+}
+// Datos de versiones anteriores: el saldo guardado ya incluía los movimientos marcados como aplicados; de ahí sale el saldo inicial
+function migrarSaldoInicial(){
+  let cambio = false;
+  STATE.accounts.forEach(a=>{
+    if(typeof a.inicial==='number') return;
+    let v = a.balance||0;
+    STATE.incomes.forEach(i=>{ if(i.accountId===a.id && i.applied!==false) v -= i.amount; });
+    STATE.expenses.forEach(e=>{ if(e.accountId===a.id && e.applied!==false) v += e.amount; });
+    STATE.adjustments.forEach(j=>{ if(j.accountId===a.id) v -= j.amount; });
+    STATE.transfers.forEach(t=>{ if(t.fromId===a.id) v += t.amount; if(t.toId===a.id) v -= t.amount; });
+    a.inicial = fixNum(v); cambio = true;
   });
-  STATE.incomes.forEach(i=>{
-    if(i.applied===undefined) i.applied = true;
-    if(!i.applied && isRealized(i)){
-      adjBal(STATE.accounts.find(a=>a.id===i.accountId), +i.amount);
-      i.applied = true; changed = true;
-    }
-  });
-  if(changed) saveState();
+  return cambio;
 }
 // Índice por mes (se reconstruye solo cuando cambian los datos)
 function idx(){
@@ -621,17 +662,7 @@ function lastDayOf(key){ const [y,m]=key.split('-').map(Number); return key+'-'+
 function monthHasData(key){ return expensesOfMonth(key).length>0 || incomesOfMonth(key).length>0; }
 // Saldo total con que cerró un mes (calculado hacia atrás desde los saldos actuales)
 // Saldo de CADA cuenta al cierre de un mes (reconstruye hacia atrás o proyecta hacia adelante desde el saldo actual)
-function balancesAt(key){
-  const end = lastDayOf(key), m = {};
-  STATE.accounts.forEach(a=>{ m[a.id] = a.balance||0; });
-  const add = (id,d)=>{ if(id in m) m[id] += d; };
-  STATE.incomes.forEach(i=>{ const ap = i.applied!==false; if(i.date>end && ap) add(i.accountId,-i.amount); if(i.date<=end && !ap) add(i.accountId,+i.amount); });
-  STATE.expenses.forEach(e=>{ const ap = e.applied!==false; if(e.date>end && ap) add(e.accountId,+e.amount); if(e.date<=end && !ap) add(e.accountId,-e.amount); });
-  (STATE.adjustments||[]).forEach(a=>{ if(a.date>end) add(a.accountId,-a.amount); });
-  (STATE.transfers||[]).forEach(t=>{ if(t.date>end){ add(t.fromId,+t.amount); add(t.toId,-t.amount); } });
-  Object.keys(m).forEach(k=>{ m[k] = fixNum(m[k]); });
-  return m;
-}
+function balancesAt(key){ return saldosHasta(lastDayOf(key)); }
 function closingBalance(key){ const tj = new Set(STATE.accounts.filter(a=>a.type==='tarjeta').map(a=>a.id)); return fixNum(Object.entries(balancesAt(key)).filter(([id])=>!tj.has(id)).reduce((a,[,b])=>a+b,0)); }
 function renderAccountsForMonth(key, esActual, esFuturo){
   if(!STATE.accounts.length) return `<div class="empty-state">No hay cuentas registradas</div>`;
@@ -652,19 +683,17 @@ function renderAccountsForMonth(key, esActual, esFuturo){
     </div>`;
   }).join('');
 }
-const EN_SUITE = (function(){ try{ return window.parent !== window; }catch(e){ return true; } })();
-if(EN_SUITE) document.documentElement.classList.add('en-suite');   // el tema se cambia desde el botón global del index
 function abrirRespaldoGlobal(){ try{ window.parent.postMessage({suite:'abrir-menu'}, location.origin); }catch(e){} }
 function ultimoRespaldo(){
   let g = ''; try{ g = localStorage.getItem('suite_ultimo_respaldo') || ''; }catch(e){}
   const l = STATE.lastBackup || ''; const m = g > l ? g : l; return DATE_RE.test(m) ? m : '';
 }
 function backupReminder(){
-  if(!STATE.expenses.length && !STATE.incomes.length) return '';
+  if(syncActiva() || (!STATE.expenses.length && !STATE.incomes.length)) return '';   // con Drive conectado ya hay copia automática cada día
   const last = ultimoRespaldo();
   const days = last ? Math.floor((new Date(today())-new Date(last))/864e5) : null;
   if(last && days<30) return '';
-  return `<div class="alert-box" style="border-left:4px solid var(--necesito);"><div style="font-size:13px; line-height:1.4;">${last?`Tu último respaldo fue hace <b>${days} días</b>.`:'Aún no has descargado ningún respaldo.'} ${EN_SUITE ? `<br><button class="btn btn-secondary" data-action="respaldo-global" style="margin-top:10px; padding:8px 12px; font-size:13px;">Hacer respaldo de las dos apps</button></div></div>` : 'Descárgalo desde ⚙ Ajustes para no perder tus datos.</div></div>'}`;
+  return `<div class="alert-box" style="border-left:4px solid var(--necesito);"><div style="font-size:13px; line-height:1.4;">${last?`Tu último respaldo fue hace <b>${days} días</b>.`:'Aún no has descargado ningún respaldo.'} <br><button class="btn btn-secondary" data-action="respaldo-global" style="margin-top:10px; padding:8px 12px; font-size:13px;">Hacer respaldo de las dos apps</button></div></div>`;
 }
 
 const normName = t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/\s+/g,' ');
@@ -754,7 +783,7 @@ function animarCifras(root){
 let _renderDay = null;
 function render(){
   _today = null; _renderDay = today();
-  reconcileScheduledExpenses();
+  recalcularSaldos();
   refreshMonthLabel();
   const view = document.getElementById('view');
   let html = '';
@@ -786,7 +815,7 @@ function viewResumen(){
   const detailedNivel = expensesByNivelDetailed(key);
   
   let pctSpentNum = totalDisponible > 0 ? (gasto / totalDisponible) * 100 : (gasto > 0 ? 100 : 0);
-  let pctDisplay = (pctSpentNum % 1 === 0 ? pctSpentNum : pctSpentNum.toFixed(1)) + '%';
+  let pctDisplay = String(pctSpentNum % 1 === 0 ? pctSpentNum : pctSpentNum.toFixed(1)).replace('.',',') + ' %';
   
   let alertColor, alertIcon, alertMsg;
   if(pctSpentNum <= 40) {
@@ -843,32 +872,9 @@ function viewResumen(){
     </div>
   </div>
 
-  ${renderTrend(key)}
-
-  <!-- 4. Top 5 Fuentes de Ingreso -->
-  <details class="card sec" data-sec="top-inc"><summary class="sec-sum"><h3 style="font-size:13px; color:var(--text-faint); letter-spacing:1px; text-transform:uppercase;">TOP 5 FUENTES DE INGRESO</h3><span class="sec-peek">${ingresosMes>0 ? fmtCOP(ingresosMes) : '—'}</span><span class="chev">${ic('chev-right',14)}</span></summary>
-    ${renderTopIncomes(key, ingresosMes)}
-  </details>
-
-  <!-- 5. Top 5 Gastos Globales por Etiquetas -->
-  <details class="card sec" data-sec="top-exp"><summary class="sec-sum"><h3 style="font-size:13px; color:var(--text-faint); letter-spacing:1px; text-transform:uppercase;">TOP 5 GASTOS GLOBALES (ETIQUETAS)</h3><span class="sec-peek">${gasto>0 ? fmtCOP(gasto) : '—'}</span><span class="chev">${ic('chev-right',14)}</span></summary>
-    ${renderTopGlobalExpenses(key, gasto)}
-  </details>
-
-  <!-- 6. Categorías Principales (Torta) -->
-  <details class="card sec" open data-sec="cats"><summary class="sec-sum"><h3 style="font-size:13px; color:var(--text-faint); letter-spacing:1px; text-transform:uppercase;">CATEGORÍAS PRINCIPALES (GASTOS)</h3><span class="chev">${ic('chev-right',14)}</span></summary>
-    ${gasto===0 ? `<div class="empty-state">Aún no hay gastos este mes<br><button class="btn btn-secondary" data-action="add-expense" style="margin-top:10px;">+ Registrar gasto</button></div>` : renderMainCategoriesAndDonut(key, gasto)}
-  </details>
-
-  <!-- 7. Naturaleza del Gasto -->
-  <details class="card sec" data-sec="sec-nat">
-    <summary class="sec-sum"><div><h3 style="font-size:16px; color:var(--text);">Naturaleza del gasto</h3><div class="sub-label" style="font-weight:400;">¿Cuánto debo, necesito o quiero gastar?</div></div><span class="chev">${ic('chev-right',14)}</span></summary>
-    <div class="big-num" style="font-size:22px; margin-top:8px; margin-bottom:16px;">${fmtBig(gasto)}</div>
-    ${gasto===0 ? `<div class="empty-state">Registra gastos para ver esta estructura</div>` : renderStackedNivelDetailed(detailedNivel, gasto)}
-  </details>
+  ${bloquesResumen(key, gasto, ingresosMes, detailedNivel)}
   `;
 }
-
 
 function monthShift(key, delta){ const [y,m]=key.split('-').map(Number); return monthKey(new Date(y, m-1+delta, 1)); }
 function renderTrend(key){
@@ -920,6 +926,158 @@ function renderTrend(key){
     <div class="sub-label" style="margin-bottom:2px;">Toca un mes para verlo.</div>
     <div class="sub-label">Mes de mayor gasto: <b>${esc(monthLabel(top.k))}</b> (${fmtCOP(top.exp)})</div>
   </div>`;
+}
+
+/* ================= RESUMEN: bloques que se pueden quitar, agregar u ordenar (⚙ Ajustes → Personalizar el resumen) ================= */
+const BLOQUES_NOMBRE = {ritmo:'Ritmo de gasto del mes', colchon:'Tu colchón', hormiga:'Gastos hormiga', tendencia:'Tendencia de los últimos meses', saldoMes:'Cómo se movió tu saldo en el mes', cupo:'Uso del cupo de tus tarjetas',
+  ingresos:'Principales fuentes de ingreso', gastos:'En qué se va más la plata', categorias:'Categorías principales', naturaleza:'Debo, necesito, quiero'};
+const BLOQUES_AYUDA = {ritmo:'Lo que llevas gastado, día a día, contra el mes anterior', colchon:'Cuántos meses te alcanza lo que tienes hoy', hormiga:'Gastos pequeños de «Quiero» que se repiten', tendencia:'Lo disponible y lo gastado de cada mes', saldoMes:'El total de tus cuentas día a día',
+  cupo:'Solo aparece si registraste tarjetas con cupo', ingresos:'De dónde vino la plata del mes', gastos:'Tus etiquetas con más gasto', categorias:'Gráfica de dona con el detalle por subcategoría', naturaleza:'Cuánto es obligatorio y cuánto es gusto'};
+function bloquesActivos(){ const b = STATE.opciones && STATE.opciones.bloques; return Array.isArray(b) ? b : BLOQUES_DEF; }
+const mesCorto = k => MESES[parseInt(k.slice(5,7),10)-1].toLowerCase();
+function seccion(sec, titulo, peek, cuerpo, abierto){
+  return `<details class="card sec" data-sec="${sec}" ${abierto?'open':''}><summary class="sec-sum"><h3 class="sec-titulo">${esc(titulo)}</h3>${peek?`<span class="sec-peek">${peek}</span>`:''}<span class="chev">${ic('chev-right',14)}</span></summary>${cuerpo}</details>`;
+}
+function bloquesResumen(key, gasto, ingresosMes, detailedNivel){
+  const html = bloquesActivos().map(id=>{
+    if(id==='tendencia') return renderTrend(key);
+    if(id==='ritmo') return renderRitmo(key);
+    if(id==='saldoMes') return renderSaldoMes(key);
+    if(id==='cupo') return renderCupo();
+    if(id==='colchon') return renderColchon();
+    if(id==='hormiga') return renderHormiga(key);
+    if(id==='ingresos') return seccion('top-inc', BLOQUES_NOMBRE.ingresos, ingresosMes>0 ? fmtCOP(ingresosMes) : '—', renderTopIncomes(key, ingresosMes));
+    if(id==='gastos') return seccion('top-exp', BLOQUES_NOMBRE.gastos, gasto>0 ? fmtCOP(gasto) : '—', renderTopGlobalExpenses(key, gasto));
+    if(id==='categorias') return seccion('cats', BLOQUES_NOMBRE.categorias, '', gasto===0 ? `<div class="empty-state">Aún no hay gastos este mes<br><button class="btn btn-secondary" data-action="add-expense" style="margin-top:10px;">+ Registrar gasto</button></div>` : renderMainCategoriesAndDonut(key, gasto), true);
+    if(id==='naturaleza') return seccion('sec-nat', BLOQUES_NOMBRE.naturaleza, gasto>0 ? fmtCOP(gasto) : '—', gasto===0 ? `<div class="empty-state">Registra gastos para ver esta estructura</div>` : renderStackedNivelDetailed(detailedNivel, gasto));
+    return '';
+  }).join('');
+  return html + `<button type="button" class="btn-bloques" data-action="bloques">${ic('sliders',18)}<span>Personalizar el resumen</span></button>`;
+}
+// Gráfica de líneas sencilla: series [{v:[...], color, ancho, guion}], eje X en días
+function lineasSVG(series, dias, opts){
+  const W = 320, H = 140, padT = 12, padB = 18, plotH = H-padT-padB, todos = series.flatMap(s=>s.v.filter(Number.isFinite));
+  const min = opts && opts.desdeCero===false ? Math.min(...todos) : Math.min(0, ...todos), max = Math.max(1, ...todos), rango = (max-min) || 1;
+  const x = d => (d-1)/Math.max(1,dias-1)*W, y = v => padT + plotH - (v-min)/rango*plotH;
+  const lin = s => { const pts = s.v.map((v,i)=> Number.isFinite(v) ? `${x(i+1).toFixed(1)},${y(v).toFixed(1)}` : null).filter(Boolean); return pts.length>1 ? `<polyline points="${pts.join(' ')}" fill="none" stroke="${s.color}" stroke-width="${s.ancho||2}" ${s.guion?'stroke-dasharray="4 4"':''} stroke-linejoin="round" stroke-linecap="round"/>` : ''; };
+  const marcas = [1, 10, 20, dias].map(d=>`<text x="${Math.min(W-8, Math.max(6, x(d))).toFixed(1)}" y="${H-4}" text-anchor="middle" font-size="9">${d}</text>`).join('');
+  const area = opts && opts.area ? (()=>{ const s = series[opts.area-1], pts = s.v.map((v,i)=>Number.isFinite(v) ? [x(i+1), y(v)] : null).filter(Boolean); if(pts.length<2) return '';
+    return `<path d="M${pts[0][0].toFixed(1)},${(padT+plotH).toFixed(1)} ${pts.map(p=>`L${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')} L${pts[pts.length-1][0].toFixed(1)},${(padT+plotH).toFixed(1)} Z" fill="${s.color}" opacity=".12"/>`; })() : '';
+  const punto = opts && opts.punto ? `<circle cx="${x(opts.punto[0]).toFixed(1)}" cy="${y(opts.punto[1]).toFixed(1)}" r="4" fill="${series[0].color}" stroke="var(--surface)" stroke-width="2"/>` : '';
+  return `<svg class="trend-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts && opts.aria || '')}">
+    <line x1="0" y1="${padT+plotH}" x2="${W}" y2="${padT+plotH}" stroke="var(--border)"/><line x1="0" y1="${padT}" x2="${W}" y2="${padT}" stroke="var(--border)" stroke-dasharray="3 3"/>
+    <text x="2" y="${padT-2}" font-size="8">${esc(fmtCompact(max))}</text>${area}${series.slice().reverse().map(lin).join('')}${punto}${marcas}</svg>`;
+}
+function gastoAcumulado(key){
+  const [y,m] = key.split('-').map(Number), dias = new Date(y,m,0).getDate(), por = new Array(dias+1).fill(0), hoy = today();
+  expensesOfMonth(key).forEach(e=>{ if(e.date<=hoy) por[parseInt(e.date.slice(8,10),10)] += e.amount; });
+  const out = []; let t = 0; for(let d=1; d<=dias; d++){ t += por[d]; out.push(fixNum(t)); } return out;
+}
+function renderRitmo(key){
+  const hoyK = today().slice(0,7); if(key>hoyK) return '';                                  // mes futuro: todavía no hay gastos que comparar
+  const esActual = key===hoyK, cur = gastoAcumulado(key), dia = esActual ? parseInt(today().slice(8,10),10) : cur.length;
+  const pk = prevMonthKey(key), prev = monthHasData(pk) ? gastoAcumulado(pk) : null, ak = monthShift(key,-12), anio = monthHasData(ak) ? gastoAcumulado(ak) : null;
+  const enDia = (arr,d) => arr ? arr[Math.min(d, arr.length)-1] : 0, va = enDia(cur, dia);
+  if(!va && !prev) return seccion('bq-ritmo', BLOQUES_NOMBRE.ritmo, '', `<div class="empty-state sin-icono">Cuando registres gastos verás aquí si vas más rápido o más lento que el mes pasado.</div>`, true);
+  let frase;
+  if(prev && enDia(prev, dia)>0){
+    const antes = enDia(prev, dia), dif = (va-antes)/antes, p = Math.round(Math.abs(dif)*100);
+    frase = p<5 ? `Vas al mismo ritmo que en ${mesCorto(pk)}: al día ${dia} llevabas ${fmtCOP(antes)} y ${esActual?'hoy llevas':'este mes llevaste'} ${fmtCOP(va)}.`
+      : `Al día ${dia} ${esActual?'llevas':'llevabas'} ${fmtCOP(va)}, un ${p}% ${dif>0?'más':'menos'} que en ${mesCorto(pk)} a esa altura (${fmtCOP(antes)}).`;
+    if(esActual && dif>0.15 && dia>=5) frase += ` Si sigues a este ritmo, el mes podría cerrar cerca de ${fmtCOP(va/dia*cur.length)} (en ${mesCorto(pk)} fueron ${fmtCOP(prev[prev.length-1])}).`;
+  } else frase = (esActual ? `Llevas ${fmtCOP(va)} gastados en ${dia} días.` : `En el mes gastaste ${fmtCOP(va)}.`) + (prev ? ` En ${mesCorto(pk)} gastaste ${fmtCOP(prev[prev.length-1])} en todo el mes.` : '');
+  const dias = Math.max(cur.length, prev ? prev.length : 0, anio ? anio.length : 0);
+  const series = [{v:cur.slice(0, dia), color:'var(--accent)', ancho:2.6}];
+  if(prev) series.push({v:prev, color:'var(--text-faint)', ancho:1.8});
+  if(anio) series.push({v:anio, color:'var(--necesito)', ancho:1.6, guion:true});
+  const ley = `<div class="trend-legend"><span><span class="legend-dot" style="background:var(--accent)"></span>${esc(mesCorto(key))}</span>${prev?`<span><span class="legend-dot" style="background:var(--text-faint)"></span>${esc(mesCorto(pk))}</span>`:''}${anio?`<span><span class="legend-dot" style="background:var(--necesito)"></span>${esc(mesCorto(ak))} ${ak.slice(0,4)}</span>`:''}</div>`;
+  return seccion('bq-ritmo', BLOQUES_NOMBRE.ritmo, fmtCOP(va), `${lineasSVG(series, dias, {punto:[dia, va], aria:'Gasto acumulado por día del mes'})}${ley}<div class="sub-label" style="margin:8px 0 0; line-height:1.5;">${frase}</div>`, true);
+}
+function saldoDiario(key){
+  const [y,m] = key.split('-').map(Number), dias = new Date(y,m,0).getDate(), validas = new Set(STATE.accounts.filter(a=>!esTarjeta(a)).map(a=>a.id));
+  const ini = saldosHasta(lastDayOf(prevMonthKey(key))), delta = new Array(dias+1).fill(0);
+  const mov = (id,date,v)=>{ if(validas.has(id) && date.slice(0,7)===key) delta[parseInt(date.slice(8,10),10)] += v; };
+  STATE.incomes.forEach(i=>mov(i.accountId, i.date, +i.amount)); STATE.expenses.forEach(e=>mov(e.accountId, e.date, -e.amount));
+  STATE.adjustments.forEach(j=>mov(j.accountId, j.date, +j.amount)); STATE.transfers.forEach(t=>{ mov(t.fromId, t.date, -t.amount); mov(t.toId, t.date, +t.amount); });
+  let s = [...validas].reduce((t,id)=>t+(ini[id]||0),0); const inicio = fixNum(s), out = [];
+  for(let d=1; d<=dias; d++){ s += delta[d]; out.push(fixNum(s)); }
+  return {inicio, dias:out};
+}
+function renderSaldoMes(key){
+  if(!STATE.accounts.some(a=>!esTarjeta(a))) return '';
+  const hoyK = today().slice(0,7), esActual = key===hoyK, esFuturo = key>hoyK, {inicio, dias} = saldoDiario(key);
+  const dia = esActual ? parseInt(today().slice(8,10),10) : dias.length, ahora = dias[dia-1];
+  const real = dias.map((v,i)=> (esFuturo || i<dia) ? v : NaN), proy = esActual ? dias.map((v,i)=> i>=dia-1 ? v : NaN) : null;
+  const series = [{v:real, color:'var(--debo)', ancho:2.4}]; if(proy && dia<dias.length) series.push({v:proy, color:'var(--debo)', ancho:1.6, guion:true});
+  const dif = inicio ? (ahora-inicio)/Math.abs(inicio) : 0, p = Math.round(Math.abs(dif)*100);
+  const chip = inicio ? `<span class="chip-var ${dif<0?'baja':'sube'}">${dif<0?'−':'+'}${p}% vs. inicio del mes</span>` : '';
+  const nota = esFuturo ? 'Proyección con los movimientos que ya registraste con fecha de este mes.' : esActual && proy && dia<dias.length ? 'La línea punteada incluye los movimientos que registraste con fecha futura.' : '';
+  return seccion('bq-saldo', BLOQUES_NOMBRE.saldoMes, fmtCOP(ahora),
+    `<div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin-bottom:6px;"><span class="big-num" style="font-size:22px;">${fmtCOP(ahora)}</span>${chip}</div>
+     ${lineasSVG(series, dias.length, {area:1, desdeCero:false, punto:[dia, ahora], aria:'Saldo total de tus cuentas por día'})}
+     <div class="sub-label" style="margin:8px 0 0; line-height:1.5;">Empezaste el mes con ${fmtCOP(inicio)} en tus cuentas (sin tarjetas de crédito).${nota?' '+nota:''}</div>`, true);
+}
+function renderCupo(){
+  const tj = STATE.accounts.filter(a=>esTarjeta(a) && a.cupo>0); if(!tj.length) return '';
+  const deuda = fixNum(tj.reduce((t,a)=>t+Math.max(0,-(a.balance||0)),0)), cupo = fixNum(tj.reduce((t,a)=>t+a.cupo,0)), real = cupo>0 ? deuda/cupo : 0, uso = Math.min(1, real);
+  const col = real<=0.3 ? 'var(--accent)' : real<=0.7 ? 'var(--necesito)' : 'var(--danger)', C = 2*Math.PI*38;
+  const dona = `<svg viewBox="0 0 100 100" width="110" height="110" role="img" aria-label="Usas el ${Math.round(real*100)}% de tu cupo"><circle cx="50" cy="50" r="38" fill="none" stroke="var(--surface-2)" stroke-width="12"/><circle cx="50" cy="50" r="38" fill="none" stroke="${col}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${(C*uso).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 50 50)"/><text x="50" y="55" text-anchor="middle" font-size="17" font-weight="700" fill="var(--text)">${Math.round(real*100)}%</text></svg>`;
+  const filas = tj.length>1 ? tj.map(a=>{ const d = Math.max(0,-(a.balance||0)); return `<div class="cupo-fila"><span>${esc(a.name)}</span><span>${fmtCOP(d)} de ${fmtCompact(a.cupo).replace(/^COP\s*/,'$')} · ${Math.round(d/a.cupo*100)}%</span></div>`; }).join('') : '';
+  return seccion('bq-cupo', BLOQUES_NOMBRE.cupo, Math.round(real*100)+' %',
+    `<div class="cupo-box">${dona}<div><div class="sub-label" style="margin:0;">Debes</div><div class="big-num" style="font-size:20px;">${fmtCOP(deuda)}</div><div class="sub-label" style="margin:6px 0 0;">Cupo total</div><div style="font-weight:700;">${fmtCOP(cupo)}</div></div></div>${filas}
+     <div class="sub-label" style="margin:10px 0 0; line-height:1.5;">${real>1 ? 'Lo que registraste pasa el cupo: revisa el cupo de la tarjeta o si falta registrar un pago. ' : ''}Usar una parte pequeña del cupo (por ejemplo, menos del 30 %) suele favorecer tu historial crediticio.</div>`, true);
+}
+// Colchón: cuántos meses de gasto cubre lo que tienes hoy (sin contar lo que debes en tarjetas)
+function renderColchon(){
+  const hoyK = today().slice(0,7), meses = [];
+  for(let i=1; i<=6 && meses.length<3; i++){ const k = monthShift(hoyK,-i); if(monthHasData(k)) meses.push(k); }
+  if(!meses.length) return seccion('bq-colchon', BLOQUES_NOMBRE.colchon, '', `<div class="empty-state sin-icono">Cuando tengas al menos un mes completo de gastos registrados te digo cuántos meses te alcanza lo que tienes.</div>`, true);
+  const prom = fixNum(meses.reduce((t,k)=>t+totalExpenses(k),0)/meses.length); if(!(prom>0)) return '';
+  const deudaTj = fixNum(STATE.accounts.filter(esTarjeta).reduce((t,a)=>t+Math.max(0,-(a.balance||0)),0)), disponible = fixNum(positiveAccountsBalance() - deudaTj);
+  const n = Math.max(0, disponible/prom), nTxt = (n>=10 ? Math.round(n) : Math.round(n*10)/10).toLocaleString('es-CO');
+  const [color, consejo] = n<1 ? ['var(--danger)', 'Menos de un mes: cualquier imprevisto te descuadra. Lo usual es apuntar a tener entre 3 y 6 meses de gastos guardados.']
+    : n<3 ? ['var(--necesito)', 'Vas armándolo. Lo usual es apuntar a tener entre 3 y 6 meses de gastos guardados.']
+    : n<6 ? ['var(--accent)', 'Buen colchón: aguantas varios meses sin ingresos.'] : ['var(--accent)', 'Colchón amplio: más de 6 meses de gastos cubiertos.'];
+  return seccion('bq-colchon', BLOQUES_NOMBRE.colchon, `${nTxt} ${n>=0.95 && n<1.05 ? 'mes' : 'meses'}`,
+    `<div style="display:flex; align-items:baseline; gap:8px;"><span class="big-num" style="font-size:28px;">${nTxt}</span><span class="sub-label" style="margin:0;">${n>=0.95 && n<1.05 ? 'mes' : 'meses'} de tus gastos</span></div>
+     <div class="deb-bar" style="margin:10px 0 4px;"><div style="width:${(Math.min(1, n/6)*100).toFixed(1)}%; background:${color};"></div></div>
+     <div class="colchon-escala"><span>0</span><span>3</span><span>6+ meses</span></div>
+     <div class="sub-label" style="margin:10px 0 0; line-height:1.5;">Hoy tienes ${fmtCOP(disponible)} disponibles${deudaTj>0 ? ` (tus cuentas menos ${fmtCOP(deudaTj)} que debes en tarjetas)` : ''} y gastas en promedio ${fmtCOP(prom)} al mes (${meses.length===1 ? 'el último mes' : 'los últimos '+meses.length+' meses'} con datos). ${consejo}</div>`, true);
+}
+// Gastos hormiga: los pequeños de «Quiero» que se repiten y suman sin que uno lo note
+const HORMIGA_TOPE = 30000;
+function nivelDe(e){ const s = findSub(e.catId, e.subId); return s ? s.nivel : (e.nivel || 'quiero'); }
+function hormigaDe(key){ return expensesOfMonth(key).filter(e=>isRealized(e) && e.amount<=HORMIGA_TOPE && nivelDe(e)==='quiero' && !esPagoDeudaGasto(e)); }
+function renderHormiga(key){
+  const hoyK = today().slice(0,7); if(key>hoyK) return '';
+  const lista = hormigaDe(key), total = fixNum(lista.reduce((t,e)=>t+e.amount,0));
+  if(!lista.length) return seccion('bq-hormiga', BLOQUES_NOMBRE.hormiga, '—', `<div class="empty-state sin-icono">Este mes no hay gastos de ${fmtCOP(HORMIGA_TOPE)} o menos marcados como «Quiero».</div>`);
+  const grupos = {}; lista.forEach(e=>{ const s = findSub(e.catId, e.subId), c = findCat(e.catId), et = (e.desc||'').trim() || (s ? s.name : c ? c.name : 'Otros'), k = normName(et);
+    const g = grupos[k] || (grupos[k] = {et, t:0, n:0}); g.t += e.amount; g.n++; });
+  const top = Object.values(grupos).sort((a,b)=>b.t-a.t).slice(0,3);
+  const [y,m] = key.split('-').map(Number), diasMes = new Date(y,m,0).getDate(), dia = key===hoyK ? parseInt(today().slice(8,10),10) : diasMes;
+  const anual = total/dia*diasMes*12, pk = prevMonthKey(key), antes = fixNum(hormigaDe(pk).reduce((t,e)=>t+e.amount,0));
+  const cmp = antes>0 ? ` En ${mesCorto(pk)} ${key===hoyK?'fueron':'habían sido'} ${fmtCOP(antes)} en todo el mes.` : '';
+  return seccion('bq-hormiga', BLOQUES_NOMBRE.hormiga, fmtCOP(total),
+    `<div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;"><span class="big-num" style="font-size:22px;">${fmtCOP(total)}</span><span class="sub-label" style="margin:0; text-align:right;">${lista.length} gasto${lista.length>1?'s':''} de ${fmtCOP(HORMIGA_TOPE)} o menos</span></div>
+     <div style="margin-top:8px;">${top.map(g=>`<div class="cupo-fila"><span>${esc(g.et)} · ${g.n} ${g.n===1?'vez':'veces'}</span><span>${fmtCOP(g.t)}</span></div>`).join('')}</div>
+     <div class="sub-label" style="margin:10px 0 0; line-height:1.5;">${dia>=10 ? `Si todos los meses fueran así, serían unos ${fmtCOP(anual)} al año.` : `Llevas ${dia} día${dia>1?'s':''} del mes.`}${cmp} Cuentan los gastos pequeños que marcaste como «Quiero».</div>`);
+}
+
+function abrirBloques(){
+  let lista = bloquesActivos().slice();
+  openModal(`<div class="modal-head"><h3>Personalizar el resumen</h3><button class="close-x" onclick="closeModal()" aria-label="Cerrar">${ic('x',22)}</button></div>
+    <div class="sub-label" style="margin:0 0 10px; line-height:1.5;">El saldo y la alerta siempre aparecen. Marca los bloques que quieres ver y ordénalos con las flechas.</div>
+    <div id="bqLista"></div>
+    <div style="display:flex; gap:10px; margin-top:16px;"><button class="btn btn-secondary" id="bqDef" style="flex:1">Restablecer</button><button class="btn btn-primary" id="bqOk" style="flex:2">Guardar</button></div>`, {center:true});
+  const box = document.getElementById('bqLista');
+  const fila = (id, on, i) => `<div class="bq-fila${on?'':' off'}"><label><input type="checkbox" data-bq="${id}" ${on?'checked':''}><span>${esc(BLOQUES_NOMBRE[id])}<small>${esc(BLOQUES_AYUDA[id])}</small></span></label>${on ? `<span class="bq-mover"><button type="button" data-mv="${i}" data-dir="-1" aria-label="Subir ${esc(BLOQUES_NOMBRE[id])}" ${i===0?'disabled':''}>${ic('chev-up',18)}</button><button type="button" data-mv="${i}" data-dir="1" aria-label="Bajar ${esc(BLOQUES_NOMBRE[id])}" ${i===lista.length-1?'disabled':''}>${ic('chev-down',18)}</button></span>` : ''}</div>`;
+  const pintar = ()=>{ box.innerHTML = lista.map((id,i)=>fila(id,true,i)).join('') + BLOQUES_IDS.filter(id=>!lista.includes(id)).map(id=>fila(id,false,0)).join(''); };
+  pintar();
+  box.addEventListener('change', e=>{ const id = e.target.dataset.bq; if(!id) return; lista = e.target.checked ? lista.concat(id) : lista.filter(x=>x!==id); pintar(); });
+  box.addEventListener('click', e=>{ const b = e.target.closest('[data-mv]'); if(!b) return; const i = +b.dataset.mv, j = i + (+b.dataset.dir); if(j<0 || j>=lista.length) return; [lista[i], lista[j]] = [lista[j], lista[i]]; pintar(); const n = box.querySelector(`[data-mv="${j}"][data-dir="${b.dataset.dir}"]`) || box.querySelector(`[data-mv="${j}"]`); if(n && !n.disabled) n.focus(); });
+  document.getElementById('bqDef').onclick = ()=>{ lista = BLOQUES_DEF.slice(); pintar(); };
+  document.getElementById('bqOk').onclick = ()=>{ STATE.opciones.bloques = lista; saveState(); closeModal(); render(); toast('Resumen actualizado'); };
 }
 
 function renderTopGlobalExpenses(key, totalGasto){
@@ -1500,10 +1658,16 @@ function bienBorrar(id){
 function esPagoDeudaGasto(e){ return STATE.debts.some(d=>d.catId===e.catId && (!d.subId || d.subId===e.subId)); }
 function resumenParaSuite(){
   const tj = new Set(STATE.accounts.filter(a=>a.type==='tarjeta').map(a=>a.id)), anios = {};
-  const A = y=>anios[y] || (anios[y] = {compras:0, tarjeta:0, consignaciones:0, meses:{}, desde:'9999-99-99'});
-  STATE.expenses.forEach(e=>{ if(!isRealized(e)) return; const a = A(e.date.slice(0,4)); a.meses[e.date.slice(5,7)] = 1; if(e.date<a.desde) a.desde = e.date; if(esPagoDeudaGasto(e)) return; a.compras += e.amount; if(tj.has(e.accountId)) a.tarjeta += e.amount; });
-  STATE.incomes.forEach(i=>{ if(!isRealized(i)) return; const a = A(i.date.slice(0,4)); a.meses[i.date.slice(5,7)] = 1; if(i.date<a.desde) a.desde = i.date; a.consignaciones += i.amount; });
-  const out = {}; Object.keys(anios).forEach(y=>{ const a = anios[y]; out[y] = {compras:fixNum(a.compras), tarjeta:fixNum(a.tarjeta), consignaciones:fixNum(a.consignaciones), meses:Object.keys(a.meses).length, desde:a.desde}; });
+  const A = y=>anios[y] || (anios[y] = {compras:0, tarjeta:0, consignaciones:0, entradasBanco:0, facturaE:0, meses:{}, desde:'9999-99-99'});
+  const banco = new Set(STATE.accounts.filter(a=>['banco','ahorro'].includes(accType(a))).map(a=>a.id)), efectivo = new Set(STATE.accounts.filter(a=>accType(a)==='efectivo').map(a=>a.id));
+  STATE.expenses.forEach(e=>{ if(!isRealized(e)) return; const a = A(e.date.slice(0,4)); a.meses[e.date.slice(5,7)] = 1; if(e.date<a.desde) a.desde = e.date;
+    if(esPagoDeudaGasto(e) || e.catId==='costos_financieros') return;                 // pagar deudas o intereses no es una compra
+    a.compras += e.amount; if(tj.has(e.accountId)) a.tarjeta += e.amount;
+    if(e.fe && !efectivo.has(e.accountId)) a.facturaE += e.amount; });              // la deducción del 1 % exige pago electrónico
+  STATE.incomes.forEach(i=>{ if(!isRealized(i)) return; const a = A(i.date.slice(0,4)); a.meses[i.date.slice(5,7)] = 1; if(i.date<a.desde) a.desde = i.date; a.consignaciones += i.amount; if(banco.has(i.accountId)) a.entradasBanco += i.amount; });
+  // el banco le reporta a la DIAN todo lo que entra a tus cuentas, también lo que pasas entre tus propias cuentas
+  STATE.transfers.forEach(t=>{ if(t.date>today() || !banco.has(t.toId)) return; A(t.date.slice(0,4)).entradasBanco += t.amount; });
+  const out = {}; Object.keys(anios).forEach(y=>{ const a = anios[y]; out[y] = {compras:fixNum(a.compras), tarjeta:fixNum(a.tarjeta), consignaciones:fixNum(a.consignaciones), entradasBanco:fixNum(a.entradasBanco), facturaE:fixNum(a.facturaE), meses:Object.keys(a.meses).length, desde:a.desde}; });
   const vivienda = {};
   STATE.debts.filter(d=>d.vivienda).forEach(d=>{ estadoDeuda(d).filas.forEach(f=>{ if(f.tipo==='pago' && f.interes>0){ const k = f.date.slice(0,7); vivienda[k] = fixNum((vivienda[k]||0)+f.interes); } }); });
   const R = resumenDeudas(), key = STATE.viewingMonth, ah = ahorroMes(key);
@@ -1572,7 +1736,7 @@ function actualizarCuotasUI(){
     info.textContent = `Se registra completo hoy. Cada cuota ≈ ${fmtCOP(cuotaValorTarjeta(a,{amount:monto,cuotas:n}))}${a.tasaM>0 ? ' (con el interés que pusiste en la tarjeta)' : ' (sin interés: si tu banco cobra, pon la tasa en «Editar» de la tarjeta)'}.`;
   });
 }
-document.addEventListener('change', e=>{ if(['addExpAcc','addExpCuotas','expAccount','expCuotas'].includes(e.target.id)) actualizarCuotasUI(); });
+document.addEventListener('change', e=>{ if(['addExpAcc','addExpCuotas','expAccount','expCuotas'].includes(e.target.id)){ actualizarCuotasUI(); actualizarFacturaUI(); } });
 document.addEventListener('input', e=>{ if(['addExpAmount','expAmount'].includes(e.target.id)) actualizarCuotasUI(); });
 
 function abrirTarjetaDetalle(id){
@@ -1591,39 +1755,85 @@ function abrirTarjetaDetalle(id){
     <div style="display:flex; gap:10px; margin-top:16px;"><button class="btn btn-secondary" style="flex:1" onclick="closeModal(); pagarTarjeta('${esc(a.id)}')">Pagar tarjeta</button><button class="btn btn-primary" style="flex:1" onclick="closeModal()">Listo</button></div>`, {center:true});
 }
 
+// Parte de intereses de las cuotas que vencen en el extracto de un mes (sistema de cuota fija, con la tasa de la tarjeta)
+function interesCuotasMes(a, key){
+  const i = (a && a.tasaM) || 0; if(!(i>0)) return 0;
+  return fixNum(cuotasDelMes(a, key).reduce((t,c)=>{ if(c.n<=1) return t; const P = c.e.amount, A = c.valor, f = Math.pow(1+i, c.k-1);
+    return t + Math.max(0, (P*f - A*(f-1)/i) * i); }, 0));
+}
+// Categoría donde quedan los intereses y cargos de las tarjetas (se crea la primera vez que se necesita)
+function categoriaCostosFinancieros(){
+  let c = STATE.categories.find(x=>x.id==='costos_financieros') || STATE.categories.find(x=>normName(x.name)==='costos financieros');
+  if(!c){ c = {id:'costos_financieros', name:'Costos financieros', icon:'🏦', color:siguienteColor(STATE.categories), subcats:[]}; STATE.categories.push(c); }
+  let s = c.subcats.find(x=>x.id==='intereses_tarjeta');
+  if(!s){ s = {id:'intereses_tarjeta', name:'Intereses y cargos de tarjetas', nivel:'debo'}; c.subcats.push(s); }
+  return {catId:c.id, subId:s.id};
+}
 function abrirPagoTarjeta(id){
   const a = accById(id); if(!a || !esTarjeta(a)) return;
   const r = resumenTarjeta(a), origen = STATE.accounts.filter(x=>!esTarjeta(x));
   if(!origen.length){ alert('Primero crea una cuenta de banco o de efectivo desde donde pagar.'); return; }
-  const mesTxt = monthLabel(STATE.viewingMonth).split(' ')[0], def = r.esteMes>0 ? 'mes' : 'total';
+  const mesTxt = monthLabel(STATE.viewingMonth).split(' ')[0], intMes = Math.round(interesCuotasMes(a, STATE.viewingMonth)), def = r.esteMes>0 ? 'mes' : 'total';
   openModal(`<div class="modal-head"><h3>Pagar ${esc(a.name)}</h3><button class="close-x" onclick="closeModal()" aria-label="Cerrar">${ic('x',22)}</button></div>
-    <div class="sub-label" style="margin:0 0 10px; line-height:1.5;">Debes <b>${fmtCOP(r.deuda)}</b>. Pagar la tarjeta <b>no es un gasto</b>: las compras ya contaron cuando las hiciste. Esto solo baja tu deuda y el saldo de la cuenta que elijas.</div>
+    <div class="sub-label" style="margin:0 0 10px; line-height:1.5;">Debes <b>${fmtCOP(r.deuda)}</b> de compras. Pagar la tarjeta <b>no es un gasto</b>: las compras ya contaron cuando las hiciste. Lo que sí es gasto son los <b>intereses y cargos</b> que te cobra el banco.</div>
     <label for="ptCuenta">Pagar desde</label><select id="ptCuenta">${origen.map(x=>`<option value="${esc(x.id)}">${accLbl(x)} (${fmtCOP(x.balance)})</option>`).join('')}</select>
     <div class="sub-label" style="margin:12px 0 2px;">¿Cuánto pagas?</div>
-    <label class="wiz-radio"><input type="radio" name="ptOp" value="total" ${def==='total'?'checked':''}><span>Pago total · <b>${fmtCOP(r.deuda)}</b></span></label>
+    <label class="wiz-radio"><input type="radio" name="ptOp" value="total" ${def==='total'?'checked':''}><span>Pago total · <b>${fmtCOP(r.deuda + intMes)}</b></span></label>
     <label class="wiz-radio"><input type="radio" name="ptOp" value="mes" ${def==='mes'?'checked':''}><span>Lo de este extracto (${esc(mesTxt)}) · <b>≈ ${fmtCOP(r.esteMes)}</b></span></label>
-    <label class="wiz-radio"><input type="radio" name="ptOp" value="otro"><span>Otro valor</span></label>
+    <label class="wiz-radio"><input type="radio" name="ptOp" value="otro"><span>Otro valor (el de tu extracto)</span></label>
     <input type="text" id="ptMonto" class="money-input" inputmode="numeric" placeholder="Monto (COP)" aria-label="Monto a pagar">
+    <label for="ptInt">De ese pago, intereses y cargos (cuota de manejo, seguros)</label>
+    <input type="text" id="ptInt" class="money-input" inputmode="numeric" placeholder="0" value="${intMes>0 ? formatMoneyInputValue(intMes) : ''}">
+    <div class="sub-label" style="margin:4px 0 0; line-height:1.5;">${intMes>0 ? `Estimado con la tasa de la tarjeta (${pctTxt(a.tasaM)} mensual). ` : ''}Míralo en tu extracto («intereses corrientes» y cargos). Esa parte queda como gasto en «Costos financieros»; el resto baja tu deuda.</div>
     <label for="ptFecha">Fecha del pago</label><input type="date" id="ptFecha" value="${today()}" max="${today()}">
     <div id="ptErr" class="wiz-err" style="display:none"></div>
     <div style="display:flex; gap:10px; margin-top:16px;"><button class="btn btn-secondary" style="flex:1" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" style="flex:2" id="ptGuardar">Registrar pago</button></div>`, {center:true});
-  const monto = document.getElementById('ptMonto');
+  const monto = document.getElementById('ptMonto'), inte = document.getElementById('ptInt');
   const aplicar = ()=>{ const op = (document.querySelector('input[name=ptOp]:checked')||{}).value;
-    if(op==='total') monto.value = formatMoneyInputValue(r.deuda); else if(op==='mes') monto.value = formatMoneyInputValue(r.esteMes); else { monto.value = ''; monto.focus(); } };
+    if(op==='total') monto.value = formatMoneyInputValue(Math.round(r.deuda + intMes)); else if(op==='mes') monto.value = formatMoneyInputValue(Math.round(r.esteMes)); else { monto.value = ''; monto.focus(); } };
   document.querySelectorAll('input[name=ptOp]').forEach(x=>x.onchange = aplicar); aplicar();
-  document.getElementById('ptGuardar').onclick = ()=>{
-    const from = accById(document.getElementById('ptCuenta').value), m = parseMoneyInput(monto), fecha = document.getElementById('ptFecha').value || today(), err = t=>{ const e = document.getElementById('ptErr'); e.textContent = t; e.style.display = 'block'; };
+  document.getElementById('ptGuardar').onclick = async ()=>{
+    const from = accById(document.getElementById('ptCuenta').value), m = parseMoneyInput(monto), cargos = Math.min(parseMoneyInput(inte)||0, m||0), fecha = document.getElementById('ptFecha').value || today();
+    const err = t=>{ const e = document.getElementById('ptErr'); e.textContent = t; e.style.display = 'block'; };
     if(!from) return err('Elige la cuenta desde la que pagas.');
     if(!(m>0)) return err('Escribe cuánto pagas.');
     if(!DATE_RE.test(fecha) || fecha>today()) return err('La fecha del pago no puede ser futura.');
-    if(m>r.deuda+0.5 && !confirmaYa(`Vas a pagar ${fmtCOP(m)} y la deuda es ${fmtCOP(r.deuda)}: quedaría saldo a favor en la tarjeta. ¿Continuar?`)) return;
-    if(m>(from.balance||0) && !confirmaYa(`El pago (${fmtCOP(m)}) supera el saldo de "${from.name}" (${fmtCOP(from.balance)}). Esa cuenta quedará en negativo. ¿Continuar?`)) return;
-    adjBal(from, -m); adjBal(a, +m);
-    STATE.transfers.push({id:uid(), date:fecha, timestamp:Date.now(), fromId:from.id, toId:a.id, amount:m});
-    saveState(); closeModal(); render(); toast(`Pago de ${fmtCOP(m)} registrado. Tu deuda en ${a.name} bajó.`);
+    const capital = fixNum(m - cargos);
+    if(capital>r.deuda+0.5 && !(await SuiteUI.confirmar(`De este pago, ${fmtCOP(capital)} bajarían la deuda, pero solo debes ${fmtCOP(r.deuda)} de compras: quedaría saldo a favor en la tarjeta. Si la diferencia son intereses o cargos, escríbela en ese campo. ¿Registrar igual?`, {peligro:false}))) return;
+    if(m>(from.balance||0) && !(await SuiteUI.confirmar(`El pago (${fmtCOP(m)}) supera el saldo de "${from.name}" (${fmtCOP(from.balance)}). Esa cuenta quedará en negativo. ¿Continuar?`, {peligro:false}))) return;
+    if(capital>0) STATE.transfers.push({id:uid(), date:fecha, timestamp:Date.now(), fromId:from.id, toId:a.id, amount:capital});
+    if(cargos>0){ const cc = categoriaCostosFinancieros(); STATE.expenses.push({id:uid(), date:fecha, time:'', timestamp:Date.now(), amount:fixNum(cargos), desc:'Intereses y cargos · '+a.name, catId:cc.catId, subId:cc.subId, nivel:'debo', accountId:from.id}); }
+    saveState(); closeModal(); render();
+    toast(cargos>0 ? `Pago registrado: ${fmtCOP(capital)} bajaron tu deuda y ${fmtCOP(cargos)} quedaron como gasto financiero.` : `Pago de ${fmtCOP(m)} registrado. Tu deuda en ${a.name} bajó.`, {ms:8000});
   };
 }
-
+// ---------- avisos al registrar un gasto ----------
+// `previo`: el gasto que se está editando (su valor ya está descontado del saldo de su cuenta)
+async function confirmarGasto(a, monto, fecha, previo){
+  if(!a) return true;
+  const devuelto = (previo && previo.accountId===a.id && previo.date<=today()) ? previo.amount : 0;
+  if(a.type==='ahorro' && !(await SuiteUI.confirmar(`"${a.name}" es una cuenta de ahorro. ¿Seguro que quieres gastar desde ahí?`, {peligro:false}))) return false;
+  if(esTarjeta(a)){
+    if(a.cupo>0){ const disp = a.cupo - Math.max(0,-(a.balance||0)) + devuelto;
+      if(monto>disp && !(await SuiteUI.confirmar(`La compra (${fmtCOP(monto)}) supera el cupo disponible de "${a.name}" (${fmtCOP(Math.max(0,disp))}). ¿Registrarla igual?`, {peligro:false}))) return false; }
+    return true;
+  }
+  if(fecha<=today()){ const saldo = (a.balance||0) + devuelto;
+    if(monto>saldo && !(await SuiteUI.confirmar(a.type==='efectivo'
+      ? `Tienes ${fmtCOP(saldo)} en "${a.name}" y el gasto es de ${fmtCOP(monto)}. Revisa si salió de otra cuenta o si falta registrar un retiro. ¿Registrarlo igual?`
+      : `El gasto (${fmtCOP(monto)}) supera el saldo de "${a.name}" (${fmtCOP(saldo)}). La cuenta quedará en negativo. ¿Registrarlo igual?`, {peligro:false}))) return false;
+  }
+  return true;
+}
+// ---------- factura electrónica (opcional, se activa en ⚙ Ajustes) ----------
+function filaFactura(pref, marcado){
+  if(!(STATE.opciones && STATE.opciones.facturaE)) return '';
+  return `<label class="fe-fila" id="${pref}FeFila"><input type="checkbox" id="${pref}Fe" ${marcado?'checked':''}><span>Pedí factura electrónica a mi cédula</span></label>`;
+}
+function feMarcada(pref){ const f = document.getElementById(pref+'FeFila'), c = document.getElementById(pref+'Fe'); return !!(f && c && f.style.display!=='none' && c.checked); }
+function actualizarFacturaUI(){   // la deducción exige pagar con tarjeta, transferencia u otro medio electrónico: con efectivo no aplica
+  [['addExpAcc','addExp'],['expAccount','exp']].forEach(([sel,pref])=>{ const s = document.getElementById(sel), f = document.getElementById(pref+'FeFila'); if(!s || !f) return; const a = accById(s.value); f.style.display = (a && a.type==='efectivo') ? 'none' : ''; });
+}
 
 // ---------- vistas ----------
 function viewCuentas(){
@@ -1806,7 +2016,7 @@ function wizPintar(){
 }
 function wizGuardarTarjeta(){
   if(!W.nombre) return wizError('Ponle un nombre a la tarjeta.');
-  STATE.accounts.push({id:uid(), name:W.nombre, balance:-Math.abs(W.deuda||0), type:'tarjeta', color:siguienteColor(STATE.accounts), ...(W.cupo>0 ? {cupo:W.cupo} : {})});
+  STATE.accounts.push({id:uid(), name:W.nombre, inicial:-Math.abs(W.deuda||0), balance:-Math.abs(W.deuda||0), type:'tarjeta', color:siguienteColor(STATE.accounts), ...(W.cupo>0 ? {cupo:W.cupo} : {})});
   STATE.ui.deudasTab = true; saveState(); closeModal(); currentView = 'cuentas'; render();
   toast('Tarjeta agregada. Registra tus compras eligiéndola como cuenta.');
 }
@@ -1926,7 +2136,7 @@ function deudaBorrarOk(id){
   if(quitarPagos){
     gastosDePagoDeuda(d).forEach(e=>{
       const i = STATE.expenses.indexOf(e); if(i<0) return;
-      STATE.expenses.splice(i,1); if(e.applied!==false) adjBal(accById(e.accountId), e.amount); quitados.push(e);
+      STATE.expenses.splice(i,1); quitados.push(e);
     });
   }
   STATE.debts.splice(idx,1);
@@ -1940,7 +2150,7 @@ function deudaBorrarOk(id){
   const partes = [quitados.length ? `${quitados.length} pago${quitados.length>1?'s':''}` : '', subSnap ? 'la subcategoría' : ''].filter(Boolean);
   toast(`Deuda eliminada${partes.length ? ' junto con '+partes.join(' y ') : ''}.`, {label:'Deshacer', ms:9000, fn:()=>{
     STATE.debts.splice(Math.min(idx, STATE.debts.length), 0, snapDeuda);
-    quitados.forEach(e=>{ STATE.expenses.push(e); if(e.applied!==false) adjBal(accById(e.accountId), -e.amount); });
+    quitados.forEach(e=>{ STATE.expenses.push(e); });
     if(subSnap){ const c = findCat(subSnap.catId); if(c && !c.subcats.some(x=>x.id===subSnap.sub.id)) c.subcats.splice(Math.min(subSnap.idx, c.subcats.length), 0, subSnap.sub); }
     saveState(); render();
   }});
@@ -2004,6 +2214,7 @@ function bindViewEvents(){
   document.querySelectorAll('[data-action="filter-nivel"]').forEach(el=>{ el.onclick = ()=>{ movFilterNivel = el.dataset.nivel; render(); }; });
   document.querySelectorAll('[data-action="export-csv"]').forEach(el=> el.onclick = exportCSV);
   document.querySelectorAll('[data-action="respaldo-global"]').forEach(el=> el.onclick = abrirRespaldoGlobal);
+  document.querySelectorAll('[data-action="bloques"]').forEach(el=> el.onclick = abrirBloques);
   document.querySelectorAll('[data-action="trend-go"]').forEach(el=>{
     const ir = ()=>{ STATE.viewingMonth = el.dataset.k; saveState(); render(); window.scrollTo && document.getElementById('view').scrollTo({top:0, behavior:'smooth'}); };
     el.addEventListener('click', ir);
@@ -2100,23 +2311,20 @@ const accById = id => STATE.accounts.find(a=>a.id===id);
 function removeExpense(id){
   const i = STATE.expenses.findIndex(e=>e.id===id); if(i<0) return;
   const e = STATE.expenses[i]; STATE.expenses.splice(i,1);
-  if(e.applied!==false) adjBal(accById(e.accountId), e.amount);
   saveState(); closeModal(); render();
-  toast('Gasto eliminado', {label:'Deshacer', fn:()=>{ STATE.expenses.push(e); if(e.applied!==false) adjBal(accById(e.accountId), -e.amount); saveState(); render(); }});
+  toast('Gasto eliminado', {label:'Deshacer', fn:()=>{ STATE.expenses.push(e); saveState(); render(); }});
 }
 function removeIncome(id){
   const i = STATE.incomes.findIndex(x=>x.id===id); if(i<0) return;
   const inc = STATE.incomes[i]; STATE.incomes.splice(i,1);
-  if(inc.applied!==false) adjBal(accById(inc.accountId), -inc.amount);
   saveState(); closeModal(); render();
-  toast('Ingreso eliminado', {label:'Deshacer', fn:()=>{ STATE.incomes.push(inc); if(inc.applied!==false) adjBal(accById(inc.accountId), inc.amount); saveState(); render(); }});
+  toast('Ingreso eliminado', {label:'Deshacer', fn:()=>{ STATE.incomes.push(inc); saveState(); render(); }});
 }
 function removeTransfer(id){
   const i = STATE.transfers.findIndex(x=>x.id===id); if(i<0) return;
   const t = STATE.transfers[i]; STATE.transfers.splice(i,1);
-  adjBal(accById(t.fromId), t.amount); adjBal(accById(t.toId), -t.amount);
   saveState(); closeModal(); render();
-  toast('Transferencia eliminada', {label:'Deshacer', fn:()=>{ STATE.transfers.push(t); adjBal(accById(t.fromId), -t.amount); adjBal(accById(t.toId), t.amount); saveState(); render(); }});
+  toast('Transferencia eliminada', {label:'Deshacer', fn:()=>{ STATE.transfers.push(t); saveState(); render(); }});
 }
 
 function openModal(html, {center=false, locked=false}={}){
@@ -2162,6 +2370,7 @@ function openAddModal(defaultTab = 'gasto') {
       <label>Cuenta de origen</label><select id="addExpAcc">${STATE.accounts.map(a=>`<option value="${esc(a.id)}">${accLbl(a)}</option>`).join('')}</select>
  <div id="addExpCuotasBox" style="display:none; margin-top:6px;"><label for="addExpCuotas">¿A cuántas cuotas?</label><select id="addExpCuotas">${cuotasOpts(1)}</select><div class="sub-label" id="addExpCuotasInfo" style="margin-top:4px; line-height:1.5;"></div></div>
       <label>Fecha</label><input type="date" id="addExpDate" value="${today()}">
+      ${filaFactura('addExp', false)}
       
       <div id="addExpDebtHint" class="alert-box" style="display:none; margin-top:12px; font-size:12.5px; line-height:1.5; display:none;"></div>
       <div style="margin-top:18px"><button class="btn btn-primary btn-block" id="saveExpBtn">Guardar Gasto</button></div>
@@ -2273,11 +2482,11 @@ function openAddModal(defaultTab = 'gasto') {
   catSel.onchange = ()=>{ fillSubs(catSel.value); };
   subSel.onchange = ()=>{ updateNivelBadge(); };
 
-  setTimeout(actualizarHintDeuda, 0); setTimeout(actualizarCuotasUI, 0);
-  document.getElementById('saveExpBtn').onclick = ()=>{
+  setTimeout(actualizarHintDeuda, 0); setTimeout(actualizarCuotasUI, 0); setTimeout(actualizarFacturaUI, 0);
+  document.getElementById('saveExpBtn').onclick = async ()=>{
     const amount = parseMoneyInput(document.getElementById('addExpAmount'));
     if(!amount || amount<=0){ alert('Ingresa un monto válido para el gasto'); return; }
-    { const a0 = accById(document.getElementById('addExpAcc').value); if(a0 && a0.type==='ahorro' && !confirmaYa(`"${a0.name}" es una cuenta de ahorro. ¿Seguro que quieres gastar desde ahí?`)) return; }
+    if(!(await confirmarGasto(accById(document.getElementById('addExpAcc').value), amount, document.getElementById('addExpDate').value || today()))) return;
     
     const now = new Date();
     const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -2296,8 +2505,7 @@ function openAddModal(defaultTab = 'gasto') {
     };
     
     { const cb = document.getElementById('addExpCuotasBox'); if(cb && cb.style.display!=='none'){ const n = parseInt(document.getElementById('addExpCuotas').value,10); if(n>1) data.cuotas = n; } }
-    data.applied = isRealized(data);
-    if(data.applied) adjBal(accById(data.accountId), -data.amount);
+    if(feMarcada('addExp')) data.fe = true;
     STATE.expenses.push(data);
     saveState(); closeModal(); render();
   };
@@ -2319,8 +2527,6 @@ function openAddModal(defaultTab = 'gasto') {
       accountId: document.getElementById('addIncAcc').value
     };
     
-    data.applied = isRealized(data);
-    if(data.applied) adjBal(accById(data.accountId), +data.amount);
     
     if(chosenIcon) STATE.icons[normName(data.desc)] = chosenIcon;
     STATE.incomes.push(data);
@@ -2328,7 +2534,7 @@ function openAddModal(defaultTab = 'gasto') {
   };
 
   if(STATE.accounts.length > 1) document.getElementById('addTrTo').selectedIndex = 1;
-  document.getElementById('saveTrBtn').onclick = ()=>{
+  document.getElementById('saveTrBtn').onclick = async ()=>{
     const from = accById(document.getElementById('addTrFrom').value);
     const to = accById(document.getElementById('addTrTo').value);
     const amount = parseMoneyInput(document.getElementById('addTrAmount'));
@@ -2336,8 +2542,7 @@ function openAddModal(defaultTab = 'gasto') {
     if(!(amount>0)){ alert('El monto debe ser mayor que cero.'); return; }
     if(!from || !to || from.id===to.id){ alert('Elige dos cuentas diferentes.'); return; }
     if(!DATE_RE.test(date) || date>today()){ alert('La fecha de una transferencia no puede ser futura.'); return; }
-    if(amount>(from.balance||0) && !confirmaYa(`El monto (${fmtCOP(amount)}) supera el saldo de "${from.name}" (${fmtCOP(from.balance)}). Esa cuenta quedará en negativo. ¿Continuar?`)) return;
-    adjBal(from, -amount); adjBal(to, +amount);
+    if(!esTarjeta(from) && amount>(from.balance||0) && !(await SuiteUI.confirmar(`El monto (${fmtCOP(amount)}) supera el saldo de "${from.name}" (${fmtCOP(from.balance)}). Esa cuenta quedará en negativo. ¿Continuar?`, {peligro:false}))) return;
     STATE.transfers.push({id:uid(), date, timestamp:Date.now(), fromId:from.id, toId:to.id, amount});
     saveState(); closeModal(); render();
   };
@@ -2363,6 +2568,7 @@ function openEditExpenseModal(id){
     <label>Cuenta de origen</label><select id="expAccount">${accOpts(editing.accountId)}</select>
  <div id="expCuotasBox" style="display:none; margin-top:6px;"><label for="expCuotas">¿A cuántas cuotas?</label><select id="expCuotas">${cuotasOpts(editing.cuotas)}</select><div class="sub-label" id="expCuotasInfo" style="margin-top:4px; line-height:1.5;"></div></div>
     <label>Fecha</label><input type="date" id="expDate" value="${editing.date}">
+    ${filaFactura('exp', !!editing.fe)}
     
     <div style="margin-top:18px"><button class="btn btn-primary btn-block" id="saveExpBtn">Guardar Cambios</button></div>
     <button class="btn-danger-link" id="delExpBtn" type="button">Eliminar gasto</button>
@@ -2396,12 +2602,11 @@ function openEditExpenseModal(id){
 
   document.getElementById('delExpBtn').onclick = ()=> removeExpense(editing.id);
 
-  setTimeout(actualizarCuotasUI, 0);
-  document.getElementById('saveExpBtn').onclick = ()=>{
+  setTimeout(actualizarCuotasUI, 0); setTimeout(actualizarFacturaUI, 0);
+  document.getElementById('saveExpBtn').onclick = async ()=>{
     const amount = parseMoneyInput(document.getElementById('expAmount'));
     if(!amount || amount<=0){ alert('Ingresa un monto válido'); return; }
-    
-    if(editing.applied!==false) adjBal(accById(editing.accountId), editing.amount);
+    if(!(await confirmarGasto(accById(document.getElementById('expAccount').value), amount, document.getElementById('expDate').value || today(), editing))) return;
     
     editing.amount = amount;
     editing.desc = document.getElementById('expDesc').value.trim();
@@ -2411,9 +2616,7 @@ function openEditExpenseModal(id){
     editing.accountId = document.getElementById('expAccount').value;
     { const cb = document.getElementById('expCuotasBox'); const n = (cb && cb.style.display!=='none') ? parseInt(document.getElementById('expCuotas').value,10) : 1; if(n>1) editing.cuotas = n; else delete editing.cuotas; }
     editing.date = document.getElementById('expDate').value || today();
-    
-    editing.applied = isRealized(editing);
-    if(editing.applied) adjBal(accById(editing.accountId), -editing.amount);
+    if(feMarcada('exp')) editing.fe = true; else delete editing.fe;
     
     saveState(); closeModal(); render();
   };
@@ -2443,13 +2646,10 @@ function openEditIncomeModal(id){
   document.getElementById('saveEditIncBtn').onclick = ()=>{
     const amount = parseMoneyInput(document.getElementById('editIncAmount'));
     if(!amount || amount<=0){ alert('Monto inválido'); return; }
-    if(editing.applied!==false) adjBal(accById(editing.accountId), -editing.amount);
     editing.amount = amount;
     editing.desc = document.getElementById('editIncDesc').value.trim() || 'Ingreso';
     editing.accountId = document.getElementById('editIncAcc').value;
     editing.date = document.getElementById('editIncDate').value || today();
-    editing.applied = isRealized(editing);
-    if(editing.applied) adjBal(accById(editing.accountId), +editing.amount);
     saveState(); closeModal(); render();
   };
 }
@@ -2466,7 +2666,7 @@ function openTransferModal(id){
     <button class="btn-danger-link" id="delTrBtn" type="button">Eliminar transferencia</button>
   `);
   document.getElementById('delTrBtn').onclick = ()=> removeTransfer(t.id);
-  document.getElementById('saveTrEditBtn').onclick = ()=>{
+  document.getElementById('saveTrEditBtn').onclick = async ()=>{
     const from = accById(document.getElementById('trFrom').value), to = accById(document.getElementById('trTo').value);
     const amount = parseMoneyInput(document.getElementById('trAmount'));
     const date = document.getElementById('trDate').value || today();
@@ -2474,10 +2674,8 @@ function openTransferModal(id){
     if(!from || !to || from.id===to.id){ alert('Elige dos cuentas diferentes.'); return; }
     if(!DATE_RE.test(date) || date>today()){ alert('La fecha de una transferencia no puede ser futura.'); return; }
     let avail = from.balance||0; if(t.fromId===from.id) avail += t.amount; if(t.toId===from.id) avail -= t.amount;
-    if(amount>avail && !confirmaYa(`El monto (${fmtCOP(amount)}) supera el saldo disponible de "${from.name}". Quedará en negativo. ¿Continuar?`)) return;
-    adjBal(accById(t.fromId), +t.amount); adjBal(accById(t.toId), -t.amount);
+    if(!esTarjeta(from) && amount>avail && !(await SuiteUI.confirmar(`El monto (${fmtCOP(amount)}) supera el saldo disponible de "${from.name}". Quedará en negativo. ¿Continuar?`, {peligro:false}))) return;
     t.fromId = from.id; t.toId = to.id; t.amount = amount; t.date = date;
-    adjBal(from, -amount); adjBal(to, +amount);
     saveState(); closeModal(); render();
   };
 }
@@ -2498,8 +2696,9 @@ function openDeleteCategoryModal(catId){
   const cat = findCat(catId); if(!cat) return;
   const affected = STATE.expenses.filter(e=>e.catId===catId), n = affected.length;
   if(!n){
-    if(!confirmaYa(`¿Eliminar la categoría "${cat.name}" y sus ${cat.subcats.length} subcategorías?`)) return;
-    STATE.categories = STATE.categories.filter(c=>c.id!==catId); saveState(); render(); toast('Categoría eliminada'); return;
+    SuiteUI.confirmar(`¿Eliminar la categoría "${cat.name}" y sus ${cat.subcats.length} subcategorías?`).then(ok=>{ if(!ok) return;
+      STATE.categories = STATE.categories.filter(c=>c.id!==catId); saveState(); render(); toast('Categoría eliminada'); });
+    return;
   }
   const meses = new Set(affected.map(e=>e.date.slice(0,7))).size;
   openModal(`
@@ -2521,8 +2720,9 @@ function openDeleteSubcatModal(catId, subId){
   const cat = findCat(catId), sub = findSub(catId, subId); if(!cat||!sub) return;
   const affected = STATE.expenses.filter(e=>e.catId===catId && e.subId===subId), n = affected.length;
   if(!n){
-    if(!confirmaYa(`¿Eliminar la subcategoría "${sub.name}"?`)) return;
-    cat.subcats = cat.subcats.filter(s=>s.id!==subId); saveState(); render(); toast('Subcategoría eliminada'); return;
+    SuiteUI.confirmar(`¿Eliminar la subcategoría "${sub.name}"?`).then(ok=>{ if(!ok) return;
+      cat.subcats = cat.subcats.filter(s=>s.id!==subId); saveState(); render(); toast('Subcategoría eliminada'); });
+    return;
   }
   openModal(`
     <div class="modal-head"><h3>Eliminar subcategoría</h3><button class="close-x" onclick="closeModal()" aria-label="Cerrar">${ic('x',22)}</button></div>
@@ -2548,13 +2748,14 @@ function openOnboarding(){
     <label>Tipo</label><select id="obType"><option value="banco">Banco / digital</option><option value="efectivo">Efectivo</option></select>
     <label>Saldo actual (COP)</label><input type="text" id="obBal" class="money-input" placeholder="0">
     <div style="margin-top:18px"><button class="btn btn-primary btn-block" id="obSave">Crear cuenta</button></div>
-    ${EN_SUITE ? `<div style="margin-top:14px; text-align:center; font-size:13px; color:var(--text-dim);">¿Ya usas esta app en otro dispositivo?<br><button type="button" class="btn-danger-link" id="obSync" style="color:var(--accent); font-weight:700;">Traer mis datos con Google Drive</button></div>` : ''}
+    <div style="margin-top:14px; text-align:center; font-size:13px; color:var(--text-dim);">¿Ya usas esta app en otro dispositivo?<br><button type="button" class="btn-danger-link" id="obSync" style="color:var(--accent); font-weight:700;">Traer mis datos con Google Drive</button></div>
   `, {center:true, locked:true});
   const _sy = document.getElementById('obSync'); if(_sy) _sy.onclick = ()=>{ try{ window.parent.postMessage({suite:'abrir-sync'}, location.origin); }catch(e){} };
   document.getElementById('obSave').onclick = ()=>{
     const name = document.getElementById('obName').value.trim();
     if(!name){ alert('Ponle un nombre a la cuenta.'); return; }
-    STATE.accounts.push({id:uid(), name, balance:fixNum(parseMoneyInput(document.getElementById('obBal'))||0), type:document.getElementById('obType').value, color:colorPorIndice(1)});
+    const ini = fixNum(parseMoneyInput(document.getElementById('obBal'))||0);
+    STATE.accounts.push({id:uid(), name, inicial:ini, balance:ini, type:document.getElementById('obType').value, color:colorPorIndice(1)});
     saveState(); closeModal(); render();
   };
 }
@@ -2642,18 +2843,19 @@ function deleteAccount(id){
   const nE = STATE.expenses.filter(e=>e.accountId===id).length, nI = STATE.incomes.filter(i=>i.accountId===id).length;
   const nT = STATE.transfers.filter(t=>t.fromId===id||t.toId===id).length, total = nE+nI+nT;
   const finish = (tgt, moveBal)=>{
+    const antes = tgt ? (tgt.balance||0) : 0, saldoBorrada = acc.balance||0;
     const swap = v => v===id ? (tgt?tgt.id:'') : v;
     STATE.expenses.forEach(e=>{ e.accountId = swap(e.accountId); });
     STATE.incomes.forEach(i=>{ i.accountId = swap(i.accountId); });
     STATE.transfers.forEach(t=>{ t.fromId = swap(t.fromId); t.toId = swap(t.toId); });
     STATE.adjustments.forEach(a=>{ a.accountId = swap(a.accountId); });
     if(tgt) STATE.transfers = STATE.transfers.filter(t=>t.fromId!==t.toId);
-    if(tgt && moveBal) adjBal(tgt, acc.balance);
     STATE.accounts = STATE.accounts.filter(a=>a.id!==id);
+    if(tgt){ recalcularSaldos(); tgt.inicial = fixNum((tgt.inicial||0) + (antes + (moveBal ? saldoBorrada : 0)) - (tgt.balance||0)); }
     saveState(); closeModal(); render();
     if(total) toast(tgt ? `${total} movimientos pasaron a “${tgt.name}”` : `${total} movimientos quedaron sin cuenta`, {ms:7000});
   };
-  if(!total && !acc.balance){ if(confirmaYa(`¿Eliminar "${acc.name}"?`)) finish(null,false); return; }
+  if(!total && !acc.balance){ SuiteUI.confirmar(`¿Eliminar "${acc.name}"?`).then(ok=>{ if(ok) finish(null,false); }); return; }
   openModal(`
     <div class="modal-head"><h3>Eliminar cuenta</h3><button class="close-x" onclick="closeModal()" aria-label="Cerrar">${ic('x',22)}</button></div>
     <div style="font-size:13.5px; line-height:1.5; margin-bottom:12px;"><b>${esc(acc.name)}</b> tiene ${nE} gasto${nE===1?'':'s'}, ${nI} ingreso${nI===1?'':'s'} y ${nT} transferencia${nT===1?'':'s'}${acc.balance?`, y un saldo de <b>${fmtCOP(acc.balance)}</b>`:''}.</div>
@@ -2676,7 +2878,7 @@ function openAccountModal(id){
     <label>Tipo</label><select id="accType"><option value="banco">Banco / digital</option><option value="efectivo">Efectivo</option><option value="ahorro">Ahorro (dinero que no quiero tocar)</option><option value="tarjeta">Tarjeta de crédito</option></select>
     <label id="accBalLbl">Saldo actual (COP)${editing?' <span style="font-weight:400;">— si lo cambias se registra un ajuste</span>':''}</label><input type="text" id="accBalance" class="money-input" value="${editing?formatMoneyInputValue(bal0):''}">
     <div id="accExTj" style="display:none"><label for="accCupo">Cupo total (COP)</label><input type="text" id="accCupo" class="money-input" value="${editing&&editing.cupo?formatMoneyInputValue(editing.cupo):''}">
-      <label for="accTasa">Interés mensual de las compras a cuotas (%) — opcional</label><input type="text" inputmode="decimal" id="accTasa" placeholder="Ej: 2,1" value="${editing&&editing.tasaM?String((editing.tasaM*100).toFixed(3)).replace(/0+$/,'').replace(/\.$/,'').replace('.',','):''}">
+      <label for="accTasa">Interés mensual de las compras a cuotas (%) — opcional</label><div class="sub-label" style="margin:-2px 0 6px; line-height:1.45;">Está en tu extracto como tasa mensual (M.V.). La mayoría de bancos cobra cerca de la tasa de usura, que cambia cada mes; las compras a 1 cuota no pagan interés.</div><input type="text" inputmode="decimal" id="accTasa" placeholder="Ej: 2,1" value="${editing&&editing.tasaM?String((editing.tasaM*100).toFixed(3)).replace(/0+$/,'').replace(/\.$/,'').replace('.',','):''}">
       <label for="accCorte">Día de corte del extracto — opcional</label><input type="text" inputmode="numeric" id="accCorte" placeholder="Ej: 15" value="${editing&&editing.diaCorte?editing.diaCorte:''}">
       <div class="sub-label" style="margin-top:6px; line-height:1.5;">Con estos datos la app estima cuánto vas a pagar cada mes por tus compras a cuotas. Si no los sabes, déjalos vacíos.</div></div>
     <div id="accExAh" style="display:none"><label>Meta de ahorro (COP) — opcional</label><input type="text" id="accMeta" class="money-input" value="${editing&&editing.meta?formatMoneyInputValue(editing.meta):''}">
@@ -2699,8 +2901,8 @@ function openAccountModal(id){
     if(editing){
       const delta = balance - (editing.balance||0);
       if(delta!==0) STATE.adjustments.push({id:uid(), date:today(), timestamp:Date.now(), accountId:editing.id, amount:delta});
-      editing.name=name; editing.balance=balance; editing.type=type; editing.color=document.getElementById('accColor').value; aplica(editing);
-    } else { const n = {id:uid(), name, balance, type, color: document.getElementById('accColor').value}; aplica(n); STATE.accounts.push(n); }
+      editing.name=name; editing.type=type; editing.color=document.getElementById('accColor').value; aplica(editing);
+    } else { const n = {id:uid(), name, inicial:balance, balance, type, color: document.getElementById('accColor').value}; aplica(n); STATE.accounts.push(n); }
     saveState(); closeModal(); render();
   };
 }
@@ -2708,62 +2910,38 @@ function openAccountModal(id){
 function openSettingsModal(){
   let corruptRaw = null, corruptDate = '';
   try{ corruptRaw = localStorage.getItem(STORAGE_KEY+'_corrupto'); corruptDate = localStorage.getItem(STORAGE_KEY+'_corrupto_fecha')||''; }catch(e){}
+  const sync = syncActiva();
   openModal(`
-    <div class="modal-head"><h3>Ajustes y respaldo</h3><button class="close-x" onclick="closeModal()" aria-label="Cerrar">${ic('x',22)}</button></div>
-    <div class="backup-box" style="margin-bottom:16px; font-size:13px; color:var(--text-dim); text-align:center;">
-      Tus datos se guardan únicamente en tu navegador. ${EN_SUITE ? 'El respaldo de esta app y de la calculadora se hace junto, desde el menú ⋯ de la suite.' : 'Puedes descargar un respaldo o importar uno anterior.'}
+    <div class="modal-head"><h3>Ajustes</h3><button class="close-x" onclick="closeModal()" aria-label="Cerrar">${ic('x',22)}</button></div>
+    <div class="backup-box" style="margin-bottom:16px; font-size:13px; color:var(--text-dim); text-align:center; line-height:1.5;">
+      ${sync ? 'Tus datos están en este dispositivo y se sincronizan con tu Google Drive.' : 'Tus datos se guardan en este dispositivo.'} El respaldo de esta app y de la calculadora se hace junto, desde el menú ⋯ de la suite.
     </div>
-    
     <label>Tema</label>
     <div class="tabs" id="themeTabs">${[[null,'Automático'],['light','Claro'],['dark','Oscuro']].map(([v,l])=>`<div class="tab ${SuiteTema.get()===v?'active':''}" data-theme-val="${v||''}">${l}</div>`).join('')}</div>
-    <div class="sub-label" style="margin:6px 0 14px;">Último respaldo: ${ultimoRespaldo()||'nunca'} · ${STATE.expenses.length} gastos · ${STATE.incomes.length} ingresos</div>
-    <div style="display:flex; flex-direction:column; gap:12px;">
-      ${EN_SUITE ? '<button class="btn btn-primary btn-block" id="globalBackupBtn">Respaldo de las dos apps…</button>' : ''}
-      <button class="btn btn-primary btn-block" id="exportBackupBtn" ${EN_SUITE?'style="display:none"':''}>↓ Descargar respaldo (.json)</button>
-      <button class="btn btn-secondary btn-block" id="importBackupBtn" ${EN_SUITE?'style="display:none"':''}>↑ Importar respaldo (.json)</button>
+    <div class="sub-label" style="margin:6px 0 14px;">${sync ? 'Copia automática diaria en tu Drive' : 'Último respaldo: '+(ultimoRespaldo()||'nunca')} · ${STATE.expenses.length} gastos · ${STATE.incomes.length} ingresos</div>
+    <label class="opc-fila"><input type="checkbox" id="optFe" ${STATE.opciones.facturaE?'checked':''}><span><b>Compras con factura electrónica</b><small>Agrega una casilla opcional al registrar un gasto. Lo marcado suma para la deducción del 1 % en tu declaración de renta (pestaña Renta de la calculadora).</small></span></label>
+    <div style="display:flex; flex-direction:column; gap:12px; margin-top:14px;">
+      <button class="btn btn-secondary btn-block" id="bloquesBtn">Personalizar el resumen</button>
+      <button class="btn btn-primary btn-block" id="globalBackupBtn">Respaldo de las dos apps…</button>
       <button class="btn btn-secondary btn-block" id="exportAllCsvBtn">↓ Historial completo (.csv)</button>
       ${corruptRaw ? `<div class="alert-box" style="border-left:4px solid var(--danger); font-size:12.5px;">Se guardó una copia de datos dañados${corruptDate?' ('+esc(corruptDate.slice(0,10))+')':''}.<div style="display:flex; gap:8px; margin-top:8px;"><button class="btn btn-secondary" id="dlCorruptBtn" style="padding:6px 10px; font-size:12px;">Descargar copia</button><button class="btn btn-secondary" id="dropCorruptBtn" style="padding:6px 10px; font-size:12px;">Descartar</button></div></div>` : ''}
       <button class="btn btn-secondary btn-block" id="resetBtn" style="color:var(--danger);">Borrar todo y empezar limpio</button>
     </div>
-    <input type="file" id="importFile" accept=".json" style="display:none">
   `, {center:true});
-  
-  document.getElementById('exportBackupBtn').onclick = ()=>{
-    STATE.lastBackup = today(); saveState();
-    downloadFile(JSON.stringify(STATE, null, 2), `finanzas_respaldo_${today()}.json`, 'application/json');
-  };
   document.getElementById('exportAllCsvBtn').onclick = exportCSVAll;
-  if(EN_SUITE) document.getElementById('globalBackupBtn').onclick = ()=>{ closeModal(); abrirRespaldoGlobal(); };
+  document.getElementById('globalBackupBtn').onclick = ()=>{ closeModal(); abrirRespaldoGlobal(); };
+  document.getElementById('bloquesBtn').onclick = ()=>{ closeModal(); abrirBloques(); };
+  document.getElementById('optFe').onchange = e=>{ STATE.opciones.facturaE = e.target.checked; if(!e.target.checked) delete STATE.opciones.facturaE; saveState(); toast(e.target.checked ? 'Listo: al registrar un gasto verás la casilla de factura electrónica.' : 'Se quitó la casilla de factura electrónica.'); };
   if(corruptRaw){
     document.getElementById('dlCorruptBtn').onclick = ()=> downloadFile(corruptRaw, `finanzas_copia_danada_${today()}.txt`, 'text/plain');
-    document.getElementById('dropCorruptBtn').onclick = ()=>{ if(confirmaYa('Se eliminará definitivamente la copia dañada. ¿Continuar?')){ try{ localStorage.removeItem(STORAGE_KEY+'_corrupto'); localStorage.removeItem(STORAGE_KEY+'_corrupto_fecha'); }catch(e){} openSettingsModal(); } };
+    document.getElementById('dropCorruptBtn').onclick = async ()=>{ if(await SuiteUI.confirmar('Se eliminará definitivamente la copia dañada. ¿Continuar?')){ try{ localStorage.removeItem(STORAGE_KEY+'_corrupto'); localStorage.removeItem(STORAGE_KEY+'_corrupto_fecha'); }catch(e){} openSettingsModal(); } };
   }
-
-  document.getElementById('importBackupBtn').onclick = ()=> document.getElementById('importFile').click();
-  document.querySelectorAll('#themeTabs .tab').forEach(t=> t.onclick = ()=>{ applyTheme(t.dataset.themeVal||null); document.querySelectorAll('#themeTabs .tab').forEach(x=>x.classList.toggle('active', x===t)); });
-  document.getElementById('resetBtn').onclick = ()=>{
-    if(confirmaYa('Se borrarán TODOS tus gastos, ingresos, cuentas y categorías personalizadas de este navegador. Si los necesitas, descarga un respaldo antes. ¿Continuar?')){
-      const th = STATE.theme; STATE = defaultState(); STATE.theme = th; saveState(); closeModal(); render();
-    }
-  };
-  
-  document.getElementById('importFile').onchange = (e)=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev)=>{
-      let imported;
-      try{ imported = JSON.parse(ev.target.result); }
-      catch(err){ alert('❌ No se pudo leer el archivo. Asegúrate de que sea el .json correcto.'); return; }
-      const clean = sanitizeState(imported, true);
-      if(!clean){ alert('⚠️ El archivo no parece ser un respaldo válido de la app.'); return; }
-      const resumen = `${clean.expenses.length} gastos, ${clean.incomes.length} ingresos y ${clean.accounts.length} cuentas`;
-      if(!confirmaYa(`El archivo trae ${resumen}. Importar reemplazará todos tus datos actuales. ¿Continuar?`)){ e.target.value=''; return; }
-      STATE = clean; saveState();
-      updateThemeIcon(); closeModal(); render();
-      toast('Datos importados correctamente');
-    };
-        reader.readAsText(file);
+  document.querySelectorAll('#themeTabs .tab').forEach(t=> t.onclick = ()=>{ SuiteTema.set(t.dataset.themeVal||null); document.querySelectorAll('#themeTabs .tab').forEach(x=>x.classList.toggle('active', x===t)); });
+  document.getElementById('resetBtn').onclick = async ()=>{
+    const msg = sync
+      ? 'Se borrarán TODOS tus gastos, ingresos, cuentas y categorías personalizadas. Como la sincronización está activa, también se borrarán de tu Drive y de tus otros dispositivos. Si solo quieres limpiar este dispositivo, primero desconéctalo en el menú ⋯ → Sincronizar con Google Drive. ¿Continuar?'
+      : 'Se borrarán TODOS tus gastos, ingresos, cuentas y categorías personalizadas de este dispositivo. Si los necesitas, descarga antes un respaldo desde el menú ⋯. ¿Continuar?';
+    if(await SuiteUI.confirmar(msg, {peligro:true, ok:'Sí, borrar todo'})){ STATE = defaultState(); saveState(); closeModal(); render(); }
   };
 }
 
@@ -2783,19 +2961,11 @@ viewLabel.onclick = ()=>{
     if(Math.abs(dx)>80 && Math.abs(dy)<40) document.getElementById(dx<0?'nextMonth':'prevMonth').click(); }, {passive:true});
 })();
 
-function applyTheme(t){ SuiteTema.set(t); STATE.theme = t; saveState(); updateThemeIcon(); }
-function updateThemeIcon(){
-  const b = document.getElementById('themeToggle'), t = SuiteTema.get();
-  b.innerHTML = ic(t==='dark' ? 'moon' : t==='light' ? 'sun' : 'auto', 20);
-  b.title = 'Tema (se aplica a toda la suite): ' + (t==='dark' ? 'oscuro' : t==='light' ? 'claro' : 'automático') + ' — toca para cambiar';
-}
 document.getElementById('navSlotL').innerHTML = SuiteNav.selector('gastos'); document.getElementById('navSlotR').innerHTML = SuiteNav.menu(); SuiteNav.iniciar();
 document.getElementById('prevMonth').innerHTML = ic('chev-left',22); document.getElementById('prevMonth').setAttribute('aria-label','Mes anterior');
 document.getElementById('nextMonth').innerHTML = ic('chev-right',22); document.getElementById('nextMonth').setAttribute('aria-label','Mes siguiente');
 document.getElementById('settingsBtn').innerHTML = ic('gear',20); document.getElementById('settingsBtn').setAttribute('aria-label','Ajustes');
-document.getElementById('themeToggle').onclick = ()=> applyTheme(SuiteTema.get()===null ? 'light' : SuiteTema.get()==='light' ? 'dark' : null);
-window.addEventListener('suite-tema', ()=>{ updateThemeIcon(); const tt=document.getElementById('themeTabs'); if(tt) tt.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active', (x.dataset.themeVal||null)===SuiteTema.get())); });
-updateThemeIcon();
+window.addEventListener('suite-tema', ()=>{ const tt=document.getElementById('themeTabs'); if(tt) tt.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active', (x.dataset.themeVal||null)===SuiteTema.get())); });
 
 render();
 /* ---------- Puente con la calculadora (la pasa el index): lista de cuentas y registro del salario ---------- */
@@ -2816,14 +2986,11 @@ window.addEventListener('message', e=>{
         const desc = cleanText(d.desc, 120) || 'Salario';
         let inc = d.idExistente ? STATE.incomes.find(i=>i.id===cleanId(d.idExistente)) : null;
         if(inc){                                                    // ya existía: se actualiza (sin duplicar)
-          if(inc.applied!==false) adjBal(accById(inc.accountId), -inc.amount);
           inc.amount = monto; inc.date = d.fecha; inc.accountId = acc.id; inc.desc = desc;
         } else {
           inc = {id:uid(), date:d.fecha, time:'', timestamp:Date.now(), amount:monto, desc, accountId:acc.id};
           STATE.incomes.push(inc); res.creado = true;
         }
-        inc.applied = isRealized(inc);
-        if(inc.applied) adjBal(acc, +inc.amount);
         saveState(); render();
         res.ok = true; res.id = inc.id; res.cuenta = acc.name; res.mes = inc.date.slice(0,7);
       }

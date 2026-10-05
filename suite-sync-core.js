@@ -17,7 +17,10 @@
   }
   function igual(a,b){ return JSON.stringify(canon(a)) === JSON.stringify(canon(b)); }
   function conIds(a){ return Array.isArray(a) && a.every(function(e){ return esObj(e) && typeof e.id==='string'; }); }
-  function redondear(n){ return Math.round(n*100)/100; }
+  // Campos que el gestor DERIVA al cargar (saldo de cada cuenta = saldo inicial + movimientos; applied = fecha ≤ hoy).
+  // No se fusionan: si difieren, se toma el de este dispositivo y el gestor los vuelve a calcular con los movimientos ya fusionados.
+  function esDerivado(k, ruta){ return (k==='balance' && ruta.indexOf('accounts')>=0) || (k==='applied' && (ruta.indexOf('expenses')>=0 || ruta.indexOf('incomes')>=0)); }
+  function clave(e){ return JSON.stringify(canon(e)); }
 
   function fusionar(b,l,r,ctx,ruta){
     if(igual(l,r)) return l;
@@ -27,10 +30,7 @@
       var B = esObj(b) ? b : {}, out = {}, claves = {};
       Object.keys(l).forEach(function(k){ claves[k]=1; }); Object.keys(r).forEach(function(k){ claves[k]=1; });
       Object.keys(claves).forEach(function(k){
-        var m;
-        if(k==='balance' && ruta.indexOf('accounts')>=0 && typeof l[k]==='number' && typeof r[k]==='number' && typeof B[k]==='number' && l[k]!==r[k]){
-          m = redondear(r[k] + l[k] - B[k]);                // los saldos son sumas de movimientos: se suman las dos diferencias
-        } else m = fusionar(B[k], l[k], r[k], ctx, ruta.concat(k));
+        var m = (esDerivado(k, ruta) && l[k]!==undefined) ? l[k] : fusionar(B[k], l[k], r[k], ctx, ruta.concat(k));
         if(m!==undefined) out[k] = m;
       });
       return out;
@@ -43,6 +43,14 @@
       var res = [];
       ids.forEach(function(id){ var m = fusionar(Bm[id], Lm[id], Rm[id], ctx, ruta.concat(String(id))); if(m!==undefined) res.push(m); });
       return res;
+    }
+    // Listas sin id (p. ej. los ajustes de saldo de una deuda): se unen. Queda lo que agregó cada lado y sale lo que alguno borró.
+    if(Array.isArray(l) && Array.isArray(r) && !conIds(l) && !conIds(r)){
+      var enB = {}, enL = {}, enR = {}, res2 = [], vistos = {};
+      (Array.isArray(b) ? b : []).forEach(function(e){ enB[clave(e)] = 1; });
+      l.forEach(function(e){ enL[clave(e)] = 1; }); r.forEach(function(e){ enR[clave(e)] = 1; });
+      l.concat(r).forEach(function(e){ var c = clave(e); if(vistos[c]) return; vistos[c] = 1; if(enB[c] && !(enL[c] && enR[c])) return; res2.push(e); });
+      return res2;
     }
     // Uno borró y el otro modificó: se CONSERVA lo modificado (nunca se pierde un dato por un conflicto)
     if(b!==undefined && l===undefined && r!==undefined) return r;
