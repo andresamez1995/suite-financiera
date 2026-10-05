@@ -16,7 +16,6 @@
   --shadow:0 2px 8px rgba(30,32,27,.06);
   --radius:16px; --radius-sm:10px;
   --col:760px;                       /* ancho de contenido igual en las dos apps */
-  --marca:#0E2642;                   /* azul AURORA del ícono: arranque de la app instalada (manifest) */
   --font-display:'Space Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-body:Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
@@ -85,7 +84,7 @@ button,[role="button"],select,summary,label.s-hit{-webkit-tap-highlight-color:tr
 .empty-state.sin-icono::before{display:none;}
 
 /* Botón "?" que abre la nota de ayuda de un campo */
-.ayuda-btn{display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; margin-left:6px; padding:0; border-radius:50%; border:1px solid var(--border); background:var(--surface-2); color:var(--text-dim); font-size:12px; font-weight:700; cursor:pointer; vertical-align:middle; line-height:1;}
+.ayuda-btn{display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; margin-left:6px; padding:0; border-radius:50%; border:1px solid var(--border); background:var(--surface-2); color:var(--text-dim); font-size:12px; font-weight:700; cursor:pointer; vertical-align:middle; line-height:1;}
 .ayuda-btn:hover,.ayuda-btn[aria-expanded="true"]{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
 .ayuda-btn::after{content:''; position:absolute; inset:-11px;}   /* zona táctil de 44px sin agrandar el botón */
 .ayuda-btn{position:relative;}
@@ -101,3 +100,7 @@ button,[role="button"],select,summary,label.s-hit{-webkit-tap-highlight-color:tr
 .sn-item{display:flex; align-items:center; gap:10px; width:100%; min-height:46px; padding:0 12px; border:none; background:none; color:var(--text); font-size:14.5px; font-weight:600; border-radius:10px; cursor:pointer; text-align:left;}
 .sn-item span{flex:1;} .sn-item:hover{background:var(--surface-2);} .sn-item.on{color:var(--accent);}
 .rail .sn-mobile{display:none !important;}   /* con la columna lateral del index no hacen falta */
+
+/* auditoría: zonas táctiles y lectura */
+summary{min-height:28px;}
+details > summary{padding-top:.2rem; padding-bottom:.2rem;}

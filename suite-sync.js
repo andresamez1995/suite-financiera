@@ -27,33 +27,11 @@
   function configurado(){ return !!clientId(); }
   function conectado(){ return ls(K.on)==='1'; }
   function dispositivo(){ var d = ls(K.dev); if(!d){ d = 'd'+Math.random().toString(36).slice(2,10); lset(K.dev,d); } return d; }
-  // ---------- base de la sincronización (la última versión que coincidía con Drive) ----------
-  // Vive en IndexedDB y no en localStorage: así no ocupa el mismo espacio que tus datos (antes los duplicaba).
-  // Si el navegador no tiene IndexedDB, se sigue guardando en localStorage como antes.
-  var baseMem, baseEnLS = false, IDB = {db:'mi-suite', store:'kv', clave:'sync_base'};
-  function idbAbrir(){ return new Promise(function(res, rej){ if(!window.indexedDB) return rej(new Error('sin-idb')); var r = indexedDB.open(IDB.db, 1); r.onupgradeneeded = function(){ r.result.createObjectStore(IDB.store); }; r.onsuccess = function(){ res(r.result); }; r.onerror = function(){ rej(r.error); }; }); }
-  function idbOp(modo, fn){ return idbAbrir().then(function(db){ return new Promise(function(res, rej){ var tx = db.transaction(IDB.store, modo), q = fn(tx.objectStore(IDB.store)); tx.oncomplete = function(){ db.close(); res(q && q.result); }; tx.onerror = tx.onabort = function(){ db.close(); rej(tx.error); }; }); }); }
-  function copiar(o){ try{ return typeof structuredClone==='function' ? structuredClone(o) : JSON.parse(JSON.stringify(o)); }catch(e){ return JSON.parse(JSON.stringify(o)); } }
-  function baseLS(){ var r = ls(K.base); if(r===null) return null; try{ return JSON.parse(r); }catch(e){ return null; } }
-  function cargarBase(){
-    if(baseMem!==undefined) return Promise.resolve(baseMem);
-    return idbOp('readonly', function(s){ return s.get(IDB.clave); }).then(function(v){
-      if(v===undefined && ls(K.base)!==null){ v = baseLS(); return idbOp('readwrite', function(s){ return s.put(v, IDB.clave); }).then(function(){ ldel(K.base); return v; }); }   // migración desde localStorage
-      return v===undefined ? null : v;
-    }, function(){ baseEnLS = true; return baseLS(); }).then(function(v){ if(baseMem===undefined) baseMem = v; return baseMem; });
-  }
-  function leerBase(){ return baseMem===undefined ? null : baseMem; }
-  function guardarEnLS(s){ if(!lset(K.base, JSON.stringify(s))) msg = 'No hay espacio en el dispositivo para sincronizar'; }
-  function guardarBase(s){
-    baseMem = copiar(s);
-    if(baseEnLS){ guardarEnLS(baseMem); return; }
-    idbOp('readwrite', function(st){ return st.put(baseMem, IDB.clave); }).catch(function(){ baseEnLS = true; guardarEnLS(baseMem); });
-  }
-  function borrarBase(){ baseMem = null; ldel(K.base); idbOp('readwrite', function(s){ return s['delete'](IDB.clave); }).catch(function(){}); }
+  function leerBase(){ var r = ls(K.base); if(r===null) return null; try{ return JSON.parse(r); }catch(e){ return null; } }
+  function guardarBase(s){ if(!lset(K.base, JSON.stringify(s))) { msg = 'No hay espacio en el dispositivo para sincronizar'; } }
   function estado(){
     return { configurado:configurado(), conectado:conectado(), acepto:ls(K.acepto)==='1', email:ls(K.email)||'', fase: conectado() ? fase : 'off',
-      pendiente: conectado() && (sucio || fase==='pendiente'), msg:msg, ult:parseInt(ls(K.ult)||'0',10),
-      idPropio: !!limpiarId(ls(K.cid)), idDeConfig: !!limpiarId(CFG.googleClientId) };
+      pendiente: conectado() && (sucio || fase==='pendiente'), msg:msg, ult:parseInt(ls(K.ult)||'0',10) };
   }
   // Si el usuario desconecta o borra mientras hay una sincronización en marcha, esa sincronización se cancela (no vuelve a escribir en Drive).
   function vigente(){ if(!conectado() || cicloGen!==gen){ var e = new Error('cancelado'); e.codigo = 'cancelado'; throw e; } }
@@ -103,8 +81,7 @@
       return op.texto ? r.text() : (r.status===204 ? null : r.json());
     }, function(){ var e = new Error('Sin conexión'); e.codigo = 'red'; throw e; });
   }
-  function listar(q, orden){ return api(BASE+'?spaces=appDataFolder&q='+encodeURIComponent(q)+'&fields='+encodeURIComponent('files(id,name,version,modifiedTime)')+'&pageSize=100'+(orden ? '&orderBy='+encodeURIComponent(orden) : '')).then(function(r){ return r.files || []; }); }
-  var RECIENTES = 'modifiedTime desc';
+  function listar(q){ return api(BASE+'?spaces=appDataFolder&q='+encodeURIComponent(q)+'&fields='+encodeURIComponent('files(id,name,version,modifiedTime)')+'&pageSize=100').then(function(r){ return r.files || []; }); }
   function buscarArchivo(){ return listar("name='"+ARCHIVO+"'").then(function(f){ return f[0] || null; }); }
   function descargar(id){
     return api(BASE+'/'+id+'?alt=media', {texto:true}).then(function(t){
@@ -118,7 +95,7 @@
   function leerUsuario(){ return api('https://www.googleapis.com/drive/v3/about?fields='+encodeURIComponent('user(emailAddress,displayName)')); }
   function paquete(datos, extra){ var p = {app:'mi-suite-financiera', formato:1, guardadoEn:new Date().toISOString(), dispositivo:dispositivo(), datos:datos}; if(extra) Object.keys(extra).forEach(function(k){ p[k] = extra[k]; }); return p; }
   function crearCopia(nombre, datos){ return crear(nombre).then(function(a){ return escribir(a.id, paquete(datos)); }); }
-  function podarCopias(){ return listar("name contains '"+PREF_COPIA+"'", RECIENTES).then(function(f){ return Promise.all(f.slice(DIAS_COPIAS+3).map(function(x){ return borrar(x.id); })); }); }
+  function podarCopias(){ return listar("name contains '"+PREF_COPIA+"'").then(function(f){ return Promise.all(f.slice(DIAS_COPIAS+3).map(function(x){ return borrar(x.id); })); }); }
   function copiaDelDia(datos){
     var hoy = new Date().toISOString().slice(0,10); if(ls(K.dia)===hoy) return Promise.resolve();
     return crearCopia(PREF_COPIA+hoy+'.json', datos).then(function(){ lset(K.dia, hoy); return podarCopias(); }).catch(function(){});
@@ -147,24 +124,17 @@
     if(typeof SuiteSync.onAplicado==='function'){ try{ SuiteSync.onAplicado(); }catch(e){} }
   }
   function marcarVersion(m){ lset(K.ver, String(m.version)); }
-  function cambioRemoto(){ var e = new Error('cambio-remoto'); e.codigo = 'cambio-remoto'; return e; }
   function subirSnapshot(snap, archivo, extra){
-    return Promise.resolve().then(function(){
-      vigente(); if(!archivo) return crear(ARCHIVO);
-      // otro dispositivo pudo guardar mientras se fusionaba: si la versión cambió, se vuelve a fusionar en vez de pisarlo
-      return buscarArchivo().then(function(a2){ vigente(); if(a2 && String(a2.version)!==String(archivo.version)) throw cambioRemoto(); return archivo; });
-    }).then(function(a){ return escribir(a.id, paquete(snap, extra)); })
+    return Promise.resolve().then(function(){ vigente(); return archivo ? archivo : crear(ARCHIVO); }).then(function(a){ return escribir(a.id, paquete(snap, extra)); })
       .then(function(m){ guardarBase(snap); marcarVersion(m); sucio = false; });
   }
 
   function sincronizar(){
-    var archivo, local;
-    // lo que registres mientras se descarga o se fusiona no se pisa: si los datos cambiaron, el ciclo se repite con ellos
-    function quieto(){ return Core.igual(Core.tomarSnapshot(localStorage), local); }
-    return cargarBase().then(buscarArchivo).then(function(a){
+    var archivo;
+    return buscarArchivo().then(function(a){
       vigente();
       archivo = a;
-      local = Core.tomarSnapshot(localStorage); var base = leerBase();
+      var local = Core.tomarSnapshot(localStorage), base = leerBase();
       if(!archivo){
         if(base!==null){ var eb = new Error('nube-borrada'); eb.codigo = 'nube-borrada'; throw eb; }   // esta nube ya se había sincronizado y desapareció: no se vuelve a subir nada
         if(Core.tieneDatos(local)) return subirSnapshot(local, null).then(function(){ return copiaDelDia(local); });
@@ -178,25 +148,22 @@
         // restauración de una copia hecha desde otro dispositivo: se adopta tal cual
         if(pk.restauracion && String(pk.restauracion)!==(ls(K.rest)||'')){
           if(!puedeAplicar()) return 'espera';
-          if(!quieto()) return 'reintentar';
           aplicarLocal(remoto); guardarBase(remoto); marcarVersion(archivo); lset(K.rest, String(pk.restauracion)); sucio = false; return null;
         }
         if(base===null){                                                                   // primera conexión de este dispositivo
-          if(!Core.tieneDatos(local)){ if(!puedeAplicar()) return 'espera'; if(!quieto()) return 'reintentar'; aplicarLocal(remoto); guardarBase(remoto); marcarVersion(archivo); sucio = false; return null; }
+          if(!Core.tieneDatos(local)){ if(!puedeAplicar()) return 'espera'; aplicarLocal(remoto); guardarBase(remoto); marcarVersion(archivo); sucio = false; return null; }
           if(!Core.tieneDatos(remoto)) return subirSnapshot(local, archivo);
           if(!puedeAplicar()) return 'espera';
           // los dos lados tienen datos: se unen (nada se pierde) y antes se guarda una copia de cada uno en tu Drive
           return copiaSegura('primera-conexion-este-dispositivo', local).then(function(){ return copiaSegura('primera-conexion-nube', remoto); }).then(function(){
-            if(!quieto()) return 'reintentar';
             var fus = Core.merge3({}, local, remoto, {conflictos:0}); aplicarLocal(fus); return subirSnapshot(fus, archivo);
           });
         }
         if(!puedeAplicar()) return 'espera';
-        if(!quieto()) return 'reintentar';
         if(!esSucio){ aplicarLocal(remoto); guardarBase(remoto); marcarVersion(archivo); sucio = false; return null; }     // solo cambió la nube
         var ctx = {conflictos:0}, fus = Core.merge3(base, local, remoto, ctx);              // cambiaron los dos: fusionar
         var pre = ctx.conflictos>0 ? copiaSegura('antes-de-fusionar', local) : Promise.resolve();
-        return pre.then(function(){ if(!quieto()) return 'reintentar'; aplicarLocal(fus); return subirSnapshot(fus, archivo); });
+        return pre.then(function(){ aplicarLocal(fus); return subirSnapshot(fus, archivo); });
       });
     });
   }
@@ -208,7 +175,6 @@
     corriendo = true; cicloGen = gen; setFase('sincronizando');
     return asegurarToken().then(sincronizar).then(function(r){
       if(r==='espera'){ setFase('pendiente'); programar(5000); return true; }
-      if(r==='reintentar'){ setFase('pendiente'); programar(800); return true; }
       lset(K.ult, String(Date.now())); setFase('ok');
       return copiaDelDia(Core.tomarSnapshot(localStorage)).then(function(){ return true; });
     }).catch(function(e){ errorCiclo(e); return false; })
@@ -217,7 +183,6 @@
   function errorCiclo(e){
     var c = e && e.codigo;
     if(c==='cancelado') return;
-    if(c==='cambio-remoto'){ setFase('pendiente'); programar(800); return; }
     if(c==='nube-borrada'){ desconectar(); aviso('Tu copia en Google Drive se borró. Este dispositivo se desconectó y conserva sus datos; puedes volver a conectar cuando quieras.'); return; }
     if(c===401 || c==='token') setFase('reconectar');
     else if(c==='red') setFase('sin_conexion');
@@ -233,7 +198,7 @@
     if(!configurado()) return Promise.resolve(false);
     setFase('conectando');
     return pedirToken('consent').then(function(){ return leerUsuario(); }).then(function(u){
-      lset(K.email, (u && u.user && u.user.emailAddress) || ''); lset(K.on,'1'); lset(K.acepto,'1'); borrarBase(); ldel(K.ver); ldel(K.rest); ldel(K.dia);
+      lset(K.email, (u && u.user && u.user.emailAddress) || ''); lset(K.on,'1'); lset(K.acepto,'1'); ldel(K.base); ldel(K.ver); ldel(K.rest); ldel(K.dia);
       iniciarTimers(); return ciclo();
     }).then(function(ok){ return !!ok && fase==='ok'; }, function(e){ lset(K.on,'0'); setFase('off', (e && e.message) || 'No se pudo conectar'); return false; });
   }
@@ -251,7 +216,7 @@
     gen++; lset(K.on,'0');
     try{ if(token && window.google && google.accounts.oauth2.revoke) google.accounts.oauth2.revoke(token, function(){}); }catch(e){}
     token = null; tokenExp = 0; clearInterval(timerPoll); clearTimeout(timerDeb);
-    lset(K.on,'0'); borrarBase(); ldel(K.ver); ldel(K.email); ldel(K.rest); ldel(K.dia); sucio = false; setFase('off');
+    lset(K.on,'0'); ldel(K.base); ldel(K.ver); ldel(K.email); ldel(K.rest); ldel(K.dia); sucio = false; setFase('off');
   }
   function borrarNube(){
     lset(K.on,'0'); gen++; clearTimeout(timerDeb); clearInterval(timerPoll);       // primero se detiene todo lo que esté sincronizando
@@ -262,7 +227,7 @@
   }
   function listarCopias(){
     if(!tokenValido()) return Promise.resolve([]);
-    return listar("name contains '"+PREF_COPIA+"'", RECIENTES).then(function(f){ return f.filter(function(x){ return /^suite-respaldo-\d{4}-\d{2}-\d{2}\.json$/.test(x.name); }).slice(0, DIAS_COPIAS); });
+    return listar("name contains '"+PREF_COPIA+"'").then(function(f){ return f.filter(function(x){ return /^suite-respaldo-\d{4}-\d{2}-\d{2}\.json$/.test(x.name); }).slice(0, DIAS_COPIAS); });
   }
   function restaurarCopia(id){
     return exclusivo(function(){

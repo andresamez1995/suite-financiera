@@ -11,8 +11,6 @@
     'chev-left':'<path d="M15 5l-7 7 7 7"/>',
     'chev-right':'<path d="M9 5l7 7-7 7"/>',
     'chev-down':'<path d="M5 9l7 7 7-7"/>',
-    'chev-up':'<path d="M5 15l7-7 7 7"/>',
-    'sliders':'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
     'x':'<path d="M6 6l12 12M18 6L6 18"/>',
     'edit':'<path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3z"/><path d="M14.5 7.5l3 3"/>',
     'trash':'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>',
@@ -26,7 +24,6 @@
     'help':'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1.9-1.1 1.8M12 17h.01"/>',
     'shield':'<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z"/><path d="M9 12l2.2 2.2L15.5 10"/>',
     'cloud-off':'<path d="M3 3l18 18M17.5 17.5H7a4 4 0 0 1-.6-8A5.5 5.5 0 0 1 9 5.6M19 13.2A3.5 3.5 0 0 1 17.5 17.5"/>',
-    'inbox':'<path d="M4 13l2.5-7.5A2 2 0 0 1 8.4 4h7.2a2 2 0 0 1 1.9 1.5L20 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-5z"/><path d="M4 13h4.5a1.5 1.5 0 0 1 1.5 1.5 2 2 0 0 0 4 0 1.5 1.5 0 0 1 1.5-1.5H20"/>',
     'plus':'<path d="M12 5v14M5 12h14"/>',
     'cloud':'<path d="M7 18a4 4 0 0 1-.6-8A5.5 5.5 0 0 1 17 8.5 4.5 4.5 0 0 1 17.5 18H7z"/>',
     'cloud-ok':'<path d="M7 18a4 4 0 0 1-.6-8A5.5 5.5 0 0 1 17 8.5 4.5 4.5 0 0 1 17.5 18H7z"/><path d="M9.5 13l2 2 3.5-3.5"/>',
@@ -38,7 +35,6 @@
     'bank':'<path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
     'cash':'<rect x="3" y="6.5" width="18" height="11" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6.5 12h.01M17.5 12h.01"/>',
     'card':'<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h3"/>',
-    'send':'<path d="M21 3L10 14M21 3l-7 18-4-8-8-4 19-6z"/>'
   };
   window.ICONOS = P;
   window.ic = function(name, size){

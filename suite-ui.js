@@ -37,6 +37,27 @@
   };
   window.SuiteUI = SuiteUI;
   window.alert = function(m){ SuiteUI.alerta(m); };
+  // confirm "asíncrono" para código que esperaba una respuesta inmediata: la primera vez muestra la ventana y corta la acción;
+  // si la persona acepta, se vuelve a pulsar el mismo botón y esa segunda vez pasa.
+  document.addEventListener('click', function(e){ var t = e.target; window.__ultimoClic = (t && t.closest) ? (t.closest('button,[onclick],a,label,summary') || t) : t; }, true);
+  window.confirmaLuego = function(msg, o){ return window.__SUITE_TEST_CONFIRM ? Promise.resolve(true) : SuiteUI.confirmar(msg, o); };   // para pasos que ocurren DESPUÉS de elegir un archivo (no hay botón que volver a pulsar)
+window.confirmaYa = function(msg, o){
+    if(window.__SUITE_TEST_CONFIRM) return true;
+    if(window.__confirmadoMsg===msg){ window.__confirmadoMsg = null; return true; }
+    var origen = window.__ultimoClic;
+    SuiteUI.confirmar(msg, o).then(function(ok){
+      if(!ok) return; window.__confirmadoMsg = msg;
+      setTimeout(function(){ window.__confirmadoMsg = null; }, 2000);
+      try{
+        // el botón original puede haberse vuelto a dibujar mientras se leía la ventana (paneles que se actualizan solos): se busca el vigente
+        var el = (origen && origen.isConnected) ? origen : null;
+        if(!el && origen && origen.id) el = document.getElementById(origen.id);
+        if(!el && origen && origen.dataset && origen.dataset.rest) el = document.querySelector('[data-rest="'+origen.dataset.rest+'"]');
+        if(el) el.click();
+      }catch(x){}
+    });
+    return false;
+  };
   // Accesibilidad: enlaza cada <label> con el campo que tiene justo después (sin cambiar el aspecto).
   function enlazar(raiz){
     (raiz||document).querySelectorAll('label:not([for])').forEach(function(l){
