@@ -18,6 +18,8 @@
 - Liquidación: el mínimo de 15 días aplica solo al contrato por obra o labor (opción nueva). El auxilio de transporte también cubre el de conectividad.
 
 **Nuevo**
+- **Pagos no salariales** (Contrato): tarjeta o bonos de alimentación y otros pagos que el contrato llama «no salariales». No cuentan para prima, cesantías ni vacaciones; pagan salud y pensión solo en lo que pase del 40 % (Ley 1393 de 2010); la alimentación no es ingreso tuyo hasta 41 UVT al mes si tu salario no pasa de 310 UVT (art. 387-1 ET). El Resumen separa lo que llega a tu cuenta de lo que va a la tarjeta.
+- **Cambio de año:** cada año guarda su «cierre». En enero aparecen solos los intereses de cesantías del año anterior (calculados con tus datos de ese año; si escribes el valor real, manda ese), Renta suma las cesantías del año anterior con esos mismos datos y, si cobras mes vencido, lo variable de diciembre se paga en enero del año siguiente. Lo de un año nunca toca el enero de ese mismo año.
 - **Aumento o ascenso:** en Contrato, «Registrar aumento o ascenso» con la fecha desde la que rige. Los meses anteriores conservan el salario de antes y el mes del cambio se paga por días.
 - **Tarjetas:** al pagar, lo que es interés o cuota de manejo queda como gasto en «Costos financieros» y el resto baja la deuda. Avisos si una compra pasa el cupo o un gasto pasa el saldo.
 - **Factura electrónica (opcional):** se activa en ⚙ Ajustes del gestor y agrega una casilla discreta al registrar gastos (no aparece con efectivo).
