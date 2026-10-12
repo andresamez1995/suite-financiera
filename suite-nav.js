@@ -2,7 +2,7 @@
    selector de app tipo "Gastos ▾" y botón ⋯ del menú. Habla con el index por postMessage. */
 (function(){
   var EN = false; try{ EN = window.parent !== window; }catch(e){ EN = true; }
-  var APPS = {calculadora:{n:'Calculadora', i:'calc'}, gastos:{n:'Gastos', i:'wallet'}};
+  var APPS = {calculadora:{n:'Calculadora', i:'calc'}, gastos:{n:'Gastos', i:'wallet'}, hoy:{n:'Hoy', i:'hoy'}};
   function enviar(m){ try{ window.parent.postMessage(m, location.origin); }catch(e){} }
   // cada toque avisa al index (como máximo cada 3 s): Google solo deja renovar el acceso a Drive tras un gesto de la persona
   if(EN){ var ultG = 0; document.addEventListener('pointerdown', function(){ var t = Date.now(); if(t-ultG<3000) return; ultG = t; enviar({suite:'gesto'}); }, true); }

@@ -116,6 +116,7 @@ button{font-family:inherit; cursor:pointer;}
   <div id="seg" role="tablist" aria-label="Aplicación">
     <button type="button" role="tab" id="tab-calculadora" data-app="calculadora" aria-selected="true"><span class="ico" data-ic="calc"></span><span class="lbl">Calculadora</span></button>
     <button type="button" role="tab" id="tab-gastos" data-app="gastos" aria-selected="false"><span class="ico" data-ic="wallet"></span><span class="lbl">Gastos</span></button>
+    <button type="button" role="tab" id="tab-hoy" data-app="hoy" aria-selected="false"><span class="ico" data-ic="hoy"></span><span class="lbl">Hoy</span></button>
   </div>
   <div class="spacer"></div>
   <button type="button" id="themeBtn" class="rbtn" aria-label="Cambiar tema"></button>
@@ -125,6 +126,7 @@ button{font-family:inherit; cursor:pointer;}
 <div id="frames">
   <iframe class="frame" id="frame-calculadora" title="Calculadora salarial" data-src="calculadora/index.html"></iframe>
   <iframe class="frame" id="frame-gastos" title="Gestor de gastos" data-src="gastos/index.html"></iframe>
+  <iframe class="frame" id="frame-hoy" title="Hoy: cuánto puedo gastar" data-src="hoy/index.html"></iframe>
 </div>
 
 <div id="overlay" role="dialog" aria-modal="true" aria-label="Menú">
@@ -154,25 +156,25 @@ button{font-family:inherit; cursor:pointer;}
 (function(){
 'use strict';
 const $ = id => document.getElementById(id);
-const APPS = ['calculadora','gastos'];
+const APPS = ['calculadora','gastos','hoy'];
 const LAST_KEY = 'suite_ultima_app';
 const STORAGE_PATTERN = /^(finanzas_app_v12|co(\d{4})?_[\w]+)$/;   // claves de ambos programas
 const SKIP = /_corrupto(_fecha)?$/;
 const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 document.querySelectorAll('[data-ic]').forEach(el=>{ el.innerHTML = ic(el.dataset.ic, 22); });
-/* ---------- Tema global (un solo botón para las dos apps) ---------- */
+/* ---------- Tema global (un solo botón para todas las apps) ---------- */
 function iconoTema(){
   const t = SuiteTema.get(), b = $('themeBtn');
   b.innerHTML = ic(t==='dark' ? 'moon' : t==='light' ? 'sun' : 'auto', 22);
   const txt = 'Tema: ' + (t==='dark' ? 'oscuro' : t==='light' ? 'claro' : 'automático (según tu dispositivo)') + ' — toca para cambiar';
   b.title = txt; b.setAttribute('aria-label', txt);
 }
-$('themeBtn').addEventListener('click', ()=>{ SuiteTema.cycle(); iconoTema(); toast('Tema ' + ({dark:'oscuro', light:'claro'}[SuiteTema.get()] || 'automático') + ' en las dos apps', null, null, 2200); });
+$('themeBtn').addEventListener('click', ()=>{ SuiteTema.cycle(); iconoTema(); toast('Tema ' + ({dark:'oscuro', light:'claro'}[SuiteTema.get()] || 'automático') + ' en todas las apps', null, null, 2200); });
 window.addEventListener('suite-tema', iconoTema);
 iconoTema();
 
-/* ---------- Selector de app: los dos iframes se quedan vivos (no pierdes mes, scroll ni filtros) ---------- */
+/* ---------- Selector de app: los iframes se quedan vivos (no pierdes mes, scroll ni filtros) ---------- */
 let actual = null;
 const mqRail = window.matchMedia ? matchMedia('(min-width:900px)') : {matches:true, addEventListener(){}};
 function cargar(app){ const f = $('frame-'+app); if(!f.getAttribute('src')) f.setAttribute('src', f.dataset.src + (mqRail.matches ? '?rail=1' : '')); }
@@ -203,8 +205,7 @@ document.querySelectorAll('#seg button').forEach(b=> b.addEventListener('click',
   let app = new URLSearchParams(location.search).get('app');
   if(!APPS.includes(app)){ try{ app = localStorage.getItem(LAST_KEY); }catch(e){} }
   mostrar(APPS.includes(app) ? app : 'calculadora', {recordar:false});
-  const otro = APPS.find(a=>a!==actual);
-  const precargar = ()=> cargar(otro);                       // la otra app queda lista (y guardada para uso sin conexión)
+  const precargar = ()=> APPS.filter(a=>a!==actual).forEach(cargar);   // las otras apps quedan listas (y guardadas para uso sin conexión); la calculadora además le pasa tu sueldo a Hoy
   if('requestIdleCallback' in window) requestIdleCallback(precargar, {timeout:3000}); else setTimeout(precargar, 1500);
 })();
 
@@ -264,7 +265,7 @@ if('serviceWorker' in navigator){
 window.addEventListener('offline', ()=>{ pintarEstado(); toast('Sin conexión: todo sigue funcionando con lo guardado'); });
 window.addEventListener('online', pintarEstado);
 
-/* ---------- Respaldo unificado (calculadora + gastos) ---------- */
+/* ---------- Respaldo unificado (calculadora + gastos + ajustes de Hoy) ---------- */
 function descargar(contenido, nombre){
   const url = URL.createObjectURL(new Blob([contenido], {type:'application/json'}));
   const a = document.createElement('a'); a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
@@ -282,7 +283,7 @@ function exportarTodo(){
     const hoy = new Date(), f = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
     descargar(JSON.stringify({suite:'mi-suite-financiera', version:1, exportadoEn:hoy.toISOString(), storage}, null, 2), `mi-suite_respaldo_${f}.json`);
     try{ localStorage.setItem('suite_ultimo_respaldo', f); }catch(e){}
-    toast('Respaldo de las dos apps descargado ✓');
+    toast('Respaldo de todas las apps descargado ✓');
   }catch(e){ toast('No se pudo exportar'); }
 }
 function importarTodo(file){
@@ -295,12 +296,12 @@ function importarTodo(file){
     if(!claves.length){ alert('El respaldo no contiene datos de las apps.'); return; }
     const tieneG = claves.includes('finanzas_app_v12'), nCalc = claves.filter(k=>k!=='finanzas_app_v12').length;
     const conSync = SuiteSync.estado().conectado;
-    const ok = await SuiteUI.confirmar('Se reemplazarán los datos actuales de las dos apps con los del archivo ('+(tieneG?'gastos + ':'')+nCalc+' bloques de la calculadora).'+(conSync ? ' Como la sincronización está activa, el cambio también llegará a tu Drive y a tus otros dispositivos.' : '')+' ¿Continuar?', {peligro:true});
+    const ok = await SuiteUI.confirmar('Se reemplazarán los datos actuales de todas las apps con los del archivo ('+(tieneG?'gastos + ':'')+nCalc+' bloques de la calculadora y de Hoy).'+(conSync ? ' Como la sincronización está activa, el cambio también llegará a tu Drive y a tus otros dispositivos.' : '')+' ¿Continuar?', {peligro:true});
     if(!ok) return;
     clavesSuite().forEach(k=>localStorage.removeItem(k));
     claves.forEach(k=>localStorage.setItem(k, data.storage[k]));
     APPS.forEach(a=>{ const f = $('frame-'+a); if(f.getAttribute('src')){ try{ f.contentWindow.location.reload(); }catch(e){ f.setAttribute('src', f.dataset.src); } } });
-    cerrarMenu(); toast('Datos restaurados en las dos apps ✓');
+    cerrarMenu(); toast('Datos restaurados en todas las apps ✓');
   };
   r.readAsText(file);
 }
@@ -312,10 +313,8 @@ function pintarEstado(){
   $('netPill').textContent = on ? 'En línea' : 'Sin conexión'; $('netPill').className = 'pill ' + (on ? 'ok' : 'warn');
   const p = $('offlinePill');
   if(!('serviceWorker' in navigator) || !('caches' in window)){ p.textContent = 'Sin modo offline'; p.className = 'pill warn'; return; }
-  caches.match('./calculadora/index.html').then(hit=>{
-    caches.match('./gastos/index.html').then(hit2=>{
-      const ok = !!(hit && hit2); p.textContent = ok ? 'Lista para usar sin internet' : 'Preparando modo sin conexión…'; p.className = 'pill ' + (ok ? 'ok' : '');
-    });
+  Promise.all(APPS.map(a=>caches.match('./'+a+'/index.html'))).then(hits=>{
+    const ok = hits.every(Boolean); p.textContent = ok ? 'Lista para usar sin internet' : 'Preparando modo sin conexión…'; p.className = 'pill ' + (ok ? 'ok' : '');
   }).catch(()=>{ p.textContent = 'Modo offline no disponible'; p.className = 'pill warn'; });
 }
 function construirMenu(){
@@ -325,12 +324,12 @@ function construirMenu(){
     if(promptInstalar) it.push(`<button class="item" data-act="instalar"><span class="ic">${ic('phone')}</span><span>Instalar en este dispositivo<small>Ábrela como una app, también sin internet</small></span></button>`);
     else if(esIOS) it.push(`<button class="item" data-act="ios"><span class="ic">${ic('phone')}</span><span>Añadir a pantalla de inicio<small>Te muestro cómo hacerlo en Safari</small></span></button>`);
   }
-  { const t = SuiteTema.get(); it.push(`<button class="item" data-act="tema"><span class="ic">${ic(t==='dark'?'moon':t==='light'?'sun':'auto')}</span><span>Tema: ${t==='dark'?'oscuro':t==='light'?'claro':'automático'}<small>Toca para cambiar · se aplica a las dos apps</small></span></button>`); }
+  { const t = SuiteTema.get(); it.push(`<button class="item" data-act="tema"><span class="ic">${ic(t==='dark'?'moon':t==='light'?'sun':'auto')}</span><span>Tema: ${t==='dark'?'oscuro':t==='light'?'claro':'automático'}<small>Toca para cambiar · se aplica a todas las apps</small></span></button>`); }
   { const se = SuiteSync.estado();
     const sub = !se.configurado ? 'Configúrala una vez para usar tus datos en otros dispositivos' : !se.conectado ? 'Guarda tus datos en tu Drive y úsalos en otros dispositivos' : textoEstadoCorto(se);
     it.push(`<button class="item" data-act="sync"><span class="ic">${ic(se.conectado ? 'cloud-ok' : 'cloud')}</span><span>Sincronizar con Google Drive<small>${esc(sub)}</small></span></button>`); }
-  it.push(`<button class="item" data-act="export"><span class="ic">${ic('download')}</span><span>Exportar respaldo de las dos apps<small>Un solo archivo con calculadora + gastos</small></span></button>`);
-  it.push(`<button class="item" data-act="import"><span class="ic">${ic('upload')}</span><span>Importar respaldo<small>Reemplaza los datos de las dos apps</small></span></button>`);
+  it.push(`<button class="item" data-act="export"><span class="ic">${ic('download')}</span><span>Exportar respaldo<small>Un solo archivo con calculadora, gastos y tus ajustes de Hoy</small></span></button>`);
+  it.push(`<button class="item" data-act="import"><span class="ic">${ic('upload')}</span><span>Importar respaldo<small>Reemplaza los datos de todas las apps</small></span></button>`);
   it.push(`<button class="item" data-act="buscar"><span class="ic">${ic('refresh')}</span><span>Buscar actualización</span></button>`);
   it.push(`<button class="item" data-act="tour"><span class="ic">${ic('help')}</span><span>Ver el recorrido de bienvenida</span></button>`);
   $('menuItems').innerHTML = it.join('');
@@ -439,7 +438,7 @@ setInterval(()=>{ if(!$('syncOverlay').hidden) pintarSync(); }, 30000);
 
 /* ---------- Recorrido de bienvenida ---------- */
 const TOUR = [
-  {art:['calc','wallet'], t:'Dos herramientas, una suite', x:'La calculadora te dice cuánto te llega de verdad cada mes. El gestor te muestra a dónde se va. Se pasan datos entre ellas.'},
+  {art:['calc','wallet','hoy'], t:'Tres herramientas, una suite', x:'La calculadora te dice cuánto te llega de verdad cada mes. El gestor te muestra a dónde se va. Hoy te dice cuánto puedes gastar hoy hasta tu próximo sueldo.'},
   {art:['shield'], t:'Tus datos son tuyos', x:'Todo se guarda en este dispositivo y la app no tiene servidores propios. Si quieres, sincronízala con tu Google Drive o descarga un respaldo desde el menú ⋯.'},
   {art:['phone','cloud-off'], t:'Instálala y úsala sin internet', x:'Agrégala a tu pantalla de inicio y abre igual sin conexión. El tema claro u oscuro se cambia con un solo botón.'}
 ];

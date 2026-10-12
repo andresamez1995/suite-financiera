@@ -139,7 +139,7 @@
     return true;
   }
   function avisarApps(){
-    ['frame-gastos','frame-calculadora'].forEach(function(id){ var f = document.getElementById(id); try{ if(f && f.contentWindow && f.getAttribute('src')) f.contentWindow.postMessage({suite:'datos-actualizados'}, location.origin); }catch(e){} });
+    ['frame-gastos','frame-calculadora','frame-hoy'].forEach(function(id){ var f = document.getElementById(id); try{ if(f && f.contentWindow && f.getAttribute('src')) f.contentWindow.postMessage({suite:'datos-actualizados'}, location.origin); }catch(e){} });
   }
   function aplicarLocal(snap){
     Core.aplicarSnapshot(localStorage, snap, leerBase() || Core.tomarSnapshot(localStorage));

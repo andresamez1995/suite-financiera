@@ -764,7 +764,7 @@ function backupReminder(){
   const last = ultimoRespaldo();
   const days = last ? Math.floor((new Date(today())-new Date(last))/864e5) : null;
   if(last && days<30) return '';
-  return `<div class="alert-box" style="border-left:4px solid var(--necesito);"><div style="font-size:13px; line-height:1.4;">${last?`Tu último respaldo fue hace <b>${days} días</b>.`:'Aún no has descargado ningún respaldo.'} <br><button class="btn btn-secondary" data-action="respaldo-global" style="margin-top:10px; padding:8px 12px; font-size:13px;">Hacer respaldo de las dos apps</button></div></div>`;
+  return `<div class="alert-box" style="border-left:4px solid var(--necesito);"><div style="font-size:13px; line-height:1.4;">${last?`Tu último respaldo fue hace <b>${days} días</b>.`:'Aún no has descargado ningún respaldo.'} <br><button class="btn btn-secondary" data-action="respaldo-global" style="margin-top:10px; padding:8px 12px; font-size:13px;">Hacer respaldo de todas las apps</button></div></div>`;
 }
 
 const normName = t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/\s+/g,' ');
@@ -3122,7 +3122,7 @@ function openSettingsModal(){
     <label class="opc-fila"><input type="checkbox" id="optFe" ${STATE.opciones.facturaE?'checked':''}><span><b>Compras con factura electrónica</b><small>Agrega una casilla opcional al registrar un gasto. Lo marcado suma para la deducción del 1 % en tu declaración de renta (pestaña Renta de la calculadora).</small></span></label>
     <div style="display:flex; flex-direction:column; gap:12px; margin-top:14px;">
       <button class="btn btn-secondary btn-block" id="bloquesBtn">Personalizar el resumen</button>
-      <button class="btn btn-primary btn-block" id="globalBackupBtn">Respaldo de las dos apps…</button>
+      <button class="btn btn-primary btn-block" id="globalBackupBtn">Respaldo de todas las apps…</button>
       <button class="btn btn-secondary btn-block" id="exportAllCsvBtn">↓ Historial completo (.csv)</button>
       ${corruptRaw ? `<div class="alert-box" style="border-left:4px solid var(--danger); font-size:12.5px;">Se guardó una copia de datos dañados${corruptDate?' ('+esc(corruptDate.slice(0,10))+')':''}.<div style="display:flex; gap:8px; margin-top:8px;"><button class="btn btn-secondary" id="dlCorruptBtn" style="padding:6px 10px; font-size:12px;">Descargar copia</button><button class="btn btn-secondary" id="dropCorruptBtn" style="padding:6px 10px; font-size:12px;">Descartar</button></div></div>` : ''}
       <button class="btn btn-secondary btn-block" id="resetBtn" style="color:var(--danger);">Borrar todo y empezar limpio</button>

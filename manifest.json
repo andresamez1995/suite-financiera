@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Mi Suite Financiera",
   "short_name": "Mi Suite",
-  "description": "Calculadora salarial y gestor de gastos personales. Funciona sin conexión.",
+  "description": "Calculadora salarial, gestor de gastos y cuánto puedes gastar hoy. Funciona sin conexión.",
   "lang": "es-CO",
   "start_url": "./",
   "scope": "./",
@@ -50,6 +50,11 @@
       "name": "Gestor de gastos",
       "short_name": "Gastos",
       "url": "./?app=gastos"
+    },
+    {
+      "name": "¿Cuánto puedo gastar hoy?",
+      "short_name": "Hoy",
+      "url": "./?app=hoy"
     }
   ]
 }

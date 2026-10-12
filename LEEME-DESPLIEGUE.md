@@ -1,6 +1,17 @@
 # Mi Suite Financiera — publicar en GitHub Pages y activar la sincronización con Google Drive
 
-## 0. Novedades de esta versión (auditoría de octubre de 2026)
+## 0. Novedades de esta versión
+
+**Nueva app: Hoy (v29).** Responde «¿cuánto puedo gastar hoy?» con lo que registras en Gastos y tu sueldo de la Calculadora:
+- **Libre** = plata de tus cuentas del día a día (banco y efectivo; el ahorro no, salvo que lo marques) + ingresos esperados que llegan antes del pago − gastos fijos pendientes − lo que vence de tus tarjetas y lo que compras con ellas en el período − tu piso. Se reparte en los días que faltan para tu sueldo (último día hábil del mes, o el día que elijas). Si un día gastas más, los demás bajan un poco; si gastas menos, suben.
+- **Se recalcula solo** con cualquier cambio en Gastos o en la Calculadora (en este u otro dispositivo), al abrirla y al pasar la medianoche. No guarda resultados: siempre parte de tus datos.
+- **Mensajes que explican el número:** ayer te pasaste o te sobró, un fijo llegó más caro, un ingreso llegó distinto o atrasado, un ingreso extra, una compra con tarjeta (a cuotas cuenta la primera), plata que pasaste al ahorro, déficit con ideas de dónde recortar, gastos hormiga del período.
+- **Así sale el número:** el desglose completo, renglón por renglón. **Por pagar / Por llegar / Ya pagado**, tu período en un gráfico y **¿Me alcanza?** (de contado o a cuotas, con intereses).
+- **Gastos fijos** por subcategoría (cada mes, cada 2 meses…; fijos o variables con el promedio de tus últimos 3 pagos). Se reconocen solos cuando registras el pago cerca de su fecha (también por partes). Las **cuotas de tus deudas** se apartan solas. **Ingresos esperados** con día ± margen: solo se cuentan si toda la ventana cae antes del pago y dejan de contarse si se atrasan.
+- **Propuestas:** si algo se repite en tus últimos meses (arriendo, una suscripción, el agua cada 2 meses, un ingreso de alguien), Hoy te pregunta con un toque si es fijo.
+- La configuración vive en la clave `co_hoy`: viaja con el respaldo y la sincronización. La Calculadora le pasa tu neto mes a mes (con prima e intereses de cesantías) en `suite_calc_hoy`, que no se sincroniza porque cada dispositivo lo recalcula.
+
+## Novedades anteriores (auditoría de octubre de 2026)
 **Fallos corregidos**
 - *Importar respaldo* ya funciona: antes la confirmación volvía a abrir el selector de archivos sin terminar nunca.
 - Dos avisos seguidos (por ejemplo, al pagar la tarjeta con más de lo que debes y desde una cuenta sin saldo) ya no se repiten sin fin.
@@ -41,8 +52,8 @@
 **Para actualizar:** sube **todo el contenido** de la carpeta a GitHub (esta vez `suite-config.js` ya trae tu ID de cliente, así que no se pierde nada).
 
 ## 1. Qué hay en esta carpeta
-- `index.html` — la app (calculadora + gestor). **Sube la carpeta completa**, no solo este archivo.
-- `calculadora/`, `gastos/` — las dos aplicaciones.
+- `index.html` — la app (calculadora + gestor + hoy). **Sube la carpeta completa**, no solo este archivo.
+- `calculadora/`, `gastos/`, `hoy/` — las tres aplicaciones.
 - `suite-*.js`, `suite-tema.css`, `sw.js`, `manifest.json`, `fonts/`, `icons/` — diseño, modo sin conexión, íconos.
 - `suite-config.js` — configuración (opcional): aquí puedes pegar el **ID de cliente de Google** y tu **correo de contacto**.
 - `suite-sync-core.js`, `suite-sync.js` — la sincronización con Google Drive.
@@ -51,7 +62,7 @@
 
 ## 2. Subir la versión nueva a GitHub
 1. Descomprime el zip. Dentro hay una carpeta `mi-suite-financiera/`: lo que subes es **su contenido**, no la carpeta contenedora.
-2. En tu repositorio `suite-financiera`: *Add file → Upload files* y arrastra todo el contenido (incluidas las carpetas `fonts/`, `icons/`, `calculadora/`, `gastos/`). Si el navegador no deja arrastrar carpetas, súbelas una por una.
+2. En tu repositorio `suite-financiera`: *Add file → Upload files* y arrastra todo el contenido (incluidas las carpetas `fonts/`, `icons/`, `calculadora/`, `gastos/` y la nueva `hoy/`). Si el navegador no deja arrastrar carpetas, súbelas una por una.
 3. Escribe un mensaje (ej. «sincronización con Drive») y haz *Commit changes* a `main`.
 4. Espera 1–2 minutos (pestaña *Actions* o *Settings → Pages* muestra el despliegue). Abre `https://andresamez1995.github.io/suite-financiera/`.
 5. En la app ya instalada saldrá «Hay una versión nueva · Actualizar» (o menú ⋯ → *Buscar actualización*).

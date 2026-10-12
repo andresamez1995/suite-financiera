@@ -2397,7 +2397,7 @@ function renderContratista(){
     else retefuente = baseRet*pct;
     retLabel = `− Retención en la fuente (${pctCO(pct,0)} sobre ${fmtCOP(baseRet)})`;
   }
-  const neto = valor - salud - pension - fsp - arl - ccf - retefuente;
+  const neto = valor - salud - pension - fsp - arl - ccf - retefuente; netoContratista = neto;
   let r = `<tr><td>Valor mensual del contrato</td><td class="val">${fmtCOP(valor)}</td></tr>
     <tr class="deduct"><td>− Salud (12,5% del IBC)</td><td class="val">${fmtCOP(salud)}</td></tr>
     ${pensionado ? '<tr class="sub-item"><td colspan="2">Pensionado por vejez: no cotizas a pensión ni al Fondo de Solidaridad.</td></tr>' : `<tr class="deduct"><td>− Pensión (16% del IBC)</td><td class="val">${fmtCOP(pension)}</td></tr>`}`;
@@ -2580,6 +2580,34 @@ function _renderAllNow(){
     updateMultiCount(); aplicarColapsables();
   } else renderContratista();
   renderAvisos();
+  clearTimeout(_pubHoyT); _pubHoyT = setTimeout(publicarParaHoy, 500);
+}
+// ---------- Lo que necesita «Hoy»: el neto que llega cada mes (con prima en junio/diciembre e intereses de cesantías en enero) ----------
+// Es un dato derivado (no se sincroniza): cada dispositivo lo vuelve a publicar al abrir la calculadora.
+let _pubHoyT = 0, netoContratista = 0;
+function netoParaHoy(m){
+  const E = ENT, r = calcMes(m); if(r.dias<=0) return null;
+  const d = retDe(r, m), neto = r.ibcTotal + r.nsOtros - d.ss - d.retefuente - d.vol, key = `${ANIO}-${pad(m+1)}`, aj = ajustesBanco[key];
+  const out = {neto: Math.round(aj ? aj.real : neto), verificado: !!aj};
+  if((m===5 || m===11) && !E.integral){ const s0 = m<6 ? 0 : 6; let tot = 0; for(let k=s0; k<=s0+5; k++) tot += primaDeMes(k).devengadoPrestacional; const prima = tot/12; out.prima = Math.round(prima - retencionPrima(d, prima, m)); }
+  if(m===0 && !E.integral){ const ca = cesantiasAnteriores(), ie = interesesEneroVal>0 ? interesesEneroVal : (ca.intereses||0); if(ie>0) out.intereses = Math.round(ie); }
+  return out;
+}
+function publicarParaHoy(){
+  try{
+    let prev = null; try{ prev = JSON.parse(lsRaw('suite_calc_hoy')||'null'); }catch(e){}
+    const out = {v:1, ts:Date.now(), tipo:currentTab, meses: isObj(prev) && isObj(prev.meses) ? Object.assign({}, prev.meses) : {}};
+    Object.keys(out.meses).forEach(k=>{ if(k.slice(0,4)===String(ANIO)) delete out.meses[k]; });
+    ENT = ENT || leerEntradas();
+    for(let m=0; m<12; m++){
+      const key = `${ANIO}-${pad(m+1)}`;
+      if(currentTab==='contratista'){ if(netoContratista>0) out.meses[key] = {neto:Math.round(netoContratista), verificado:false}; continue; }
+      if(!(ENT.salarioBase>0) || lsRaw('co_config')==null) continue;   // sin configurar, el salario de ejemplo no se comparte
+      const v = netoParaHoy(m); if(v && v.neto>0) out.meses[key] = v;
+    }
+    const igual = isObj(prev) && prev.tipo===out.tipo && JSON.stringify(prev.meses)===JSON.stringify(out.meses);
+    if(!igual) lsSet('suite_calc_hoy', out);
+  }catch(e){}
 }
 
 // ============================================================

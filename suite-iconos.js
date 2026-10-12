@@ -38,7 +38,12 @@
     'bank':'<path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
     'cash':'<rect x="3" y="6.5" width="18" height="11" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6.5 12h.01M17.5 12h.01"/>',
     'card':'<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h3"/>',
-    'send':'<path d="M21 3L10 14M21 3l-7 18-4-8-8-4 19-6z"/>'
+    'send':'<path d="M21 3L10 14M21 3l-7 18-4-8-8-4 19-6z"/>',
+    'hoy':'<path d="M4.2 16.5a8 8 0 1 1 15.6 0"/><path d="M12 14.5l3.6-4.2"/><circle cx="12" cy="14.8" r="1.4"/><path d="M6.5 19.5h11"/>',
+    'alerta':'<path d="M12 4.2L21 19.5H3z"/><path d="M12 10v4.2M12 16.9h.01"/>',
+    'info':'<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8h.01"/>',
+    'sube':'<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+    'baja':'<path d="M3 7l6 6 4-4 8 8"/><path d="M15 17h6v-6"/>'
   };
   window.ICONOS = P;
   window.ic = function(name, size){
