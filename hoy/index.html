@@ -78,6 +78,7 @@ main{flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; 
 .des tr.sub td{font-size:12px; color:var(--text-dim); padding:3px 0 3px 12px; border-bottom:none;}
 .des tr.tot td{font-weight:700; border-top:2px solid var(--border); border-bottom:none;}
 .des tr.res td{font-weight:700; font-size:15px; color:var(--accent);}
+.des tr.res.neg td{color:var(--danger);}
 .des .neg{color:var(--danger);}
 details.plegable>summary{cursor:pointer; list-style:none; display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700; min-height:28px;}
 details.plegable>summary::-webkit-details-marker{display:none;}
@@ -236,19 +237,22 @@ function heroHTML(){
   const pct = def ? 100 : R.presupuestoHoy>0 ? Math.min(100, R.gastoHoy/R.presupuestoHoy*100) : (R.gastoHoy>0 ? 100 : 0);
   const semTxt = {verde:'Vas bien', amarillo:'Con cuidado', rojo:'En rojo'}[R.semaforo];
   let frase;
-  if(def) frase = `Lo que tienes no alcanza para todo lo que falta pagar hasta el <b>${esc(U.fCorta(R.pago))}</b>: te faltan <b class="num" style="color:var(--danger)">${fmt(R.deficit)}</b>. Mira abajo de dónde sale y qué puedes recortar.`;
+  const dc = def && R.deficitColchon, quien = R.reservadoPor==='piso' ? 'tu piso' : 'tu colchón';
+  if(dc) frase = `Lo que entró en este período no alcanza para todo lo que falta pagar hasta el <b>${esc(U.fCorta(R.pago))}</b>: te faltan <b class="num" style="color:var(--danger)">${fmt(R.deficit)}</b>, que saldrían de ${quien} (<b>${fmt(R.reservado)}</b>). Mira abajo qué puedes recortar.`;
+  else if(def) frase = `Lo que tienes no alcanza para todo lo que falta pagar hasta el <b>${esc(U.fCorta(R.pago))}</b>: te faltan <b class="num" style="color:var(--danger)">${fmt(R.deficit)}</b>. Mira abajo de dónde sale y qué puedes recortar.`;
   else frase = `Tienes <b>${fmt(R.libreInicioHoy)}</b> para tus gastos del día a día hasta el <b>${esc(U.fCorta(R.fin))}</b>. Repartido en ${R.dias===1 ? '<b>1 día</b> (hoy)' : `<b>${R.dias} días</b> (contando hoy)`} son <b>${fmt0(R.presupuestoHoy)}</b> por día.` +
     (pasado && R.manana!==null ? ` Como hoy te pasaste, mañana serían ≈<b>${fmt0(R.manana)}</b> por día.` : (R.manana!==null && R.gastoHoy>0 ? ` Si no gastas más hoy, mañana tendrías ≈<b>${fmt0(R.manana)}</b> por día.` : ''));
   const sueldo = R.sueldo && R.sueldo.monto>0 ? `≈${fmt0(R.sueldo.monto + R.sueldo.extras.reduce((t,x)=>t+x.monto,0))}` : '';
   return `<div class="card s-hero hero">
-    <div class="lbl"><span class="sem ${R.semaforo}" aria-hidden="true"></span><span>${def ? 'Hoy no hay presupuesto libre' : pasado ? 'Hoy te pasaste' : 'Puedes gastar hoy'}</span><span class="sr-only">· ${semTxt}</span></div>
+    <div class="lbl"><span class="sem ${R.semaforo}" aria-hidden="true"></span><span>${dc ? 'Hoy no hay presupuesto sin tocar '+quien : def ? 'Hoy no hay presupuesto libre' : pasado ? 'Hoy te pasaste' : 'Puedes gastar hoy'}</span><span class="sr-only">· ${semTxt}</span></div>
     <div class="grande ${pasado||def ? 'neg' : ''}">${pasado && !def ? '−'+fmt0(-R.quedaHoy) : grande}</div>
-    <div class="de">${def ? `Te faltan <b>${fmt(R.deficit)}</b> para llegar al pago` : `de <b>${fmt0(R.presupuestoHoy)}</b> para hoy · llevas <b>${fmt(R.gastoHoy)}</b>`}</div>
+    <div class="de">${def ? `Te faltan <b>${fmt(R.deficit)}</b> para llegar al pago${dc ? ' sin tocar '+quien : ''}` : `de <b>${fmt0(R.presupuestoHoy)}</b> para hoy · llevas <b>${fmt(R.gastoHoy)}</b>`}</div>
     <div class="barra ${pasado||def ? 'pasado' : ''}" role="img" aria-label="Llevas ${Math.round(pct)} % del presupuesto de hoy"><i style="width:${pct.toFixed(1)}%"></i></div>
     <div class="chips">
       <span class="chip">${ic('calendar',15)} Pago: <b>${esc(U.fCorta(R.pago))}</b>${sueldo ? ' · '+sueldo : ''}</span>
       <span class="chip">${ic('hoy',15)} Faltan <b>${R.dias}</b> ${R.dias===1?'día':'días'}</span>
-      ${R.tipico ? `<span class="chip">${ic(R.presupuestoHoy>=R.tipico?'sube':'baja',15)} Sueles gastar <b>${fmt0(R.tipico)}</b>/día</span>` : ''}
+      ${R.tipico ? `<span class="chip">${ic(R.presupuestoHoy>=R.tipico?'sube':'baja',15)} Un día normal: <b>${fmt0(R.tipico)}</b></span>` : ''}
+      ${R.reservado>0 ? `<span class="chip">${ic('shield',15)} ${R.reservadoPor==='piso' ? 'Piso' : 'Colchón'} protegido: <b>${fmt0(R.reservado)}</b></span>` : ''}
     </div>
     <div class="frase">${frase}</div>
   </div>`;
@@ -285,15 +289,20 @@ function desgloseHTML(){
   R.fijos.filter(f=>f.falta>0).forEach(f=>fila(`${esc(f.nombre)} · ${esc(U.fCorta(f.fecha))}${f.estado==='atrasado'?' (atrasado)':''}`, -f.falta, 'sub'));
   if(R.totTarjetas) fila('− Tarjetas de crédito', -R.totTarjetas);
   R.tarjetas.filter(t=>t.compromiso>0).forEach(t=>fila(esc(t.nombre)+' (lo que vence + compras del período)', -t.compromiso, 'sub'));
-  if(R.piso) fila('− Tu piso (lo que nunca tocas)', -R.piso);
+  if(R.reservadoPor==='colchon'){
+    fila('− Tu colchón (lo que tenías antes de que llegara el sueldo)', -R.colchon);
+    if(R.colchon!==R.colchonIni) fila(`Antes del sueldo tenías ${fmt(R.colchonIni)}; lo que pasaste al ahorro salió de ahí`, '', 'sub', true);
+    if(R.piso) fila(`Tu piso (${fmt(R.piso)}) ya queda cubierto por el colchón`, '', 'sub', true);
+  } else if(R.piso) fila('− Tu piso (lo que nunca tocas)', -R.piso);
   fila('= Libre para el día a día', R.libre, 'tot');
   if(R.gastoHoy) fila('+ Lo que ya gastaste hoy (se descuenta abajo)', R.gastoHoy);
   fila(`÷ ${R.dias} ${R.dias===1?'día':'días'} hasta el pago (contando hoy)`, `${fmt(Math.max(0,R.libreInicioHoy))} ÷ ${R.dias}`, '', true);
   fila('= Presupuesto de hoy', R.presupuestoHoy, 'tot');
   fila('− Gastado hoy', -R.gastoHoy);
-  fila('= Te queda hoy', R.deficit>0 ? 0 : R.quedaHoy, 'res');
+  const queda = R.deficit>0 ? 0 : R.quedaHoy;
+  fila('= Te queda hoy', queda, (queda<0 || R.deficit>0) ? 'res neg' : 'res');
   return `<details class="card plegable" data-id="desglose"><summary>${ic('calc',20)} Así sale el número<span class="chev">${ic('chev-down',16)}</span></summary><table class="des">${filas.join('')}</table>
-    <div class="sub" style="margin-top:10px;">Los gastos fijos y lo de las tarjetas se apartan antes de repartir: así el arriendo o el extracto no te toman por sorpresa. ${R.cuentasDia.length < R.cuentas.length ? 'Las cuentas de ahorro no cuentan (puedes cambiarlo en Ajustes).' : ''}</div></details>`;
+    <div class="sub" style="margin-top:10px;">Los gastos fijos y lo de las tarjetas se apartan antes de repartir: así el arriendo o el extracto no te toman por sorpresa.${R.reservadoPor==='colchon' ? ' El colchón tampoco se reparte: el período vive de lo que entra en él, y lo que sobre al final se suma al colchón.' : ''} ${R.cuentasDia.length < R.cuentas.length ? 'Las cuentas de ahorro no cuentan (puedes cambiarlo en Ajustes).' : ''}</div></details>`;
 }
 function periodoHTML(){
   const L = R.linea, n = L.length; if(!n) return '';
@@ -312,7 +321,7 @@ function periodoHTML(){
     <svg class="graf" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gasto del día a día por día del período">${barras}${linea}
       <text x="0" y="${H-2}" font-size="9">${esc(U.fCorta(R.inicio))}</text><text x="${W}" y="${H-2}" font-size="9" text-anchor="end">${esc(U.fCorta(R.fin))}</text></svg>
     <div class="leyenda"><span><i style="background:color-mix(in srgb,var(--accent) 45%,var(--surface-2))"></i>Gasto del día a día</span><span><i style="background:var(--accent)"></i>Hoy</span>${R.presupuestoHoy>0 ? '<span><i style="background:var(--necesito)"></i>Presupuesto de hoy</span>' : ''}</div>
-    <div class="sub" style="margin-top:8px;">Del ${esc(U.fCorta(R.inicio))} a hoy llevas <b class="num">${fmt(R.gastoPeriodo)}</b> en gastos del día a día (≈${fmt0(prom)} por día).${R.hormiga.n ? ` De eso, <b class="num">${fmt(R.hormiga.total)}</b> son gastos hormiga (${R.hormiga.n}).` : ''}</div></details>`;
+    <div class="sub" style="margin-top:8px;">Del ${esc(U.fCorta(R.inicio))} a hoy llevas <b class="num">${fmt(R.gastoPeriodo)}</b> en gastos del día a día (≈${fmt0(prom)} por día${R.tipico ? `; un día normal tuyo son ≈${fmt0(R.tipico)}, sin contar los días fuera de lo común` : ''}).${R.hormiga.n ? ` De eso, <b class="num">${fmt(R.hormiga.total)}</b> son gastos hormiga (${R.hormiga.n}).` : ''}</div></details>`;
 }
 function filaHTML(icono, titulo, meta, valor, etq, act, k){
   const tag = act ? 'button' : 'div';
@@ -363,7 +372,7 @@ function pintarSim(){
   const s = HoyMotor.simular(R, simMonto, a ? {tipo:'tarjeta', cuotas:simCuotas, tasaM:a.tasaM||0} : {tipo:'cuenta'});
   const tit = {si:'Sí te alcanza', apretado:'Te alcanza, pero queda apretado', no:'No te alcanza'}[s.veredicto];
   let t = `<b style="font-family:var(--font-body); font-size:14.5px;">${tit}.</b> `;
-  if(s.veredicto==='no') t += `Después de comprarlo te faltarían <b>${fmt(s.falta)}</b> para llegar al pago del ${esc(U.fCorta(R.pago))}.`;
+  if(s.veredicto==='no') t += R.libreTotal - s.impacto >= 0 ? `Sin tocar tu ${R.reservadoPor==='piso' ? 'piso' : 'colchón'} te faltarían <b>${fmt(s.falta)}</b> para llegar al pago del ${esc(U.fCorta(R.pago))}; tendrías que sacarlo de ahí.` : `Después de comprarlo te faltarían <b>${fmt(s.falta)}</b> para llegar al pago del ${esc(U.fCorta(R.pago))}.`;
   else t += `Tu presupuesto de hoy pasaría de <b>${fmt0(R.presupuestoHoy)}</b> a <b>${fmt0(s.presupuesto)}</b>${s.manana!==null ? ` y desde mañana tendrías ≈<b>${fmt0(s.manana)}</b> por día` : ''}.`;
   if(a && s.cuotas>1) t += `<br>A ${s.cuotas} cuotas: ≈<b>${fmt0(s.cuota)}</b> al mes. Aquí cuenta solo la primera; en total pagarías ≈<b>${fmt0(s.total)}</b>${s.intereses>0 ? ` (≈${fmt0(s.intereses)} de intereses)` : (a.tasaM>0 ? '' : ' (sin la tasa de la tarjeta: ponla en Gastos → Cuentas para estimar intereses)')}.`;
   else if(a) t += `<br>Con tarjeta de contado cuenta igual que si lo pagaras hoy: en el extracto te llega completo.`;
@@ -418,7 +427,7 @@ function abrirFijoDetalle(clave){
   const est = {pagado:'Pagado', omitido:'Marcado como resuelto', parcial:'Pago parcial', atrasado:'Atrasado', pendiente:'Pendiente'}[f.estado];
   const pagos = f.pagos.length ? f.pagos.map(p=>`<div class="fila"><span class="fx"><span class="ft">${esc(p.desc||f.nombre)}</span><span class="fm">${esc(U.fCorta(p.date))}</span></span><span class="fv">${fmt(p.amount)}</span></div>`).join('') : '<div class="vacio">Aún no hay pagos registrados en esta subcategoría para esta fecha.</div>';
   abrirModal(`<div class="modal-head"><h3>${esc(f.nombre)}</h3>${cerrarX}</div>
-    <div class="sub">${esc(est)} · toca el ${esc(U.fLarga(f.fecha))}. ${f.modo==='variable' ? (f.estimadoFuente==='promedio' ? `Estimado ≈${fmt(f.estimado)}: promedio de tus últimos ${f.nHist} pagos.` : `Estimado ≈${fmt(f.estimado)} (el valor que pusiste).`) : `Valor fijo: ${fmt(f.estimado)}.`}${f.falta>0 ? ` Se aparta ${fmt(f.falta)}.` : ''}</div>
+    <div class="sub">${esc(est)} · toca el ${esc(U.fLarga(f.fecha))}${f.conSueldo ? ' (con el sueldo)' : ''}. ${f.modo==='variable' ? (f.estimadoFuente==='promedio' ? `Estimado ≈${fmt(f.estimado)}: promedio de tus últimos ${f.nHist} pagos.` : `Estimado ≈${fmt(f.estimado)} (el valor que pusiste).`) : `Valor fijo: ${fmt(f.estimado)}.`}${f.falta>0 ? ` Se aparta ${fmt(f.falta)}.` : ''}</div>
     <div class="grupo-t" style="margin-top:14px;">Pagos de este ciclo</div>${pagos}
     <div class="sub" style="margin-top:10px;">Se reconoce como pagado cuando registras en Gastos un gasto en <b>${esc(f.nombre)}</b> cerca de esa fecha (si pagas por partes, se suman).</div>
     <div class="aj-acc">${f.estado!=='pagado' && f.estado!=='omitido' ? `<button class="btn btn-sec" data-mm="omitir">Ya lo pagué (no lo registré)</button>` : ''}${f.estado==='omitido' ? `<button class="btn btn-sec" data-mm="desomitir">Volver a apartarlo</button>` : ''}<button class="btn btn-sec" data-mm="editar">${f.auto==='deuda' ? 'Cambiar el día' : 'Editar este fijo'}</button><button class="btn btn-primary" data-mm="gastos">Ir a Gastos</button></div>`);
@@ -453,8 +462,8 @@ function abrirAjustes(sec){
   const sigPagos = (()=>{ const out = []; let d = new Date(); for(let i=0;i<3;i++){ out.push(U.fCorta(HoyMotor.diaDePago(d.getFullYear(), d.getMonth(), c.pago))); d = new Date(d.getFullYear(), d.getMonth()+1, 1); } return out.join(', '); })();
   const calcMes = cr && cr.meses ? cr.meses[(R.pago||'').slice(0,7)] : null;
   const tipoCta = a => a.type || (/efectivo/i.test(a.name||'') ? 'efectivo' : 'banco');
-  const fijos = c.fijos.map(f=>`<div class="fila"><span class="fx"><span class="ft">${esc(nombreSub(f.catId, f.subId))}</span><span class="fm">${esc(PERIODOS[f.periodo])} · día ${f.dia} · ${f.modo==='variable' ? 'varía'+(f.monto?' (≈'+fmt(f.monto)+')':'') : fmt(f.monto)}</span></span><button class="btn-link" data-aj="editar-fijo" data-k="${esc(f.id)}">Editar</button></div>`).join('');
-  const deudas = (G.debts||[]).filter(d=>d && Number(d.cuota)>0).map(d=>{ const o = c.deudas[d.id]||{}; return `<div class="fila"><span class="fx"><span class="ft">Cuota · ${esc(d.nombre||'Deuda')}${o.off ? ' <span class="etq">no se aparta</span>' : ''}</span><span class="fm">${fmt((Number(d.cuota)||0)+(Number(d.seguro)||0))} · ${o.dia ? 'día '+o.dia : 'día según tus pagos'}</span></span><button class="btn-link" data-aj="editar-deuda" data-k="${esc(d.id)}">Editar</button></div>`; }).join('');
+  const fijos = c.fijos.map(f=>`<div class="fila"><span class="fx"><span class="ft">${esc(nombreSub(f.catId, f.subId))}</span><span class="fm">${esc(PERIODOS[f.periodo])} · ${f.conSueldo ? 'con el sueldo' : 'día '+f.dia} · ${f.modo==='variable' ? 'varía'+(f.monto?' (≈'+fmt(f.monto)+')':'') : fmt(f.monto)}</span></span><button class="btn-link" data-aj="editar-fijo" data-k="${esc(f.id)}">Editar</button></div>`).join('');
+  const deudas = (G.debts||[]).filter(d=>d && Number(d.cuota)>0).map(d=>{ const o = c.deudas[d.id]||{}; return `<div class="fila"><span class="fx"><span class="ft">Cuota · ${esc(d.nombre||'Deuda')}${o.off ? ' <span class="etq">no se aparta</span>' : ''}</span><span class="fm">${fmt((Number(d.cuota)||0)+(Number(d.seguro)||0))} · ${o.conSueldo ? 'con el sueldo' : o.dia ? 'día '+o.dia : 'día según tus pagos'}</span></span><button class="btn-link" data-aj="editar-deuda" data-k="${esc(d.id)}">Editar</button></div>`; }).join('');
   const ingresos = c.ingresos.map(i=>`<div class="fila"><span class="fx"><span class="ft">${esc(i.nombre)}</span><span class="fm">Día ${i.dia} ±${i.margen} · ≈${fmt(i.monto)}${i.periodo>1 ? ' · '+esc(PERIODOS[i.periodo].toLowerCase()) : ''}</span></span><button class="btn-link" data-aj="editar-ingreso" data-k="${esc(i.id)}">Editar</button></div>`).join('');
   abrirModal(`<div class="modal-head"><h3>Ajustes de Hoy</h3>${cerrarX}</div>
     <div class="sub">Todo se guarda al instante y viaja con tu respaldo y tu sincronización.</div>
@@ -479,8 +488,10 @@ function abrirAjustes(sec){
       <div class="aj-acc"><button class="btn btn-sec btn-mini" data-aj="nuevo-ingreso">${ic('plus',16)} Agregar ingreso esperado</button></div></div>
     <div class="aj-sec" id="aj-tarjetas"><h4>Tarjetas de crédito</h4><div class="sub">Pon el día límite de pago de cada una. Si no lo pones, supongo que lo de tu último extracto se paga antes de tu sueldo.</div>
       ${tarjetas.length ? tarjetas.map(a=>`<div class="dos" style="align-items:end;"><div><label style="margin-top:10px;">${esc(a.name)}${a.diaCorte ? ` <span class="etq">corte día ${a.diaCorte}</span>` : ''}</label></div><div><label for="tj_${esc(a.id)}" class="sr-only">Día límite de pago de ${esc(a.name)}</label><input id="tj_${esc(a.id)}" data-tj="${esc(a.id)}" type="number" min="1" max="31" inputmode="numeric" placeholder="Día límite" value="${(c.tarjetas[a.id]||{}).dia||''}"></div></div>`).join('') : '<div class="vacio">No tienes tarjetas de crédito registradas.</div>'}</div>
-    <div class="aj-sec"><h4>Tu piso</h4><div class="sub">Un colchón que nunca se reparte (por ejemplo, $100.000 para imprevistos). Opcional.</div>
-      <label for="ajPiso">Piso</label><input id="ajPiso" class="dinero" inputmode="decimal" placeholder="$0" value="${fmtInput(c.piso)}"></div>
+    <div class="aj-sec" id="aj-colchon"><h4>Lo que no se reparte</h4>
+      <label class="radio"><input type="radio" name="ajCol" value="auto" ${c.colchon==='auto'?'checked':''}><span>Proteger mi colchón (recomendado)<small>Lo que tenías en tus cuentas del día a día antes de que llegara el sueldo no se reparte: cada período vive de lo que entra en él. Lo que sobre al final se suma al colchón.${R.ok && R.colchonIni!==null ? ` Hoy: ${fmt(R.colchon)}.` : ''}</small></span></label>
+      <label class="radio"><input type="radio" name="ajCol" value="no" ${c.colchon==='no'?'checked':''}><span>Repartir todo lo que hay en mis cuentas<small>Útil si no tienes colchón o si acabas de empezar a usar la app.</small></span></label>
+      <label for="ajPiso">Piso (opcional)</label><div class="sub" style="margin-bottom:6px;">Un mínimo que nunca se reparte. Si el colchón es mayor, manda el colchón.</div><input id="ajPiso" class="dinero" inputmode="decimal" placeholder="$0" value="${fmtInput(c.piso)}"></div>
     ${c.descartados.length ? `<div class="aj-sec"><h4>Propuestas descartadas</h4><div class="sub">Dijiste que ${c.descartados.length===1 ? 'una no era' : c.descartados.length+' no eran'} fijo o ingreso.</div><div class="aj-acc"><button class="btn btn-sec btn-mini" data-aj="reset-desc">Volver a proponerlas</button></div></div>` : ''}
     <div class="aj-acc" style="margin-top:16px;"><button class="btn btn-primary btn-block" data-m="cerrar">Listo</button></div>`);
   const sh = $('modal-root').querySelector('.modal-sheet');
@@ -494,6 +505,7 @@ function abrirAjustes(sec){
     else if(t.id==='ajSalNom'){ cfgCambiar(c=>{ c.salario.nombre = t.value.trim().slice(0,60); }); }
     else if(t.dataset.cta){ cfgCambiar(c=>{ c.cuentas[t.dataset.cta] = t.checked; }); }
     else if(t.dataset.tj){ const d = parseInt(t.value,10); cfgCambiar(c=>{ c.tarjetas[t.dataset.tj] = (d>=1 && d<=31) ? {dia:d} : {}; }); }
+    else if(t.name==='ajCol'){ cfgCambiar(c=>{ c.colchon = t.value; }); }
     else if(t.id==='ajPiso'){ cfgCambiar(c=>{ c.piso = dinero(t.value); }); }
   });
   sh.addEventListener('click', ev=>{
@@ -522,6 +534,7 @@ function editarFijo(id){
     <label for="efSub">Subcategoría</label><select id="efSub">${f ? '' : '<option value="">Elige…</option>'}${opts}</select>
     <div id="efSug" class="sub" style="margin-top:6px;"></div>
     <div class="dos"><div><label for="efPer">¿Cada cuánto?</label><select id="efPer">${per}</select></div><div><label for="efDia">Día del mes</label><input id="efDia" type="number" min="1" max="31" inputmode="numeric" value="${f ? f.dia : ''}"></div></div>
+    <label class="radio" style="margin-top:10px;"><input type="checkbox" id="efSueldo" ${f && f.conSueldo ? 'checked' : ''}><span>Lo pago con el sueldo<small>Cae el día que te pagan y sale de ese sueldo: se aparta en el período que ese sueldo abre, no en el actual.</small></span></label>
     <div id="efAnclaBox" ${f && f.periodo>1 ? '' : 'hidden'}><label for="efAncla">¿En qué mes toca el próximo (o tocó el último)?</label><input id="efAncla" type="month" value="${f && f.ancla ? f.ancla : mesSig}"></div>
     <label class="radio" style="margin-top:10px;"><input type="radio" name="efModo" value="fijo" ${!f || f.modo==='fijo' ? 'checked' : ''}><span>Siempre vale lo mismo<small>Arriendo, internet, suscripciones.</small></span></label>
     <label class="radio"><input type="radio" name="efModo" value="variable" ${f && f.modo==='variable' ? 'checked' : ''}><span>Varía cada vez<small>Servicios: se estima con el promedio de tus últimos 3 pagos.</small></span></label>
@@ -535,7 +548,8 @@ function editarFijo(id){
   const modoLbl = ()=>{ const v = (document.querySelector('input[name=efModo]:checked')||{}).value; $('efMontoLbl').textContent = v==='variable' ? 'Valor estimado (se usa mientras no haya pagos registrados)' : 'Valor'; };
   sug(); modoLbl();
   const sh = $('modal-root').querySelector('.modal-sheet');
-  sh.addEventListener('change', ev=>{ if(ev.target.id==='efSub') sug(); if(ev.target.id==='efPer') $('efAnclaBox').hidden = ev.target.value==='1'; if(ev.target.name==='efModo') modoLbl(); });
+  const sueldoUI = ()=>{ $('efDia').disabled = $('efSueldo').checked; }; sueldoUI();
+  sh.addEventListener('change', ev=>{ if(ev.target.id==='efSueldo') sueldoUI(); if(ev.target.id==='efSub') sug(); if(ev.target.id==='efPer') $('efAnclaBox').hidden = ev.target.value==='1'; if(ev.target.name==='efModo') modoLbl(); });
   sh.addEventListener('click', async ev=>{
     const b = ev.target.closest('[data-ef]'); if(!b) return;
     if(b.dataset.ef==='volver'){ abrirAjustes('fijos'); return; }
@@ -544,13 +558,14 @@ function editarFijo(id){
     const sv = $('efSub').value, dia = parseInt($('efDia').value,10), per = parseInt($('efPer').value,10), modo = (document.querySelector('input[name=efModo]:checked')||{}).value, monto = dinero($('efMonto').value), ancla = $('efAncla').value;
     if(!sv) return err('Elige la subcategoría.');
     if(cfgLeer().fijos.some(x=>x.catId+'/'+x.subId===sv && x.id!==id)) return err('Esa subcategoría ya es un gasto fijo. Edita el que ya tienes.');
-    if(!(dia>=1 && dia<=31)) return err('Escribe el día del mes (1 a 31).');
+    const conSueldo = $('efSueldo').checked;
+    if(!conSueldo && !(dia>=1 && dia<=31)) return err('Escribe el día del mes (1 a 31).');
     if(modo==='fijo' && !(monto>0)) return err('Escribe el valor.');
     if(per>1 && !/^\d{4}-\d{2}$/.test(ancla)) return err('Elige el mes en que toca.');
     const [catId, subId] = sv.split('/');
     cfgCambiar(c=>{
       if(c.fijos.some(x=>x.catId===catId && x.subId===subId && x.id!==id)) return;
-      const nuevo = {id: id || nuevoId('f'), catId, subId, periodo:per, ancla: per>1 ? ancla : '', dia, modo, monto, creado: f ? f.creado : hoyISO()};
+      const nuevo = {id: id || nuevoId('f'), catId, subId, periodo:per, ancla: per>1 ? ancla : '', dia: dia>=1 && dia<=31 ? dia : 30, modo, monto, conSueldo, creado: f ? f.creado : hoyISO()};
       if(f) c.fijos = c.fijos.map(x=>x.id===id ? nuevo : x); else c.fijos.push(nuevo);
     });
     toast('Gasto fijo guardado.'); abrirAjustes('fijos');
@@ -593,11 +608,13 @@ function editarDeuda(id){
   abrirModal(`<div class="modal-head"><h3>Cuota · ${esc(d.nombre||'Deuda')}</h3>${cerrarX}</div>
     <div class="sub">La cuota (${fmt((Number(d.cuota)||0)+(Number(d.seguro)||0))}) sale de tu deuda en Gastos y se aparta sola cada mes, hasta que la termines de pagar.</div>
     <label for="edDia">Día en que la pagas (vacío = según tus pagos)</label><input id="edDia" type="number" min="1" max="31" inputmode="numeric" value="${o.dia||''}">
+    <label class="radio" style="margin-top:10px;"><input type="checkbox" id="edSueldo" ${o.conSueldo ? 'checked' : ''}><span>Lo pago con el sueldo<small>Cae el día que te pagan y sale de ese sueldo: se aparta en el período que ese sueldo abre, no en el actual.</small></span></label>
     <label class="radio" style="margin-top:10px;"><input type="checkbox" id="edOff" ${o.off?'checked':''}><span>No apartar esta cuota<small>Por ejemplo, si te la descuentan de la nómina.</small></span></label>
     <div class="aj-acc" style="margin-top:16px;"><button class="btn btn-sec" data-ed="volver">Cancelar</button><button class="btn btn-primary" data-ed="guardar" style="flex:1">Guardar</button></div>`);
+  const edUI = ()=>{ $('edDia').disabled = $('edSueldo').checked; }; edUI(); $('edSueldo').addEventListener('change', edUI);
   $('modal-root').querySelector('.modal-sheet').addEventListener('click', ev=>{
     const b = ev.target.closest('[data-ed]'); if(!b) return;
-    if(b.dataset.ed==='guardar'){ const dia = parseInt($('edDia').value,10); cfgCambiar(c=>{ const x = {}; if(dia>=1 && dia<=31) x.dia = dia; if($('edOff').checked) x.off = true; c.deudas[id] = x; }); toast('Guardado.'); }
+    if(b.dataset.ed==='guardar'){ const dia = parseInt($('edDia').value,10); cfgCambiar(c=>{ const x = {}; if(dia>=1 && dia<=31) x.dia = dia; if($('edOff').checked) x.off = true; if($('edSueldo').checked) x.conSueldo = true; c.deudas[id] = x; }); toast('Guardado.'); }
     abrirAjustes('fijos');
   });
 }

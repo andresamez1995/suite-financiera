@@ -11,6 +11,13 @@
 - **Propuestas:** si algo se repite en tus últimos meses (arriendo, una suscripción, el agua cada 2 meses, un ingreso de alguien), Hoy te pregunta con un toque si es fijo.
 - La configuración vive en la clave `co_hoy`: viaja con el respaldo y la sincronización. La Calculadora le pasa tu neto mes a mes (con prima e intereses de cesantías) en `suite_calc_hoy`, que no se sincroniza porque cada dispositivo lo recalcula.
 
+**Ajustes a Hoy (v31):**
+- **Tu colchón no se reparte.** Lo que tenías en tus cuentas del día a día antes de que llegara el sueldo queda protegido: cada período vive de lo que entra en él y lo que sobre al final se suma al colchón. Pasar plata al ahorro sale primero del colchón. Si para llegar al pago tendrías que tocarlo, Hoy lo dice así. Se puede apagar en Ajustes («Lo que no se reparte»).
+- **«Lo pago con el sueldo»** en gastos fijos y cuotas de deudas (por ejemplo, el leasing): cae el día de pago y se aparta en el período que ese sueldo abre, no en el actual.
+- **Un día normal** reemplaza a «Sueles gastar»: el promedio diario sin el 10 % de días más caros, para que un domicilio grande o una compra de una vez no lo inflen.
+- **Cierre del período:** los primeros días de cada período te dice cuánto sobró (o cuánto salió del colchón) en el anterior.
+- «Te queda hoy» sale en rojo cuando es negativo.
+
 ## Novedades anteriores (auditoría de octubre de 2026)
 **Fallos corregidos**
 - *Importar respaldo* ya funciona: antes la confirmación volvía a abrir el selector de archivos sin terminar nunca.

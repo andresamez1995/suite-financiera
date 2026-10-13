@@ -70,16 +70,17 @@
     o.salario = {fuente: ['auto','manual','ninguno'].indexOf(s.fuente)>=0 ? s.fuente : 'auto', monto: Math.max(0, r2(numOk(s.monto,0))), nombre: String(s.nombre||'').slice(0,60)};
     o.cuentas = {}; if(esObj(c.cuentas)) Object.keys(c.cuentas).forEach(function(k){ if(typeof c.cuentas[k]==='boolean') o.cuentas[idOk(k)] = c.cuentas[k]; });
     o.piso = Math.max(0, r2(numOk(c.piso,0)));
+    o.colchon = c.colchon==='no' ? 'no' : 'auto';   // auto: lo que tenías antes de que llegara el sueldo no se reparte
     var per = function(v){ v = Math.round(numOk(v,1)); return [1,2,3,4,6,12].indexOf(v)>=0 ? v : 1; };
     o.fijos = (Array.isArray(c.fijos) ? c.fijos : []).filter(function(f){ return esObj(f) && f.id && f.catId; }).map(function(f){ return {
       id: idOk(f.id), catId: idOk(f.catId), subId: idOk(f.subId||''), periodo: per(f.periodo), ancla: MONTH_RE.test(f.ancla) ? f.ancla : '',
       dia: Math.min(31, Math.max(1, Math.round(numOk(f.dia, 1)))), modo: f.modo==='variable' ? 'variable' : 'fijo', monto: Math.max(0, r2(numOk(f.monto,0))),
-      creado: DATE_RE.test(f.creado) ? f.creado : '2000-01-01' }; });
+      creado: DATE_RE.test(f.creado) ? f.creado : '2000-01-01', conSueldo: f.conSueldo===true }; });
     o.ingresos = (Array.isArray(c.ingresos) ? c.ingresos : []).filter(function(f){ return esObj(f) && f.id && String(f.nombre||'').trim(); }).map(function(f){ return {
       id: idOk(f.id), nombre: String(f.nombre).slice(0,60), dia: Math.min(31, Math.max(1, Math.round(numOk(f.dia, 1)))), margen: Math.min(15, Math.max(0, Math.round(numOk(f.margen, 5)))),
       monto: Math.max(0, r2(numOk(f.monto,0))), periodo: per(f.periodo), ancla: MONTH_RE.test(f.ancla) ? f.ancla : '', creado: DATE_RE.test(f.creado) ? f.creado : '2000-01-01' }; });
     o.tarjetas = {}; if(esObj(c.tarjetas)) Object.keys(c.tarjetas).forEach(function(k){ var t = c.tarjetas[k]; if(esObj(t)){ var d = Math.round(numOk(t.dia,0)); o.tarjetas[idOk(k)] = d>=1 && d<=31 ? {dia:d} : {}; } });
-    o.deudas = {}; if(esObj(c.deudas)) Object.keys(c.deudas).forEach(function(k){ var t = c.deudas[k]; if(esObj(t)){ var d = Math.round(numOk(t.dia,0)), x = {}; if(d>=1 && d<=31) x.dia = d; if(t.off===true) x.off = true; o.deudas[idOk(k)] = x; } });
+    o.deudas = {}; if(esObj(c.deudas)) Object.keys(c.deudas).forEach(function(k){ var t = c.deudas[k]; if(esObj(t)){ var d = Math.round(numOk(t.dia,0)), x = {}; if(d>=1 && d<=31) x.dia = d; if(t.off===true) x.off = true; if(t.conSueldo===true) x.conSueldo = true; o.deudas[idOk(k)] = x; } });
     o.omitir = {}; if(esObj(c.omitir)) Object.keys(c.omitir).forEach(function(k){ if(c.omitir[k]===true && /^[\w.\-:]+\|\d{4}-\d{2}-\d{2}$/.test(k)) o.omitir[k] = true; });
     o.descartados = (Array.isArray(c.descartados) ? c.descartados : []).filter(function(x){ return typeof x==='string' && x.length<=120; });
     return o;
@@ -183,11 +184,11 @@
   }
 
   /* ---------- Ocurrencias de fijos e ingresos esperados ---------- */
-  function ocurrencias(item, desde, hasta){
+  function ocurrencias(item, desde, hasta, pago){
     var out = [], a = mIdx(desde)-1, b = mIdx(hasta)+1, anc = item.ancla ? mIdx(item.ancla+'-01') : null;
     for(var m=a; m<=b; m++){
       if(item.periodo>1 && anc!==null && (((m-anc)%item.periodo)+item.periodo)%item.periodo!==0) continue;
-      out.push(isoYMD(Math.floor(m/12), m%12, item.dia));
+      out.push(item.conSueldo ? pagoDelMes(m, pago) : isoYMD(Math.floor(m/12), m%12, item.dia));   // «lo pago con el sueldo»: cae el día de pago y es del período que ese sueldo abre
     }
     return out;
   }
@@ -207,14 +208,14 @@
       if(saldoDeuda(D, d, hoy) <= 0.5) return;
       var hist = pagosDeuda(D, d, hoy).map(function(e){ return e.date; }).slice(-6);
       var dia = o.dia || diaFrecuente(hist) || (esObj(d.base) && DATE_RE.test(d.base.fecha) ? +d.base.fecha.slice(8,10) : 1);
-      lista.push({id:'deuda_'+d.id, deudaId:d.id, auto:'deuda', catId:d.catId, subId:d.subId||'', periodo:1, ancla:'', dia:dia, modo:'fijo', monto:r2((Number(d.cuota)||0)+(Number(d.seguro)||0)),
+      lista.push({id:'deuda_'+d.id, deudaId:d.id, auto:'deuda', catId:d.catId, subId:d.subId||'', periodo:1, ancla:'', dia:dia, conSueldo:o.conSueldo===true, modo:'fijo', monto:r2((Number(d.cuota)||0)+(Number(d.seguro)||0)),
         creado: DATE_RE.test(d.creada) ? d.creada : (esObj(d.base) && DATE_RE.test(d.base.fecha) ? d.base.fecha : '2000-01-01'), nombre:'Cuota · '+(d.nombre||'Deuda'), nivel:'debo', diaAuto:!o.dia});
     });
     var fin = masDias(P.pago,-1), out = [], usados = {};
     lista.forEach(function(f){
       var pagos = D.expenses.filter(function(e){ return e.catId===f.catId && (!f.subId || e.subId===f.subId) && e.date<=fin; });
       // historial: ocurrencias de los últimos 6 ciclos para estimar los variables
-      var ocsH = ocurrencias(f, masDias(P.inicio, -31*f.periodo*4 - 31), fin).filter(function(o){ return o<=fin; });
+      var ocsH = ocurrencias(f, masDias(P.inicio, -31*f.periodo*4 - 31), fin, cfg.pago).filter(function(o){ return o<=fin; });
       var asig = asignarCercano(pagos.filter(function(e){ return e.date >= masDias(ocsH[0]||fin, -31*f.periodo); }), ocsH);
       var hist = ocsH.filter(function(o){ return o < P.inicio && asig[o].length; }).slice(-3).map(function(o){ return suma(asig[o], function(e){ return e.amount; }); });
       var estimado = f.modo==='variable' && hist.length ? r2(suma(hist)/hist.length) : f.monto;
@@ -231,7 +232,7 @@
         else { estado = o < hoy ? 'atrasado' : 'pendiente'; falta = esperado; }
         pg.forEach(function(e){ usados[e.id] = f.id; });
         out.push({id:f.id, clave:f.id+'|'+o, nombre:f.nombre, nivel:f.nivel, catId:f.catId, subId:f.subId, auto:f.auto||null, deudaId:f.deudaId||null, fecha:o, modo:f.modo, periodo:f.periodo,
-          estimado:esperado, estimadoFuente: f.modo==='variable' ? (hist.length ? 'promedio' : 'tuyo') : 'fijo', nHist:hist.length, pagado:pagado, falta:r2(Math.max(0,falta)), estado:estado,
+          conSueldo:!!f.conSueldo, estimado:esperado, estimadoFuente: f.modo==='variable' ? (hist.length ? 'promedio' : 'tuyo') : 'fijo', nHist:hist.length, pagado:pagado, falta:r2(Math.max(0,falta)), estado:estado,
           pagos:pg.map(function(e){ return {id:e.id, date:e.date, amount:e.amount, desc:e.desc||'', accountId:e.accountId}; }), diaAuto:!!f.diaAuto});
       });
       // los pagos que caen en ocurrencias viejas (ya fuera de la vista) igual son de este fijo: no son gasto variable
@@ -244,7 +245,7 @@
   function ingresosDelPeriodo(D, cfg, P, hoy, cuentasDia){
     var fin = masDias(P.pago,-1), out = [], usados = {};
     cfg.ingresos.forEach(function(it){
-      var ocs = ocurrencias(it, masDias(P.inicio, -62), masDias(fin, 31));
+      var ocs = ocurrencias(it, masDias(P.inicio, -62), masDias(fin, 31), cfg.pago);
       var llegaron = D.incomes.filter(function(i){ return !usados[i.id] && !esSalario(i, cfg) && coincideNombre(i.desc, it.nombre) && i.date<=fin && i.date>=masDias(ocs[0], -it.margen); });
       var asig = asignarCercano(llegaron, ocs);
       ocs.forEach(function(o){
@@ -333,6 +334,20 @@
     R.totEsperados = suma(R.esperados, function(i){ return i.cuenta; });
     R.totTarjetas = suma(R.tarjetas, function(t){ return t.compromiso; });
     R.piso = cfg.piso;
+    // ---- colchón: lo que había en tus cuentas del día a día antes de que llegara el sueldo. No se reparte: el período vive de lo que entra en él.
+    var hayHistoria = function(antes){ var t = function(x){ return x.date<antes; };
+      return D.expenses.some(function(e){ return t(e) && diaIds[e.accountId]; }) || D.incomes.some(function(i){ return t(i) && diaIds[i.accountId]; }) || D.transfers.some(function(x){ return t(x) && (diaIds[x.fromId] || diaIds[x.toId]); }); };
+    var saldoDiaEn = function(f){ var m = saldosHasta(D, f); return suma(Object.keys(diaIds), function(k){ return m[k]||0; }); };
+    var esReserva = function(id){ var a = D.acc[id]; return !!a && !diaIds[id] && !esTarjeta(a); };   // cuentas fuera del día a día (ahorro)
+    R.colchonModo = cfg.colchon;
+    R.colchonIni = (cfg.colchon==='auto' && hayHistoria(P.inicio)) ? Math.max(0, saldoDiaEn(masDias(P.inicio,-1))) : null;
+    // pasar plata al ahorro sale primero del colchón (y traerla del ahorro lo aumenta): no castiga tu plata del día a día
+    R.colchonAbsorbe = {}; var col = R.colchonIni || 0;
+    D.transfers.filter(function(t){ return t.date>=P.inicio && t.date<=fin && (diaIds[t.fromId] ? esReserva(t.toId) : (diaIds[t.toId] && esReserva(t.fromId))); })
+      .sort(function(a,b){ return a.date===b.date ? (a.timestamp||0)-(b.timestamp||0) : a.date.localeCompare(b.date); })
+      .forEach(function(t){ if(R.colchonIni===null) return; if(diaIds[t.fromId]){ var u = Math.min(col, t.amount); R.colchonAbsorbe[t.id] = u; col = r2(col - u); } else { R.colchonAbsorbe[t.id] = -t.amount; col = r2(col + t.amount); } });
+    R.colchon = R.colchonIni===null ? 0 : col;
+    R.reservado = Math.max(R.colchon, R.piso); R.reservadoPor = R.colchon >= R.piso && R.colchon>0 ? 'colchon' : (R.piso>0 ? 'piso' : null);
     R.extraSueldoHoy = R.sueldoHoy && R.sueldoHoy.monto>0 ? r2(R.sueldoHoy.monto + suma(R.sueldoHoy.extras, function(x){ return x.monto; })) : 0;
 
     // ---- gasto variable: lo que no es fijo, ni cuota de deuda; con tarjeta cuenta en el día de la compra (a cuotas, la primera)
@@ -344,11 +359,13 @@
     R.gastoHoy = suma(gHoy, valorVar);
     R.gastosHoy = gHoy.map(function(e){ return {id:e.id, desc:e.desc||nombreSub(D,e.catId,e.subId), cat:nombreSub(D,e.catId,e.subId), amount:e.amount, valor:valorVar(e), tarjeta:esTarjeta(D.acc[e.accountId]), cuotas:e.cuotas||1, noGasto:!!e.noGasto, nivel:nivelDe(D,e)}; });
 
-    R.libre = r2(R.saldoHoy + R.programado + R.totEsperados + R.extraSueldoHoy - R.totFijos - R.totTarjetas - R.piso);
+    R.libreTotal = r2(R.saldoHoy + R.programado + R.totEsperados + R.extraSueldoHoy - R.totFijos - R.totTarjetas);   // sin apartar colchón ni piso
+    R.libre = r2(R.libreTotal - R.reservado);
     R.libreInicioHoy = r2(R.libre + R.gastoHoy);
     R.presupuestoHoy = R.libreInicioHoy > 0 ? r2(R.libreInicioHoy / R.dias) : 0;
     R.quedaHoy = r2(R.presupuestoHoy - R.gastoHoy);
     R.deficit = R.libre < 0 ? r2(-R.libre) : 0;
+    R.deficitColchon = R.deficit>0 && R.libreTotal >= 0;   // alcanza, pero tocando el colchón (o el piso)
     R.manana = R.dias>1 ? (R.libre>0 ? r2(R.libre/(R.dias-1)) : 0) : null;
 
     // ---- línea del período (gasto variable por día) y promedio típico (últimos 60 días, sin fijos ni «no cuenta como gasto»)
@@ -360,7 +377,17 @@
     R.propuestas = propuestas(D, cfg, hoy);
     var pareceFijo = {}; R.propuestas.fijos.forEach(function(x){ pareceFijo[x.catId+'/'+x.subId] = 1; });   // lo que parece fijo tampoco es «gasto de todos los días»
     var hist = D.expenses.filter(function(e){ return !pareceFijo[e.catId+'/'+e.subId] && e.date>=ini60 && e.date<hoy && !e.noGasto && !FJ.usados[e.id] && !esPagoDeuda(D,e) && e.catId!=='costos_financieros' && (diaIds[e.accountId] || esTarjeta(D.acc[e.accountId])) && !esFijoCfg(cfg,e); });
-    R.tipico = nDias>=14 ? r2(suma(hist, function(e){ return e.amount; })/nDias) : null;
+    // «un día normal»: promedio por día sin el 10 % de días más caros (un domicilio grande o una compra de una vez no lo inflan)
+    R.tipico = null; R.tipicoPromedio = null;
+    if(nDias>=14){
+      var porDia = {}; hist.forEach(function(e){ porDia[e.date] = (porDia[e.date]||0) + e.amount; });
+      var dias = []; for(var dd=ini60; dd<hoy; dd=masDias(dd,1)) dias.push(porDia[dd]||0);
+      var conGasto = dias.filter(function(v){ return v>0; }).sort(function(a,b){ return a-b; });
+      var quitar = conGasto.length>=5 ? Math.ceil(conGasto.length*0.10) : 0, caros = conGasto.slice(conGasto.length-quitar);
+      R.tipicoPromedio = r2(suma(dias)/dias.length);
+      R.tipico = r2((suma(conGasto) - suma(caros)) / Math.max(1, dias.length - quitar));   // sin el 10 % de días con gasto más caros
+      R.diasCaros = quitar;
+    }
     R.semaforo = R.libre < 0 || R.presupuestoHoy<=0 ? 'rojo' : (R.tipico ? (R.presupuestoHoy >= R.tipico ? 'verde' : R.presupuestoHoy >= 0.7*R.tipico ? 'amarillo' : 'rojo') : 'verde');
     if(R.semaforo==='verde' && R.quedaHoy < 0) R.semaforo = 'amarillo';
 
@@ -381,6 +408,15 @@
       R.ayer = {fecha:ayer, gasto:gAyer, presupuesto:presAyer, diferencia:r2(gAyer - presAyer), cambios:cAyer};
     } else R.ayer = null;
 
+    R.cierre = null;
+    if(R.colchonIni!==null && R.diaN<=3 && P.pagoAnterior){
+      var Ppp = pagoDelMes(mIdx(P.pagoAnterior)-1, cfg.pago), lp = llegadaSueldo(D, cfg, Ppp, masDias(P.inicio,-1)), iniPrev = lp ? lp.date : Ppp;
+      if(iniPrev < P.inicio && hayHistoria(iniPrev)){
+        var antes = Math.max(0, saldoDiaEn(masDias(iniPrev,-1))), alAhorro = 0;
+        D.transfers.forEach(function(t){ if(t.date<iniPrev || t.date>=P.inicio) return; if(diaIds[t.fromId] && esReserva(t.toId)) alAhorro += t.amount; else if(diaIds[t.toId] && esReserva(t.fromId)) alAhorro -= t.amount; });
+        R.cierre = {desde:iniPrev, hasta:masDias(P.inicio,-1), antes:antes, despues:R.colchonIni, ahorro:r2(alAhorro), delta:r2(R.colchonIni - antes + alAhorro)};
+      }
+    }
     R.mensajes = mensajes(D, cfg, R);
     return R;
   }
@@ -418,8 +454,14 @@
       if(t.date!==dia) return;
       var de = !!diaIds[t.fromId], a = !!diaIds[t.toId], fT = esTarjeta(D.acc[t.fromId]), aT = esTarjeta(D.acc[t.toId]);
       if(de===a || fT || aT) return;
-      var otra = D.acc[de ? t.toId : t.fromId] || {};
-      out.push({tipo:'mover', delta: de ? -t.amount : t.amount, texto: de ? `Pasaste ${fmt(t.amount)} a ${otra.name||'otra cuenta'}${otra._tipo==='ahorro' ? ' (bien por el ahorro)' : ''}: esa plata ya no está para el día a día.` : `Trajiste ${fmt(t.amount)} desde ${otra.name||'otra cuenta'}: sube lo que tienes para el día a día.`, monto: de ? -t.amount : t.amount});
+      var otra = D.acc[de ? t.toId : t.fromId] || {}, abs = R.colchonAbsorbe[t.id] || 0;
+      if(de){
+        var dl = r2(-t.amount + abs);
+        out.push({tipo:'mover', delta:dl, texto: abs>=t.amount-0.005 ? `Pasaste ${fmt(t.amount)} a ${otra.name||'otra cuenta'}: sale de tu colchón, así que no cambia tu plata del día a día.` : abs>0 ? `Pasaste ${fmt(t.amount)} a ${otra.name||'otra cuenta'}: ${fmt(abs)} salieron de tu colchón y ${fmt(-dl)} de tu plata del día a día.` : `Pasaste ${fmt(t.amount)} a ${otra.name||'otra cuenta'}${otra._tipo==='ahorro' ? ' (bien por el ahorro)' : ''}: esa plata ya no está para el día a día.`, monto:dl});
+      } else {
+        var dl2 = abs<0 ? 0 : t.amount;
+        out.push({tipo:'mover', delta:dl2, texto: abs<0 ? `Trajiste ${fmt(t.amount)} desde ${otra.name||'otra cuenta'}: queda como colchón, no se reparte en el día a día.` : `Trajiste ${fmt(t.amount)} desde ${otra.name||'otra cuenta'}: sube lo que tienes para el día a día.`, monto:dl2});
+      }
     });
     TJ.forEach(function(t){
       t.avances.forEach(function(v){ if(v.date===dia) out.push({tipo:'avance', delta:0, texto:`Avance de ${t.nombre} por ${fmt(v.amount)}: entró a tu cuenta, pero es deuda. No sube lo que puedes gastar.`, monto:0}); });
@@ -438,7 +480,17 @@
     var M = [], add = function(nivel, texto, extra){ M.push(Object.assign({nivel:nivel, texto:texto}, extra||{})); };
     if(R.hoyEsPago) add(R.extraSueldoHoy>0 ? 'info' : 'ojo', R.extraSueldoHoy>0 ? `Hoy es día de pago: ya cuento tu sueldo (≈${fmt(R.extraSueldoHoy)}). Cuando llegue, regístralo en Gastos para dejarlo exacto.` : 'Hoy es día de pago. Cuando llegue tu sueldo, regístralo en Gastos y aquí se arma el período nuevo.');
     if(R.sueldoAtrasado && !R.llego) add('ojo', `No veo registrado tu sueldo del ${fCorta(R.sueldoAtrasado)}. Si ya llegó, regístralo en Gastos como «Salario»; mientras tanto, no lo cuento.`);
-    if(R.deficit>0){
+    if(R.cierre){
+      var c = R.cierre, aho = c.ahorro>0 ? ` (sin contar ${fmt(c.ahorro)} que pasaste al ahorro)` : '';
+      if(c.delta >= 0) add('bien', `Cerraste el período anterior con ${fmt(c.delta)} de sobra${aho}. Tu colchón quedó en ${fmt(c.despues)} y no se reparte: este período vive de lo que entra en él.`);
+      else add('ojo', `El período anterior gastaste ${fmt(-c.delta)} más de lo que entró${aho}: salió de tu colchón, que bajó de ${fmt(c.antes)} a ${fmt(c.despues)}.`);
+    }
+    if(R.deficit>0 && R.deficitColchon){
+      var ideasC = [];
+      if(R.quiero>0) ideasC.push(`en este período llevas ${fmt(R.quiero)} en gastos «Quiero»`);
+      if(R.hormiga.total>0) ideasC.push(`los gastos hormiga van en ${fmt(R.hormiga.total)}`);
+      add('ojo', `Con lo que entró en este período no alcanzas a cubrir todo hasta el pago del ${fCorta(R.pago)}: te faltan ${fmt(R.deficit)}, que saldrían de tu ${R.reservadoPor==='piso' ? 'piso' : 'colchón'} (${fmt(R.reservado)}). Hoy no hay presupuesto sin tocarlo.`+(ideasC.length ? ' Para no usarlo: '+ideasC.join('; ')+'.' : ''));
+    } else if(R.deficit>0){
       var ideas = [];
       if(R.quiero>0) ideas.push(`en este período llevas ${fmt(R.quiero)} en gastos «Quiero»`);
       var fq = R.fijos.filter(function(f){ return f.nivel==='quiero' && f.falta>0; });
