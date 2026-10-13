@@ -2595,6 +2595,7 @@ function netoParaHoy(m){
 }
 function publicarParaHoy(){
   try{
+    if(currentTab!=='contratista' && lsRaw('co_config')==null) return;   // sin configurar no hay nada que compartir (y no se borra lo que otro dispositivo publicó)
     let prev = null; try{ prev = JSON.parse(lsRaw('suite_calc_hoy')||'null'); }catch(e){}
     const out = {v:1, ts:Date.now(), tipo:currentTab, meses: isObj(prev) && isObj(prev.meses) ? Object.assign({}, prev.meses) : {}};
     Object.keys(out.meses).forEach(k=>{ if(k.slice(0,4)===String(ANIO)) delete out.meses[k]; });

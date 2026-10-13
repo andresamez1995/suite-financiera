@@ -237,22 +237,24 @@ function heroHTML(){
   const pct = def ? 100 : R.presupuestoHoy>0 ? Math.min(100, R.gastoHoy/R.presupuestoHoy*100) : (R.gastoHoy>0 ? 100 : 0);
   const semTxt = {verde:'Vas bien', amarillo:'Con cuidado', rojo:'En rojo'}[R.semaforo];
   let frase;
-  const dc = def && R.deficitColchon, quien = R.reservadoPor==='piso' ? 'tu piso' : 'tu colchón';
-  if(dc) frase = `Lo que entró en este período no alcanza para todo lo que falta pagar hasta el <b>${esc(U.fCorta(R.pago))}</b>: te faltan <b class="num" style="color:var(--danger)">${fmt(R.deficit)}</b>, que saldrían de ${quien} (<b>${fmt(R.reservado)}</b>). Mira abajo qué puedes recortar.`;
+  const dc = def && R.deficitColchon, quien = 'tu colchón', F = R.flujo;
+  if(dc) frase = `Tu sueldo deja ≈<b>${fmt0(F.cupo)}</b> para el día a día de este período y ya gastaste <b>${fmt(R.gastoPeriodo)}</b>. La plata todavía está en tus cuentas, pero lo que gastes de aquí al pago sale de tu colchón.`;
   else if(def) frase = `Lo que tienes no alcanza para todo lo que falta pagar hasta el <b>${esc(U.fCorta(R.pago))}</b>: te faltan <b class="num" style="color:var(--danger)">${fmt(R.deficit)}</b>. Mira abajo de dónde sale y qué puedes recortar.`;
+  else if(R.limita==='flujo') frase = `Tu sueldo deja ≈<b>${fmt0(F.cupo)}</b> para el día a día de este período (ya le quité los fijos). Llevas <b>${fmt(R.gastoPeriodo - R.gastoHoy)}</b> antes de hoy; quedan <b>${fmt(R.libreInicioHoy)}</b> que, repartidos en ${R.dias===1 ? '<b>1 día</b>' : `<b>${R.dias} días</b> (contando hoy)`}, son <b>${fmt0(R.presupuestoHoy)}</b> por día. Lo que hay de más en tus cuentas (≈${fmt0(R.colchonHoy)}) es tu colchón y no se toca.` +
+    (pasado && R.manana!==null ? ` Como hoy te pasaste, mañana serían ≈<b>${fmt0(R.manana)}</b> por día.` : '');
   else frase = `Tienes <b>${fmt(R.libreInicioHoy)}</b> para tus gastos del día a día hasta el <b>${esc(U.fCorta(R.fin))}</b>. Repartido en ${R.dias===1 ? '<b>1 día</b> (hoy)' : `<b>${R.dias} días</b> (contando hoy)`} son <b>${fmt0(R.presupuestoHoy)}</b> por día.` +
     (pasado && R.manana!==null ? ` Como hoy te pasaste, mañana serían ≈<b>${fmt0(R.manana)}</b> por día.` : (R.manana!==null && R.gastoHoy>0 ? ` Si no gastas más hoy, mañana tendrías ≈<b>${fmt0(R.manana)}</b> por día.` : ''));
   const sueldo = R.sueldo && R.sueldo.monto>0 ? `≈${fmt0(R.sueldo.monto + R.sueldo.extras.reduce((t,x)=>t+x.monto,0))}` : '';
   return `<div class="card s-hero hero">
-    <div class="lbl"><span class="sem ${R.semaforo}" aria-hidden="true"></span><span>${dc ? 'Hoy no hay presupuesto sin tocar '+quien : def ? 'Hoy no hay presupuesto libre' : pasado ? 'Hoy te pasaste' : 'Puedes gastar hoy'}</span><span class="sr-only">· ${semTxt}</span></div>
+    <div class="lbl"><span class="sem ${R.semaforo}" aria-hidden="true"></span><span>${dc ? 'Ya gastaste lo que te deja tu sueldo' : def ? 'Hoy no hay presupuesto libre' : pasado ? 'Hoy te pasaste' : 'Puedes gastar hoy'}</span><span class="sr-only">· ${semTxt}</span></div>
     <div class="grande ${pasado||def ? 'neg' : ''}">${pasado && !def ? '−'+fmt0(-R.quedaHoy) : grande}</div>
-    <div class="de">${def ? `Te faltan <b>${fmt(R.deficit)}</b> para llegar al pago${dc ? ' sin tocar '+quien : ''}` : `de <b>${fmt0(R.presupuestoHoy)}</b> para hoy · llevas <b>${fmt(R.gastoHoy)}</b>`}</div>
+    <div class="de">${dc ? `Vas <b>${fmt(R.deficit)}</b> por encima de lo que te deja tu sueldo` : def ? `Te faltan <b>${fmt(R.deficit)}</b> para llegar al pago` : `de <b>${fmt0(R.presupuestoHoy)}</b> para hoy · llevas <b>${fmt(R.gastoHoy)}</b>`}</div>
     <div class="barra ${pasado||def ? 'pasado' : ''}" role="img" aria-label="Llevas ${Math.round(pct)} % del presupuesto de hoy"><i style="width:${pct.toFixed(1)}%"></i></div>
     <div class="chips">
       <span class="chip">${ic('calendar',15)} Pago: <b>${esc(U.fCorta(R.pago))}</b>${sueldo ? ' · '+sueldo : ''}</span>
       <span class="chip">${ic('hoy',15)} Faltan <b>${R.dias}</b> ${R.dias===1?'día':'días'}</span>
       ${R.tipico ? `<span class="chip">${ic(R.presupuestoHoy>=R.tipico?'sube':'baja',15)} Un día normal: <b>${fmt0(R.tipico)}</b></span>` : ''}
-      ${R.reservado>0 ? `<span class="chip">${ic('shield',15)} ${R.reservadoPor==='piso' ? 'Piso' : 'Colchón'} protegido: <b>${fmt0(R.reservado)}</b></span>` : ''}
+      ${F ? `<span class="chip">${ic('briefcase',15)} Tu sueldo da para <b>${fmt0(F.ritmo)}</b>/día</span>` : ''}
     </div>
     <div class="frase">${frase}</div>
   </div>`;
@@ -261,6 +263,7 @@ function bienvenidaHTML(){
   return `<div class="card bienvenida"><h3>${ic('help',20)} Así funciona Hoy</h3>
     <ol><li>Toma la plata de tus cuentas del día a día (banco y efectivo; el ahorro no).</li>
     <li>Le suma lo que esperas recibir antes del pago y le resta tus gastos fijos, lo que vence de tus tarjetas y tu piso.</li>
+    <li>Además, no reparte más de lo que te deja tu sueldo: si en tus cuentas hay más, eso es tu colchón y no se toca.</li>
     <li>Lo que queda lo reparte en los días que faltan para tu sueldo. Si un día gastas más, los demás días bajan un poco; si gastas menos, suben.</li></ol>
     <div class="sub" style="margin-top:8px;">Para que el número sea fiel, marca tus <b>gastos fijos</b> (arriendo, servicios, cuotas) y tus <b>ingresos esperados</b> en Ajustes. Abajo te propongo algunos con base en tu historial.</div>
     <div class="aj-acc"><button class="btn btn-primary btn-mini" data-act="ajustes">Configurar</button><button class="btn btn-sec btn-mini" data-act="ok-bienvenida">Entendido</button></div></div>`;
@@ -280,6 +283,8 @@ function propuestasHTML(){
 }
 function desgloseHTML(){
   const filas = [], fila = (t, v, cls, raw) => filas.push(`<tr class="${cls||''}"><td>${t}</td><td class="v ${(!raw && v<0)?'neg':''}">${raw ? v : (v<0 ? '−'+fmt(-v) : fmt(v))}</td></tr>`);
+  const F = R.flujo, dosLimites = !!F;
+  if(dosLimites) filas.push(`<tr class="sub"><td colspan="2" style="padding:0 0 6px; font-size:12.5px;">Hoy mira dos cosas y usa la menor: <b>lo que hay</b> en tus cuentas y <b>lo que te deja tu sueldo</b>. Así no te gastas el colchón sin darte cuenta.</td></tr><tr><td colspan="2" style="font-weight:700; padding-top:8px;">1. Lo que hay en tus cuentas</td></tr>`);
   fila('Plata en tus cuentas del día a día', R.saldoHoy);
   R.cuentasDia.forEach(c=>fila(esc(c.nombre), c.hoy, 'sub'));
   if(R.programado) fila('Movimientos ya registrados con fecha antes del pago', R.programado);
@@ -289,11 +294,20 @@ function desgloseHTML(){
   R.fijos.filter(f=>f.falta>0).forEach(f=>fila(`${esc(f.nombre)} · ${esc(U.fCorta(f.fecha))}${f.estado==='atrasado'?' (atrasado)':''}`, -f.falta, 'sub'));
   if(R.totTarjetas) fila('− Tarjetas de crédito', -R.totTarjetas);
   R.tarjetas.filter(t=>t.compromiso>0).forEach(t=>fila(esc(t.nombre)+' (lo que vence + compras del período)', -t.compromiso, 'sub'));
-  if(R.reservadoPor==='colchon'){
-    fila('− Tu colchón (lo que tenías antes de que llegara el sueldo)', -R.colchon);
-    if(R.colchon!==R.colchonIni) fila(`Antes del sueldo tenías ${fmt(R.colchonIni)}; lo que pasaste al ahorro salió de ahí`, '', 'sub', true);
-    if(R.piso) fila(`Tu piso (${fmt(R.piso)}) ya queda cubierto por el colchón`, '', 'sub', true);
-  } else if(R.piso) fila('− Tu piso (lo que nunca tocas)', -R.piso);
+  if(R.piso) fila('− Tu piso (lo que nunca tocas)', -R.piso);
+  fila(dosLimites ? '= Alcanza para el día a día' : '= Libre para el día a día', R.libreCaja, 'tot');
+  if(dosLimites){
+    filas.push(`<tr><td colspan="2" style="font-weight:700; padding-top:16px;">2. Lo que te deja tu sueldo en este período</td></tr>`);
+    fila(`Tu sueldo${F.sueldoFuente==='calculadora' ? ' (de la Calculadora)' : F.sueldoFuente==='manual' ? ' (el que pusiste)' : ' (el que llegó)'}`, F.sueldo);
+    if(F.esperados) fila('+ Ingresos esperados del período', F.esperados);
+    if(F.extras) fila(`+ Otros ingresos del período (${F.nExtras})`, F.extras);
+    fila(`− Gastos fijos del período (${F.nFijos}, pagados y por pagar)`, -F.fijos);
+    fila('= Para el día a día del período', F.cupo, 'tot');
+    fila('− Lo que ya gastaste en el día a día (incluye hoy)', -R.gastoPeriodo);
+    fila('= Te deja tu sueldo', F.libre, 'tot');
+    filas.push(`<tr><td colspan="2" style="font-weight:700; padding-top:16px;">Manda el menor: ${R.limita==='flujo' ? 'lo que te deja tu sueldo' : 'lo que hay en tus cuentas'}</td></tr>`);
+    if(R.limita==='flujo' && R.colchonHoy>0) fila('Lo que hay de más es tu colchón (no se reparte)', `≈${fmt0(R.colchonHoy)}`, 'sub', true);
+  }
   fila('= Libre para el día a día', R.libre, 'tot');
   if(R.gastoHoy) fila('+ Lo que ya gastaste hoy (se descuenta abajo)', R.gastoHoy);
   fila(`÷ ${R.dias} ${R.dias===1?'día':'días'} hasta el pago (contando hoy)`, `${fmt(Math.max(0,R.libreInicioHoy))} ÷ ${R.dias}`, '', true);
@@ -302,7 +316,7 @@ function desgloseHTML(){
   const queda = R.deficit>0 ? 0 : R.quedaHoy;
   fila('= Te queda hoy', queda, (queda<0 || R.deficit>0) ? 'res neg' : 'res');
   return `<details class="card plegable" data-id="desglose"><summary>${ic('calc',20)} Así sale el número<span class="chev">${ic('chev-down',16)}</span></summary><table class="des">${filas.join('')}</table>
-    <div class="sub" style="margin-top:10px;">Los gastos fijos y lo de las tarjetas se apartan antes de repartir: así el arriendo o el extracto no te toman por sorpresa.${R.reservadoPor==='colchon' ? ' El colchón tampoco se reparte: el período vive de lo que entra en él, y lo que sobre al final se suma al colchón.' : ''} ${R.cuentasDia.length < R.cuentas.length ? 'Las cuentas de ahorro no cuentan (puedes cambiarlo en Ajustes).' : ''}</div></details>`;
+    <div class="sub" style="margin-top:10px;">Los gastos fijos y lo de las tarjetas se apartan antes de repartir: así el arriendo o el extracto no te toman por sorpresa.${dosLimites ? ' Lo que no gastes de lo que te deja tu sueldo se queda en tus cuentas y engorda el colchón.' : ''} ${R.cuentasDia.length < R.cuentas.length ? 'Las cuentas de ahorro no cuentan (puedes cambiarlo en Ajustes).' : ''}</div></details>`;
 }
 function periodoHTML(){
   const L = R.linea, n = L.length; if(!n) return '';
@@ -372,7 +386,7 @@ function pintarSim(){
   const s = HoyMotor.simular(R, simMonto, a ? {tipo:'tarjeta', cuotas:simCuotas, tasaM:a.tasaM||0} : {tipo:'cuenta'});
   const tit = {si:'Sí te alcanza', apretado:'Te alcanza, pero queda apretado', no:'No te alcanza'}[s.veredicto];
   let t = `<b style="font-family:var(--font-body); font-size:14.5px;">${tit}.</b> `;
-  if(s.veredicto==='no') t += R.libreTotal - s.impacto >= 0 ? `Sin tocar tu ${R.reservadoPor==='piso' ? 'piso' : 'colchón'} te faltarían <b>${fmt(s.falta)}</b> para llegar al pago del ${esc(U.fCorta(R.pago))}; tendrías que sacarlo de ahí.` : `Después de comprarlo te faltarían <b>${fmt(s.falta)}</b> para llegar al pago del ${esc(U.fCorta(R.pago))}.`;
+  if(s.veredicto==='no') t += R.libreCaja - s.impacto >= 0 ? `La plata está, pero pasarías ${fmt(s.falta)} por encima de lo que te deja tu sueldo: saldría de tu colchón. Sin colchón te faltarían <b>${fmt(s.falta)}</b> para llegar al pago del ${esc(U.fCorta(R.pago))}; tendrías que sacarlo de ahí.` : `Después de comprarlo te faltarían <b>${fmt(s.falta)}</b> para llegar al pago del ${esc(U.fCorta(R.pago))}.`;
   else t += `Tu presupuesto de hoy pasaría de <b>${fmt0(R.presupuestoHoy)}</b> a <b>${fmt0(s.presupuesto)}</b>${s.manana!==null ? ` y desde mañana tendrías ≈<b>${fmt0(s.manana)}</b> por día` : ''}.`;
   if(a && s.cuotas>1) t += `<br>A ${s.cuotas} cuotas: ≈<b>${fmt0(s.cuota)}</b> al mes. Aquí cuenta solo la primera; en total pagarías ≈<b>${fmt0(s.total)}</b>${s.intereses>0 ? ` (≈${fmt0(s.intereses)} de intereses)` : (a.tasaM>0 ? '' : ' (sin la tasa de la tarjeta: ponla en Gastos → Cuentas para estimar intereses)')}.`;
   else if(a) t += `<br>Con tarjeta de contado cuenta igual que si lo pagaras hoy: en el extracto te llega completo.`;
@@ -489,9 +503,9 @@ function abrirAjustes(sec){
     <div class="aj-sec" id="aj-tarjetas"><h4>Tarjetas de crédito</h4><div class="sub">Pon el día límite de pago de cada una. Si no lo pones, supongo que lo de tu último extracto se paga antes de tu sueldo.</div>
       ${tarjetas.length ? tarjetas.map(a=>`<div class="dos" style="align-items:end;"><div><label style="margin-top:10px;">${esc(a.name)}${a.diaCorte ? ` <span class="etq">corte día ${a.diaCorte}</span>` : ''}</label></div><div><label for="tj_${esc(a.id)}" class="sr-only">Día límite de pago de ${esc(a.name)}</label><input id="tj_${esc(a.id)}" data-tj="${esc(a.id)}" type="number" min="1" max="31" inputmode="numeric" placeholder="Día límite" value="${(c.tarjetas[a.id]||{}).dia||''}"></div></div>`).join('') : '<div class="vacio">No tienes tarjetas de crédito registradas.</div>'}</div>
     <div class="aj-sec" id="aj-colchon"><h4>Lo que no se reparte</h4>
-      <label class="radio"><input type="radio" name="ajCol" value="auto" ${c.colchon==='auto'?'checked':''}><span>Proteger mi colchón (recomendado)<small>Lo que tenías en tus cuentas del día a día antes de que llegara el sueldo no se reparte: cada período vive de lo que entra en él. Lo que sobre al final se suma al colchón.${R.ok && R.colchonIni!==null ? ` Hoy: ${fmt(R.colchon)}.` : ''}</small></span></label>
-      <label class="radio"><input type="radio" name="ajCol" value="no" ${c.colchon==='no'?'checked':''}><span>Repartir todo lo que hay en mis cuentas<small>Útil si no tienes colchón o si acabas de empezar a usar la app.</small></span></label>
-      <label for="ajPiso">Piso (opcional)</label><div class="sub" style="margin-bottom:6px;">Un mínimo que nunca se reparte. Si el colchón es mayor, manda el colchón.</div><input id="ajPiso" class="dinero" inputmode="decimal" placeholder="$0" value="${fmtInput(c.piso)}"></div>
+      <label class="radio"><input type="radio" name="ajCol" value="auto" ${c.colchon==='auto'?'checked':''}><span>No gastar más de lo que gano (recomendado)<small>Hoy usa lo menor entre lo que hay en tus cuentas y lo que te deja tu sueldo (sueldo + otros ingresos − fijos). Lo que hay de más es tu colchón: no se reparte y, si te sobra al final, crece.${R.ok && R.flujo ? ` Tu sueldo da para ≈${fmt0(R.flujo.ritmo)} por día.` : ''}</small></span></label>
+      <label class="radio"><input type="radio" name="ajCol" value="no" ${c.colchon==='no'?'checked':''}><span>Repartir todo lo que hay en mis cuentas<small>Útil si no tienes sueldo fijo o si quieres usar el colchón a propósito.</small></span></label>
+      <label for="ajPiso">Piso (opcional)</label><div class="sub" style="margin-bottom:6px;">Un mínimo que nunca se reparte de lo que hay en tus cuentas.</div><input id="ajPiso" class="dinero" inputmode="decimal" placeholder="$0" value="${fmtInput(c.piso)}"></div>
     ${c.descartados.length ? `<div class="aj-sec"><h4>Propuestas descartadas</h4><div class="sub">Dijiste que ${c.descartados.length===1 ? 'una no era' : c.descartados.length+' no eran'} fijo o ingreso.</div><div class="aj-acc"><button class="btn btn-sec btn-mini" data-aj="reset-desc">Volver a proponerlas</button></div></div>` : ''}
     <div class="aj-acc" style="margin-top:16px;"><button class="btn btn-primary btn-block" data-m="cerrar">Listo</button></div>`);
   const sh = $('modal-root').querySelector('.modal-sheet');
