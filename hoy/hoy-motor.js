@@ -227,14 +227,14 @@
       if(f.modo==='suma'){                                              // varios cobros en la misma subcategoría: se suman los del período (de sueldo a sueldo)
         var V = ventanasPeriodo(D, cfg, P, 3), enV = function(v){ return pagos.filter(function(e){ return e.date>=v.ini && e.date<=v.fin; }); };
         var cur = enV(V[0]), histS = V.slice(1).map(function(v){ return suma(enV(v), function(e){ return e.amount; }); }).filter(function(x){ return x>0; });
-        var est = histS.length ? r2(suma(histS)/histS.length) : f.monto, pag = suma(cur, function(e){ return e.amount; }), om = cfg.omitir[f.id+'|'+V[0].ini]===true, st, fa;
+        var est = f.monto>0 ? f.monto : (histS.length ? r2(suma(histS)/histS.length) : 0), pag = suma(cur, function(e){ return e.amount; }), om = cfg.omitir[f.id+'|'+V[0].ini]===true, st, fa;
         if(om){ st = 'omitido'; fa = 0; }
         else if(pag>0 && pag >= est*0.98 - 1){ st = 'pagado'; fa = 0; }
         else if(pag>0){ st = 'parcial'; fa = r2(est - pag); }
         else { st = 'pendiente'; fa = est; }
         pagos.forEach(function(e){ usados[e.id] = f.id; });          // todo lo de esa subcategoría es de este fijo, no gasto del día a día
         out.push({id:f.id, clave:f.id+'|'+V[0].ini, nombre:f.nombre, nivel:f.nivel, catId:f.catId, subId:f.subId, auto:null, deudaId:null, fecha:fin, ventana:V[0], modo:'suma', periodo:1,
-          conSueldo:false, estimado:est, estimadoFuente: histS.length ? 'promedio' : 'tuyo', nHist:histS.length, pagado:pag, falta:r2(Math.max(0,fa)), estado:st,
+          conSueldo:false, estimado:est, estimadoFuente: f.monto>0 ? 'tuyo' : 'promedio', nHist:histS.length, pagado:pag, falta:r2(Math.max(0,fa)), estado:st,
           pagos:cur.map(function(e){ return {id:e.id, date:e.date, amount:e.amount, desc:e.desc||'', accountId:e.accountId}; }), diaAuto:false});
         return;
       }
