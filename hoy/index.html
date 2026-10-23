@@ -351,9 +351,9 @@ function listasHTML(){
     else llegar.push(filaHTML('coins', esc(x.nombre), meta, '≈'+fmt(x.monto), x.estado==='por_llegar' ? '<span class="etq ok">contado</span>' : x.estado==='atrasado' ? '<span class="etq mal">atrasado</span>' : '<span class="etq">después del pago</span>'));
   });
   R.fijos.forEach(f=>{
-    const meta = `${esc(U.fCorta(f.fecha))} · ${f.modo==='variable' ? (f.estimadoFuente==='promedio' ? 'promedio de tus últimos pagos' : 'valor que pusiste') : 'valor fijo'}${f.auto==='deuda' ? ' · de tus deudas' : ''}`;
+    const meta = f.modo==='suma' ? `Varios pagos en el período · ${f.pagos.length} pagado${f.pagos.length===1?'':'s'} (${fmt(f.pagado)}) de ≈${fmt(f.estimado)}` : `${esc(U.fCorta(f.fecha))} · ${f.modo==='variable' ? (f.estimadoFuente==='promedio' ? 'promedio de tus últimos pagos' : 'valor que pusiste') : 'valor fijo'}${f.auto==='deuda' ? ' · de tus deudas' : ''}`;
     if(f.estado==='pagado' || f.estado==='omitido') pagado.push(filaHTML('check', esc(f.nombre), f.estado==='omitido' ? 'Marcado como resuelto' : 'Pagado el '+esc(U.fCorta(f.pagos[f.pagos.length-1].date)), f.estado==='omitido' ? '—' : fmt(f.pagado), '', 'fijo', f.clave));
-    else pagar.push(filaHTML('receipt', esc(f.nombre), meta, (f.modo==='variable' && f.estado!=='parcial' ? '≈' : '')+fmt(f.falta), f.estado==='atrasado' ? '<span class="etq mal">atrasado</span>' : f.estado==='parcial' ? '<span class="etq ojo">parcial</span>' : '', 'fijo', f.clave));
+    else pagar.push(filaHTML('receipt', esc(f.nombre), meta, ((f.modo==='variable' || f.modo==='suma') ? '≈' : '')+fmt(f.falta), f.estado==='atrasado' ? '<span class="etq mal">atrasado</span>' : f.estado==='parcial' ? '<span class="etq ojo">parcial</span>' : '', 'fijo', f.clave));
   });
   R.tarjetas.forEach(t=>{
     if(t.compromiso>0){
@@ -441,9 +441,9 @@ function abrirFijoDetalle(clave){
   const est = {pagado:'Pagado', omitido:'Marcado como resuelto', parcial:'Pago parcial', atrasado:'Atrasado', pendiente:'Pendiente'}[f.estado];
   const pagos = f.pagos.length ? f.pagos.map(p=>`<div class="fila"><span class="fx"><span class="ft">${esc(p.desc||f.nombre)}</span><span class="fm">${esc(U.fCorta(p.date))}</span></span><span class="fv">${fmt(p.amount)}</span></div>`).join('') : '<div class="vacio">Aún no hay pagos registrados en esta subcategoría para esta fecha.</div>';
   abrirModal(`<div class="modal-head"><h3>${esc(f.nombre)}</h3>${cerrarX}</div>
-    <div class="sub">${esc(est)} · toca el ${esc(U.fLarga(f.fecha))}${f.conSueldo ? ' (con el sueldo)' : ''}. ${f.modo==='variable' ? (f.estimadoFuente==='promedio' ? `Estimado ≈${fmt(f.estimado)}: promedio de tus últimos ${f.nHist} pagos.` : `Estimado ≈${fmt(f.estimado)} (el valor que pusiste).`) : `Valor fijo: ${fmt(f.estimado)}.`}${f.falta>0 ? ` Se aparta ${fmt(f.falta)}.` : ''}</div>
-    <div class="grupo-t" style="margin-top:14px;">Pagos de este ciclo</div>${pagos}
-    <div class="sub" style="margin-top:10px;">Se reconoce como pagado cuando registras en Gastos un gasto en <b>${esc(f.nombre)}</b> cerca de esa fecha (si pagas por partes, se suman).</div>
+    <div class="sub">${f.modo==='suma' ? `${esc(est)} · se suman todos los pagos del período (del ${esc(U.fCorta(f.ventana.ini))} al ${esc(U.fCorta(f.ventana.fin))}), cada uno una sola vez. ${f.estimadoFuente==='promedio' ? `Estimado ≈${fmt(f.estimado)}: ${f.nHist===1 ? 'lo que sumó tu período anterior' : `el promedio de lo que sumaron tus últimos ${f.nHist} períodos`}.` : `Estimado ≈${fmt(f.estimado)} (el valor que pusiste).`} Llevas ${fmt(f.pagado)}${f.falta>0 ? ` y se aparta ${fmt(f.falta)}` : ''}.` : `${esc(est)} · toca el ${esc(U.fLarga(f.fecha))}${f.conSueldo ? ' (con el sueldo)' : ''}. ${f.modo==='variable' ? (f.estimadoFuente==='promedio' ? `Estimado ≈${fmt(f.estimado)}: promedio de tus últimos ${f.nHist} pagos.` : `Estimado ≈${fmt(f.estimado)} (el valor que pusiste).`) : `Valor fijo: ${fmt(f.estimado)}.`}${f.falta>0 ? ` Se aparta ${fmt(f.falta)}.` : ''}`}</div>
+    <div class="grupo-t" style="margin-top:14px;">${f.modo==='suma' ? 'Pagos de este período' : 'Pagos de este ciclo'}</div>${pagos}
+    <div class="sub" style="margin-top:10px;">${f.modo==='suma' ? `Cuenta cada gasto que registras en <b>${esc(f.nombre)}</b> entre un sueldo y el siguiente. Los del período anterior no se repiten aquí.` : `Se reconoce como pagado cuando registras en Gastos un gasto en <b>${esc(f.nombre)}</b> cerca de esa fecha (si pagas por partes, se suman).`}</div>
     <div class="aj-acc">${f.estado!=='pagado' && f.estado!=='omitido' ? `<button class="btn btn-sec" data-mm="omitir">Ya lo pagué (no lo registré)</button>` : ''}${f.estado==='omitido' ? `<button class="btn btn-sec" data-mm="desomitir">Volver a apartarlo</button>` : ''}<button class="btn btn-sec" data-mm="editar">${f.auto==='deuda' ? 'Cambiar el día' : 'Editar este fijo'}</button><button class="btn btn-primary" data-mm="gastos">Ir a Gastos</button></div>`);
   $('modal-root').querySelector('.modal-sheet').addEventListener('click', ev=>{
     const b = ev.target.closest('[data-mm]'); if(!b) return;
@@ -476,7 +476,8 @@ function abrirAjustes(sec){
   const sigPagos = (()=>{ const out = []; let d = new Date(); for(let i=0;i<3;i++){ out.push(U.fCorta(HoyMotor.diaDePago(d.getFullYear(), d.getMonth(), c.pago))); d = new Date(d.getFullYear(), d.getMonth()+1, 1); } return out.join(', '); })();
   const calcMes = cr && cr.meses ? cr.meses[(R.pago||'').slice(0,7)] : null;
   const tipoCta = a => a.type || (/efectivo/i.test(a.name||'') ? 'efectivo' : 'banco');
-  const fijos = c.fijos.map(f=>`<div class="fila"><span class="fx"><span class="ft">${esc(nombreSub(f.catId, f.subId))}</span><span class="fm">${esc(PERIODOS[f.periodo])} · ${f.conSueldo ? 'con el sueldo' : 'día '+f.dia} · ${f.modo==='variable' ? 'varía'+(f.monto?' (≈'+fmt(f.monto)+')':'') : fmt(f.monto)}</span></span><button class="btn-link" data-aj="editar-fijo" data-k="${esc(f.id)}">Editar</button></div>`).join('');
+  const fmFijo = f => f.modo==='suma' ? 'Varios pagos en el período'+(f.monto ? ' · ≈'+fmt(f.monto) : '') : `${esc(PERIODOS[f.periodo])} · ${f.conSueldo ? 'con el sueldo' : 'día '+f.dia} · ${f.modo==='variable' ? 'varía'+(f.monto?' (≈'+fmt(f.monto)+')':'') : fmt(f.monto)}`;
+  const fijos = c.fijos.map(f=>`<div class="fila"><span class="fx"><span class="ft">${esc(nombreSub(f.catId, f.subId))}</span><span class="fm">${fmFijo(f)}</span></span><button class="btn-link" data-aj="editar-fijo" data-k="${esc(f.id)}">Editar</button></div>`).join('');
   const deudas = (G.debts||[]).filter(d=>d && Number(d.cuota)>0).map(d=>{ const o = c.deudas[d.id]||{}; return `<div class="fila"><span class="fx"><span class="ft">Cuota · ${esc(d.nombre||'Deuda')}${o.off ? ' <span class="etq">no se aparta</span>' : ''}</span><span class="fm">${fmt((Number(d.cuota)||0)+(Number(d.seguro)||0))} · ${o.conSueldo ? 'con el sueldo' : o.dia ? 'día '+o.dia : 'día según tus pagos'}</span></span><button class="btn-link" data-aj="editar-deuda" data-k="${esc(d.id)}">Editar</button></div>`; }).join('');
   const ingresos = c.ingresos.map(i=>`<div class="fila"><span class="fx"><span class="ft">${esc(i.nombre)}</span><span class="fm">Día ${i.dia} ±${i.margen} · ≈${fmt(i.monto)}${i.periodo>1 ? ' · '+esc(PERIODOS[i.periodo].toLowerCase()) : ''}</span></span><button class="btn-link" data-aj="editar-ingreso" data-k="${esc(i.id)}">Editar</button></div>`).join('');
   abrirModal(`<div class="modal-head"><h3>Ajustes de Hoy</h3>${cerrarX}</div>
@@ -536,6 +537,8 @@ function historialSub(catId, subId){
   const l = (G.expenses||[]).filter(e=>e && e.catId===catId && e.subId===subId && !e.noGasto).sort((a,b)=>a.date.localeCompare(b.date)).slice(-3);
   if(!l.length) return null;
   const v = l.map(e=>e.amount), prom = Math.round(v.reduce((t,x)=>t+x,0)/v.length*100)/100, varia = Math.max(...v)-Math.min(...v) > prom*0.05;
+  const desde = U.masDias(hoyISO(), -30), mes = (G.expenses||[]).filter(e=>e && e.catId===catId && e.subId===subId && !e.noGasto && e.date>desde && e.date<=hoyISO());
+  if(mes.length>=3) return {dia:+l[l.length-1].date.slice(8,10), monto: Math.round(mes.reduce((t,e)=>t+e.amount,0)*100)/100, modo:'suma', n:mes.length};
   return {dia:+l[l.length-1].date.slice(8,10), monto: varia ? prom : v[v.length-1], modo: varia ? 'variable' : 'fijo', n:l.length};
 }
 function editarFijo(id){
@@ -552,17 +555,20 @@ function editarFijo(id){
     <div id="efAnclaBox" ${f && f.periodo>1 ? '' : 'hidden'}><label for="efAncla">¿En qué mes toca el próximo (o tocó el último)?</label><input id="efAncla" type="month" value="${f && f.ancla ? f.ancla : mesSig}"></div>
     <label class="radio" style="margin-top:10px;"><input type="radio" name="efModo" value="fijo" ${!f || f.modo==='fijo' ? 'checked' : ''}><span>Siempre vale lo mismo<small>Arriendo, internet, suscripciones.</small></span></label>
     <label class="radio"><input type="radio" name="efModo" value="variable" ${f && f.modo==='variable' ? 'checked' : ''}><span>Varía cada vez<small>Servicios: se estima con el promedio de tus últimos 3 pagos.</small></span></label>
+    <label class="radio"><input type="radio" name="efModo" value="suma" ${f && f.modo==='suma' ? 'checked' : ''}><span>Son varios pagos en el período<small>Varias suscripciones o cobros que registras en esta misma subcategoría en días distintos. Se suman todos los de sueldo a sueldo (cada uno una vez) y se estima con lo que sumaron tus últimos períodos. No necesita día.</small></span></label>
     <label for="efMonto" id="efMontoLbl">Valor</label><input id="efMonto" class="dinero" inputmode="decimal" placeholder="$0" value="${f ? fmtInput(f.monto) : ''}">
     <div id="efErr" class="err"></div>
     <div class="aj-acc" style="margin-top:16px;">${f ? '<button class="btn btn-peligro" data-ef="borrar">Quitar</button>' : ''}<button class="btn btn-sec" data-ef="volver">Cancelar</button><button class="btn btn-primary" data-ef="guardar" style="flex:1">Guardar</button></div>`);
   const sug = ()=>{ const v = $('efSub').value; if(!v){ $('efSug').textContent = ''; return; } const [ci, si] = v.split('/'); const h = historialSub(ci, si);
     if(!h){ $('efSug').textContent = 'Aún no hay pagos registrados en esta subcategoría.'; return; }
-    $('efSug').textContent = `Tus últimos ${h.n} pagos: ${h.modo==='variable' ? 'varían (promedio '+fmt(h.monto)+')' : 'iguales ('+fmt(h.monto)+')'}, el último un día ${h.dia}.`;
+    $('efSug').textContent = h.modo==='suma' ? `En los últimos 30 días hay ${h.n} pagos en esta subcategoría (suman ${fmt(h.monto)}): te sirve «Son varios pagos en el período».` : `Tus últimos ${h.n} pagos: ${h.modo==='variable' ? 'varían (promedio '+fmt(h.monto)+')' : 'iguales ('+fmt(h.monto)+')'}, el último un día ${h.dia}.`;
     if(!f){ $('efDia').value = h.dia; $('efMonto').value = fmtInput(h.monto); document.querySelector(`input[name=efModo][value=${h.modo}]`).checked = true; modoLbl(); } };
-  const modoLbl = ()=>{ const v = (document.querySelector('input[name=efModo]:checked')||{}).value; $('efMontoLbl').textContent = v==='variable' ? 'Valor estimado (se usa mientras no haya pagos registrados)' : 'Valor'; };
+  const modoLbl = ()=>{ const v = (document.querySelector('input[name=efModo]:checked')||{}).value, su = v==='suma';
+    $('efMontoLbl').textContent = su ? 'Total estimado del período (se usa mientras no haya períodos anteriores con pagos)' : v==='variable' ? 'Valor estimado (se usa mientras no haya pagos registrados)' : 'Valor';
+    $('efDia').disabled = su || $('efSueldo').checked; $('efPer').disabled = su; $('efSueldo').disabled = su; $('efSueldo').closest('label').style.opacity = su ? .45 : 1; if(su){ $('efPer').value = '1'; $('efAnclaBox').hidden = true; } };
   sug(); modoLbl();
   const sh = $('modal-root').querySelector('.modal-sheet');
-  const sueldoUI = ()=>{ $('efDia').disabled = $('efSueldo').checked; }; sueldoUI();
+  const sueldoUI = ()=>{ $('efDia').disabled = $('efSueldo').checked || ((document.querySelector('input[name=efModo]:checked')||{}).value==='suma'); }; sueldoUI();
   sh.addEventListener('change', ev=>{ if(ev.target.id==='efSueldo') sueldoUI(); if(ev.target.id==='efSub') sug(); if(ev.target.id==='efPer') $('efAnclaBox').hidden = ev.target.value==='1'; if(ev.target.name==='efModo') modoLbl(); });
   sh.addEventListener('click', async ev=>{
     const b = ev.target.closest('[data-ef]'); if(!b) return;
@@ -572,14 +578,14 @@ function editarFijo(id){
     const sv = $('efSub').value, dia = parseInt($('efDia').value,10), per = parseInt($('efPer').value,10), modo = (document.querySelector('input[name=efModo]:checked')||{}).value, monto = dinero($('efMonto').value), ancla = $('efAncla').value;
     if(!sv) return err('Elige la subcategoría.');
     if(cfgLeer().fijos.some(x=>x.catId+'/'+x.subId===sv && x.id!==id)) return err('Esa subcategoría ya es un gasto fijo. Edita el que ya tienes.');
-    const conSueldo = $('efSueldo').checked;
-    if(!conSueldo && !(dia>=1 && dia<=31)) return err('Escribe el día del mes (1 a 31).');
+    const conSueldo = modo!=='suma' && $('efSueldo').checked;
+    if(modo!=='suma' && !conSueldo && !(dia>=1 && dia<=31)) return err('Escribe el día del mes (1 a 31).');
     if(modo==='fijo' && !(monto>0)) return err('Escribe el valor.');
     if(per>1 && !/^\d{4}-\d{2}$/.test(ancla)) return err('Elige el mes en que toca.');
     const [catId, subId] = sv.split('/');
     cfgCambiar(c=>{
       if(c.fijos.some(x=>x.catId===catId && x.subId===subId && x.id!==id)) return;
-      const nuevo = {id: id || nuevoId('f'), catId, subId, periodo:per, ancla: per>1 ? ancla : '', dia: dia>=1 && dia<=31 ? dia : 30, modo, monto, conSueldo, creado: f ? f.creado : hoyISO()};
+      const nuevo = {id: id || nuevoId('f'), catId, subId, periodo: modo==='suma' ? 1 : per, ancla: per>1 && modo!=='suma' ? ancla : '', dia: dia>=1 && dia<=31 ? dia : 30, modo, monto, conSueldo, creado: f ? f.creado : hoyISO()};
       if(f) c.fijos = c.fijos.map(x=>x.id===id ? nuevo : x); else c.fijos.push(nuevo);
     });
     toast('Gasto fijo guardado.'); abrirAjustes('fijos');

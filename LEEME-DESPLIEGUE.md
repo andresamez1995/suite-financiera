@@ -13,6 +13,7 @@
 
 **Ajustes a Hoy (v31):**
 - **No gastar más de lo que ganas (v32).** Hoy mira dos límites y usa el menor: *lo que hay* en tus cuentas (menos fijos, tarjetas y piso) y *lo que te deja tu sueldo* en el período (sueldo normal de la Calculadora + otros ingresos − fijos del período − lo que ya gastaste en el día a día). Lo que hay de más es tu colchón: no se reparte y, si sobra al final, crece. «Así sale el número» muestra los dos cálculos. Un mes con sueldo incompleto (por ejemplo, el de ingreso) no te deja en $0: se usa tu sueldo normal. Se puede apagar en Ajustes («Lo que no se reparte»).
+- **Varios pagos en el período (v33):** para subcategorías donde registras varios cobros en días distintos (por ejemplo, todas las suscripciones en «Membresías»): se suman los gastos de sueldo a sueldo, cada uno una sola vez, y se estima con lo que sumaron tus últimos períodos. También se corrigió que un pago cercano al ciclo siguiente se sumara al ciclo actual.
 - **«Lo pago con el sueldo»** en gastos fijos y cuotas de deudas (por ejemplo, el leasing): cae el día de pago y se aparta en el período que ese sueldo abre, no en el actual.
 - **Un día normal** reemplaza a «Sueles gastar»: el promedio diario sin el 10 % de días más caros, para que un domicilio grande o una compra de una vez no lo inflen.
 - **Cierre del período:** los primeros días de cada período te dice cuánto sobró (o cuánto salió del colchón) en el anterior.

@@ -74,7 +74,7 @@
     var per = function(v){ v = Math.round(numOk(v,1)); return [1,2,3,4,6,12].indexOf(v)>=0 ? v : 1; };
     o.fijos = (Array.isArray(c.fijos) ? c.fijos : []).filter(function(f){ return esObj(f) && f.id && f.catId; }).map(function(f){ return {
       id: idOk(f.id), catId: idOk(f.catId), subId: idOk(f.subId||''), periodo: per(f.periodo), ancla: MONTH_RE.test(f.ancla) ? f.ancla : '',
-      dia: Math.min(31, Math.max(1, Math.round(numOk(f.dia, 1)))), modo: f.modo==='variable' ? 'variable' : 'fijo', monto: Math.max(0, r2(numOk(f.monto,0))),
+      dia: Math.min(31, Math.max(1, Math.round(numOk(f.dia, 1)))), modo: ['variable','suma'].indexOf(f.modo)>=0 ? f.modo : 'fijo', monto: Math.max(0, r2(numOk(f.monto,0))),
       creado: DATE_RE.test(f.creado) ? f.creado : '2000-01-01', conSueldo: f.conSueldo===true }; });
     o.ingresos = (Array.isArray(c.ingresos) ? c.ingresos : []).filter(function(f){ return esObj(f) && f.id && String(f.nombre||'').trim(); }).map(function(f){ return {
       id: idOk(f.id), nombre: String(f.nombre).slice(0,60), dia: Math.min(31, Math.max(1, Math.round(numOk(f.dia, 1)))), margen: Math.min(15, Math.max(0, Math.round(numOk(f.margen, 5)))),
@@ -200,6 +200,16 @@
     });
     return res;
   }
+  // Ventanas de sueldo a sueldo: la actual y las anteriores (cada una empieza el día que llegó ese sueldo, o su día de pago)
+  function ventanasPeriodo(D, cfg, P, n){
+    var out = [{ini:P.inicio, fin:masDias(P.pago,-1)}], ini = P.inicio, idx = mIdx(P.pagoAnterior || P.inicio);
+    for(var k=1; k<=n; k++){
+      var pk = pagoDelMes(idx-k, cfg.pago); if(pk >= ini) continue;
+      var ll = llegadaSueldo(D, cfg, pk, masDias(ini,-1)), s0 = ll && ll.date < ini ? ll.date : pk;
+      out.push({ini:s0, fin:masDias(ini,-1)}); ini = s0;
+    }
+    return out;
+  }
   function fijosDelPeriodo(D, cfg, P, hoy){
     var lista = [], vistos = {};
     cfg.fijos.forEach(function(f){ vistos[f.catId+'/'+f.subId] = 1; lista.push(Object.assign({}, f, {nombre:nombreSub(D, f.catId, f.subId), nivel:(D.sub[f.catId+'/'+f.subId]||{sub:{}}).sub.nivel||'debo'})); });
@@ -214,9 +224,24 @@
     var fin = masDias(P.pago,-1), out = [], usados = {};
     lista.forEach(function(f){
       var pagos = D.expenses.filter(function(e){ return e.catId===f.catId && (!f.subId || e.subId===f.subId) && e.date<=fin; });
+      if(f.modo==='suma'){                                              // varios cobros en la misma subcategoría: se suman los del período (de sueldo a sueldo)
+        var V = ventanasPeriodo(D, cfg, P, 3), enV = function(v){ return pagos.filter(function(e){ return e.date>=v.ini && e.date<=v.fin; }); };
+        var cur = enV(V[0]), histS = V.slice(1).map(function(v){ return suma(enV(v), function(e){ return e.amount; }); }).filter(function(x){ return x>0; });
+        var est = histS.length ? r2(suma(histS)/histS.length) : f.monto, pag = suma(cur, function(e){ return e.amount; }), om = cfg.omitir[f.id+'|'+V[0].ini]===true, st, fa;
+        if(om){ st = 'omitido'; fa = 0; }
+        else if(pag>0 && pag >= est*0.98 - 1){ st = 'pagado'; fa = 0; }
+        else if(pag>0){ st = 'parcial'; fa = r2(est - pag); }
+        else { st = 'pendiente'; fa = est; }
+        pagos.forEach(function(e){ usados[e.id] = f.id; });          // todo lo de esa subcategoría es de este fijo, no gasto del día a día
+        out.push({id:f.id, clave:f.id+'|'+V[0].ini, nombre:f.nombre, nivel:f.nivel, catId:f.catId, subId:f.subId, auto:null, deudaId:null, fecha:fin, ventana:V[0], modo:'suma', periodo:1,
+          conSueldo:false, estimado:est, estimadoFuente: histS.length ? 'promedio' : 'tuyo', nHist:histS.length, pagado:pag, falta:r2(Math.max(0,fa)), estado:st,
+          pagos:cur.map(function(e){ return {id:e.id, date:e.date, amount:e.amount, desc:e.desc||'', accountId:e.accountId}; }), diaAuto:false});
+        return;
+      }
       // historial: ocurrencias de los últimos 6 ciclos para estimar los variables
-      var ocsH = ocurrencias(f, masDias(P.inicio, -31*f.periodo*4 - 31), fin, cfg.pago).filter(function(o){ return o<=fin; });
-      var asig = asignarCercano(pagos.filter(function(e){ return e.date >= masDias(ocsH[0]||fin, -31*f.periodo); }), ocsH);
+      var ocsA = ocurrencias(f, masDias(P.inicio, -31*f.periodo*4 - 31), masDias(fin, 31*f.periodo), cfg.pago).filter(function(o){ return o<=masDias(fin, 31*f.periodo); });
+      var ocsH = ocsA.filter(function(o){ return o<=fin; });
+      var asig = asignarCercano(pagos.filter(function(e){ return e.date >= masDias(ocsA[0]||fin, -31*f.periodo); }), ocsA);
       var hist = ocsH.filter(function(o){ return o < P.inicio && asig[o].length; }).slice(-3).map(function(o){ return suma(asig[o], function(e){ return e.amount; }); });
       var estimado = f.modo==='variable' && hist.length ? r2(suma(hist)/hist.length) : f.monto;
       if(f.modo==='variable' && !hist.length && !(f.monto>0)) estimado = 0;
@@ -461,6 +486,8 @@
         if(f.estado==='pagado' && f.modo==='variable' && f.estimado>0){
           var d = r2(f.estimado - f.pagado);
           if(Math.abs(d) >= Math.max(1000, f.estimado*0.03)) out.push({tipo:'fijo', flujo:true, delta:d, texto: d<0 ? `${f.nombre} llegó más caro: ${fmt(f.pagado)} (estimado ≈${fmt(f.estimado)}). Son ${fmt(-d)} menos para el día a día.` : `${f.nombre} salió más barato: ${fmt(f.pagado)} (estimado ≈${fmt(f.estimado)}). Te quedan ${fmt(d)} más.`, monto:d});
+        } else if(f.modo==='suma' && f.pagado > f.estimado + 1){
+          out.push({tipo:'fijo', flujo:true, delta:-r2(f.pagado-f.estimado), texto:`En ${f.nombre} ya van ${fmt(f.pagado)} este período: ${fmt(f.pagado-f.estimado)} más de lo estimado (${fmt(f.estimado)}).`, monto:-r2(f.pagado-f.estimado)});
         } else if(f.modo==='fijo' && f.pagado > f.estimado + 1){
           out.push({tipo:'fijo', flujo:true, delta:-r2(f.pagado-f.estimado), texto:`Pagaste ${f.nombre} por ${fmt(f.pagado)}, ${fmt(f.pagado-f.estimado)} más de lo que tenías puesto (${fmt(f.estimado)}).`, monto:-r2(f.pagado-f.estimado)});
         }
@@ -525,7 +552,7 @@
     });
     R.fijos.forEach(function(f){
       if(f.estado==='atrasado') add('ojo', `${f.nombre} era para el ${fCorta(f.fecha)} y no aparece pagado. Lo sigo apartando (${fmt(f.falta)}). Si ya lo pagaste, regístralo en Gastos o márcalo como resuelto.`, {fijo:f.clave});
-      else if(f.estado==='pendiente' && entre(R.hoy, f.fecha)<=2) add('info', `${entre(R.hoy, f.fecha)===0 ? 'Hoy' : entre(R.hoy, f.fecha)===1 ? 'Mañana' : 'Pasado mañana'} toca ${f.nombre} (${f.modo==='variable'?'≈':''}${fmt(f.falta)}). Ya está apartado.`);
+      else if(f.estado==='pendiente' && f.modo!=='suma' && entre(R.hoy, f.fecha)>=0 && entre(R.hoy, f.fecha)<=2) add('info', `${entre(R.hoy, f.fecha)===0 ? 'Hoy' : entre(R.hoy, f.fecha)===1 ? 'Mañana' : 'Pasado mañana'} toca ${f.nombre} (${f.modo==='variable'?'≈':''}${fmt(f.falta)}). Ya está apartado.`);
       else if(f.estado==='parcial') add('info', `De ${f.nombre} pagaste ${fmt(f.pagado)}; sigo apartando lo que falta (${fmt(f.falta)}).`);
     });
     R.esperados.forEach(function(x){
