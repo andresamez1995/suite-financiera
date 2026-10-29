@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Política de privacidad · Mi Suite Financiera</title>
+<link rel="stylesheet" href="suite-tema.css">
+<script src="suite-tema.js"></script>
+<script src="suite-config.js"></script>
+<style>
+  body{max-width:720px; margin:0 auto; padding:24px 18px 60px; line-height:1.65; font-size:15px;}
+  h1{font-size:24px; margin:0 0 4px;} h2{font-size:17px; margin:26px 0 6px;} p,li{color:var(--text-dim);} li{margin:4px 0;}
+  a{color:var(--accent); font-weight:600;} .fecha{font-size:13px; color:var(--text-faint);}
+</style>
+</head>
+<body>
+<p><a href="./">← Volver a la app</a></p>
+<h1>Política de privacidad</h1>
+<p class="fecha">Mi Suite Financiera · Última actualización: octubre de 2026</p>
+
+<h2>En pocas palabras</h2>
+<p>Mi Suite Financiera es una herramienta personal. Tus datos financieros se guardan <b>en tu dispositivo</b>. Si activas la sincronización, se guarda además una copia en <b>tu propio Google Drive</b>. La app no tiene servidor propio: quien la publica no recibe, no almacena ni puede ver tus datos.</p>
+
+<h2>Qué datos maneja la app</h2>
+<ul>
+  <li>Los que tú escribes: ingresos, gastos, cuentas, deudas, categorías, datos de contrato y de nómina.</li>
+  <li>Si activas la sincronización: tu correo de Google (solo para mostrarte con qué cuenta estás conectado).</li>
+</ul>
+
+<h2>Dónde se guardan</h2>
+<ul>
+  <li><b>En tu dispositivo:</b> en el almacenamiento del navegador. Si borras los datos del navegador, se pierden, salvo que tengas la sincronización o un respaldo.</li>
+  <li><b>En tu Google Drive (opcional):</b> en la carpeta oculta de datos de la aplicación. Solo esta app puede abrirla; tú no la ves en tu lista de archivos y nadie más tiene acceso.</li>
+</ul>
+
+<h2>Permiso que se pide a Google</h2>
+<p>Únicamente <b>«Ver y administrar los datos de configuración de esta aplicación en tu Google Drive»</b> (<code>drive.appdata</code>). No puede leer, modificar ni borrar tus demás archivos de Drive. El uso de la información recibida de las API de Google se ajusta a la <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Política de datos de usuario de los servicios de API de Google</a>, incluidos los requisitos de uso limitado.</p>
+
+<h2>Qué no hace la app</h2>
+<ul>
+  <li>No envía tus datos a servidores del desarrollador ni de terceros distintos de Google (y solo si activas la sincronización).</li>
+  <li>No usa analítica, publicidad ni rastreadores.</li>
+  <li>No vende ni comparte información.</li>
+</ul>
+
+<h2>Tus derechos y cómo ejercerlos</h2>
+<ul>
+  <li><b>Desconectar:</b> menú ⋯ → Sincronizar con Google Drive → «Desconectar este dispositivo».</li>
+  <li><b>Borrar tu copia en Drive:</b> en la misma pantalla, «Borrar mis datos de Drive». También puedes hacerlo desde tu cuenta de Google: Seguridad → Tus conexiones con aplicaciones de terceros → Mi Suite Financiera → Eliminar conexión y datos.</li>
+  <li><b>Borrar los datos del dispositivo:</b> Ajustes del gestor → «Borrar todo y empezar limpio», o borrar los datos del sitio en tu navegador.</li>
+  <li><b>Exportar:</b> menú ⋯ → «Exportar respaldo» y, en el gestor, «Historial completo (.csv)».</li>
+</ul>
+
+<h2>Datos personales en Colombia</h2>
+<p>De acuerdo con la Ley 1581 de 2012, la información personal que registras la administras tú, en tu dispositivo y en tu cuenta de Google. La app no la recolecta ni la trata en servidores propios. Esta política describe el funcionamiento técnico de la app y no constituye asesoría legal.</p>
+
+<h2>Responsabilidad</h2>
+<p>La app es una herramienta de referencia: no es asesoría financiera, tributaria ni legal, y se ofrece «tal cual», sin garantías. Verifica siempre las cifras con tu banco, tu empleador o un profesional.</p>
+
+<h2>Cambios</h2>
+<p>Si esta política cambia, se actualizará en esta página con una nueva fecha.</p>
+<section id="contacto" hidden><h2>Contacto</h2><p>Para preguntas sobre esta política: <span id="contactoMail"></span></p></section>
+<script>(function(){ var c=(window.SUITE_CONFIG&&window.SUITE_CONFIG.contacto)||""; if(c){ var s=document.getElementById("contacto"); s.hidden=false; var a=document.createElement("a"); a.href="mailto:"+c; a.textContent=c; document.getElementById("contactoMail").appendChild(a); } })();</script>
+</body>
+</html>

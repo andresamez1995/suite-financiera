@@ -1,0 +1,60 @@
+{
+  "id": "./",
+  "name": "Mi Suite Financiera",
+  "short_name": "Mi Suite",
+  "description": "Calculadora salarial, gestor de gastos y cuánto puedes gastar hoy. Funciona sin conexión.",
+  "lang": "es-CO",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0E2642",
+  "theme_color": "#0E2642",
+  "categories": [
+    "finance",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Calculadora salarial",
+      "short_name": "Calculadora",
+      "url": "./?app=calculadora"
+    },
+    {
+      "name": "Gestor de gastos",
+      "short_name": "Gastos",
+      "url": "./?app=gastos"
+    },
+    {
+      "name": "¿Cuánto puedo gastar hoy?",
+      "short_name": "Hoy",
+      "url": "./?app=hoy"
+    }
+  ]
+}
