@@ -19,6 +19,8 @@
 - **Cierre del período:** los primeros días de cada período te dice cuánto sobró (o cuánto salió del colchón) en el anterior.
 - «Te queda hoy» sale en rojo cuando es negativo.
 
+**Día de corte de novedades (v35):** en Contrato, debajo de «Pagar recargos… mes vencido», puedes poner el día de corte de tu empresa. Con 20, la nómina de octubre trae lo del 21 de septiembre al 20 de octubre: el neto, la retención, la prima y las cesantías quedan con el devengado real de cada mes (probado contra el desprendible de octubre de CTG: 8.274.286 devengados, 128.000 de retención). «Comparar con mi desprendible» ya no sugiere el procedimiento 2 cuando te pagaron más: eso sube la retención por la base, no por el procedimiento.
+
 ## Novedades anteriores (auditoría de octubre de 2026)
 **Fallos corregidos**
 - *Importar respaldo* ya funciona: antes la confirmación volvía a abrir el selector de archivos sin terminar nunca.
